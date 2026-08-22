@@ -95,9 +95,18 @@ tasks:
   serve:
     desc: HTTP 서버 기동
     cmds:
-      - go run . serve
+      - go run .
 
-  worker:
-    desc: 큐 워커 기동 (ADR-0006)
+  dev:
+    desc: 로컬 시크릿을 읽어 서버 기동 (로그인 확인용)
+    dotenv: ['../module.secrets/project/cheese-lake/recap/local/.env']
     cmds:
-      - go run . worker
+      - go run .
+
+  dev:tokens:
+    desc: dev 와 같되 토큰 원문을 화면에 노출한다
+    dotenv: ['../module.secrets/project/cheese-lake/recap/local/.env']
+    env:
+      RECAP_DEBUG_TOKENS: '1'
+    cmds:
+      - go run .

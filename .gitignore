@@ -1,6 +1,7 @@
 # 빌드 산출물
 backend/bin/
 backend/recap
+backend/backend
 backend/coverage.*
 *.exe
 *.test
