@@ -5,63 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>recap · 로그인 확인</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="./styles/tokens.css">
+<link rel="stylesheet" href="./styles/components.css">
 <style>
-  :root {
-    --ground: #edf0ec; --surface: #fdfdfc; --sunk: #e4e9e4;
-    --ink: #16231c; --muted: #5a6b60; --faint: #8a9990;
-    --rule: #d2dad3;
-    --accent: #12805a; --accent-soft: #d6eae0;
-    --bad: #a33b2a; --bad-soft: #f2dfda;
-    --mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --ground: #0f1512; --surface: #171f1a; --sunk: #131a16;
-      --ink: #e3ebe5; --muted: #91a297; --faint: #6b7c72;
-      --rule: #2a342e;
-      --accent: #41d69c; --accent-soft: #163025;
-      --bad: #e27a62; --bad-soft: #321d18;
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--ground); color: var(--ink);
-    font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-    word-break: keep-all;
-  }
-  main { max-width: 56rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; display: flex; flex-direction: column; gap: 2rem; }
-  h1 { font-size: 1.6rem; margin: 0 0 .35rem; letter-spacing: -.01em; }
-  h2 { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--faint);
-       font-family: var(--mono); font-weight: 600; margin: 0 0 .75rem; }
-  p { margin: 0; }
-  .sub { color: var(--muted); font-size: .9rem; }
-  .card { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 1.25rem 1.35rem; }
-  .row { display: flex; flex-wrap: wrap; gap: .6rem; }
-  button {
-    font: inherit; font-weight: 600; font-size: .9rem; cursor: pointer;
-    border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
-    padding: .55rem 1.05rem; border-radius: 5px;
-  }
-  button.primary { background: var(--accent); border-color: var(--accent); color: var(--ground); }
-  button:hover { border-color: var(--accent); }
-  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  dl { margin: 0; display: grid; grid-template-columns: minmax(7rem, auto) 1fr; gap: .45rem 1.1rem; }
-  dt { font-family: var(--mono); font-size: .74rem; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); padding-top: .18rem; }
-  dd { margin: 0; font-family: var(--mono); font-size: .84rem; overflow-wrap: anywhere; }
-  .pill { display: inline-block; font-family: var(--mono); font-size: .72rem; font-weight: 600;
-          padding: .12rem .5rem; border-radius: 3px; background: var(--accent-soft); color: var(--accent); }
-  .pill.bad { background: var(--bad-soft); color: var(--bad); }
-  table { width: 100%; border-collapse: collapse; font-size: .84rem; }
-  th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
-  th { font-family: var(--mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;
-       color: var(--faint); background: var(--sunk); }
-  tbody tr:last-child td { border-bottom: none; }
-  td.u { font-family: var(--mono); color: var(--muted); overflow-wrap: anywhere; }
-  td.n { font-family: var(--mono); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
-  pre { margin: 0; padding: 1rem 1.1rem; font-family: var(--mono); font-size: .8rem; line-height: 1.6;
-        overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
-  .err { background: var(--bad-soft); color: var(--bad); border-radius: 5px; padding: .7rem .9rem; font-size: .88rem; }
+  /* 이 화면에만 필요한 레이아웃. 디자인 시스템에는 넣지 않는다 */
+  main { max-width: 54rem; margin: 0 auto; padding: 2.5rem 1.25rem 5rem;
+         display: flex; flex-direction: column; gap: 1.5rem; }
+  h1 { font-size: 1.375rem; font-weight: 700; letter-spacing: -.02em; margin: 0 0 .3rem; }
+  .sub { color: var(--muted-foreground); margin: 0; }
+  .row { display: flex; flex-wrap: wrap; gap: .625rem; }
+  /* 키-값 목록 — 확인용 화면에만 쓰는 형태라 컴포넌트로 승격하지 않았다 */
+  .kv { margin: 0; display: grid; grid-template-columns: minmax(6.5rem, auto) 1fr; gap: .4rem 1rem; }
+  .kv dt { font-family: var(--font-mono); font-size: .6875rem; letter-spacing: .06em;
+           text-transform: uppercase; color: var(--muted-foreground); padding-top: .15rem; }
+  .kv dd { margin: 0; font-family: var(--font-mono); font-size: .8125rem; overflow-wrap: anywhere; }
+  .wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg);
+          background: var(--card); }
+  pre { margin: 0; padding: 1rem 1.1rem; overflow-x: auto; background: var(--card);
+        border: 1px solid var(--border); border-radius: var(--radius-lg);
+        font-family: var(--font-mono); font-size: .8125rem; line-height: 1.6; }
   .hide { display: none; }
 </style>
 </head>
@@ -73,40 +36,38 @@
     <p class="sub">치지직 OAuth 여덟 단계가 실제로 도는지 보는 화면입니다. 토큰은 확인 직후 폐기됩니다.</p>
   </header>
 
-  <section class="card">
-    <h2>동작</h2>
-    <div class="row">
-      <button class="primary" onclick="location.href='/auth/login'">치지직으로 로그인</button>
-      <button onclick="logout()">로그아웃</button>
-      <button onclick="checkLives()">Client 인증 확인 (라이브 목록)</button>
-      <button onclick="load()">새로고침</button>
+  <div class="row">
+    <button class="btn btn-default" onclick="location.href='/auth/login'">치지직으로 로그인</button>
+    <button class="btn btn-outline" onclick="logout()">로그아웃</button>
+    <button class="btn btn-outline" onclick="checkLives()">Client 인증 확인</button>
+    <button class="btn btn-ghost" onclick="load()">새로고침</button>
+  </div>
+
+  <div id="err-box" class="hide">
+    <div class="alert alert-destructive">
+      <p class="alert-title">서버에 닿지 못했습니다</p>
+      <p class="alert-description" id="err"></p>
     </div>
-  </section>
-
-  <section id="err-box" class="hide"><p class="err" id="err"></p></section>
+  </div>
 
   <section class="card">
-    <h2>세션</h2>
-    <div id="session"></div>
+    <div class="card-header"><h2 class="card-title">세션</h2></div>
+    <div class="card-content" id="session"></div>
   </section>
 
   <section class="card">
-    <h2>마지막 로그인</h2>
-    <div id="login"></div>
+    <div class="card-header"><h2 class="card-title">마지막 로그인</h2></div>
+    <div class="card-content" id="login"></div>
   </section>
 
   <section id="trace-box" class="hide">
-    <h2>오간 호출</h2>
-    <div class="wrap"><table>
-      <thead><tr><th>#</th><th>단계</th><th>요청</th><th>상태</th><th>ms</th></tr></thead>
+    <div class="wrap"><table class="table">
+      <thead><tr><th>#</th><th>단계</th><th>요청</th><th>상태</th><th style="text-align:right">ms</th></tr></thead>
       <tbody id="trace"></tbody>
     </table></div>
   </section>
 
-  <section id="lives-box" class="hide">
-    <h2>라이브 목록 응답</h2>
-    <pre id="lives"></pre>
-  </section>
+  <section id="lives-box" class="hide"><pre id="lives"></pre></section>
 
 </main>
 
@@ -114,14 +75,14 @@
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
 
-function dl(pairs) {
+function kv(pairs) {
   const rows = pairs.filter(([, v]) => v !== undefined && v !== null && v !== "")
     .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join("");
-  return rows ? `<dl>${rows}</dl>` : `<p class="sub">없음</p>`;
+  return rows ? `<dl class="kv">${rows}</dl>` : `<p class="sub">없음</p>`;
 }
 
-function pill(ok, yes, no) {
-  return `<span class="pill${ok ? "" : " bad"}">${ok ? yes : no}</span>`;
+function badge(ok, yes, no) {
+  return `<span class="badge ${ok ? "badge-default" : "badge-destructive"}">${ok ? yes : no}</span>`;
 }
 
 async function load() {
@@ -129,19 +90,19 @@ async function load() {
   try {
     d = await (await fetch("/api/session")).json();
   } catch (e) {
-    return fail("서버에 닿지 못했습니다: " + e.message);
+    return fail(e.message);
   }
   $("err-box").classList.add("hide");
 
   $("session").innerHTML = d.loggedIn
-    ? dl([
-        ["상태", pill(true, "로그인됨")],
+    ? kv([
+        ["상태", badge(true, "로그인됨")],
         ["channelId", esc(d.session.channelId)],
         ["channelName", esc(d.session.channelName)],
         ["쿠키 만료", esc(new Date(d.session.expiresAt).toLocaleString("ko-KR"))],
       ])
-    : dl([
-        ["상태", pill(false, "", "로그인 안 됨")],
+    : kv([
+        ["상태", badge(false, "", "로그인 안 됨")],
         ["sessionError", esc(d.sessionError)],
         ["redirectUri", esc(d.config.redirectUri)],
         ["clientId", esc(d.config.clientId)],
@@ -154,10 +115,10 @@ async function load() {
     return;
   }
 
-  $("login").innerHTML = dl([
-    ["결과", r.ok ? pill(true, "성공") : pill(false, "", "실패")],
+  $("login").innerHTML = kv([
+    ["결과", r.ok ? badge(true, "성공") : badge(false, "", "실패")],
     ["시각", esc(new Date(r.at).toLocaleString("ko-KR"))],
-    ["오류", r.error ? `<span style="color:var(--bad)">${esc(r.error)}</span>` : ""],
+    ["오류", r.error ? `<span style="color:var(--destructive)">${esc(r.error)}</span>` : ""],
     ["channelId", esc(r.user?.channelId)],
     ["channelName", esc(r.user?.channelName)],
     ["tokenType", esc(r.tokenType)],
@@ -165,9 +126,9 @@ async function load() {
     ["scope", esc(r.scope)],
     ["accessToken", esc(r.accessToken || r.accessTokenPreview)],
     ["refreshToken", esc(r.refreshToken || r.refreshTokenPreview)],
-    ["폐기", r.revoked ? pill(true, "완료") : pill(false, "", "실패")],
-    ["폐기 확인", r.revoked ? (r.revokeVerified ? pill(true, "토큰 죽음 확인") : pill(false, "", "아직 살아 있음")) : ""],
-    ["폐기 오류", r.revokeError ? `<span style="color:var(--bad)">${esc(r.revokeError)}</span>` : ""],
+    ["폐기", r.revoked ? badge(true, "완료") : badge(false, "", "실패")],
+    ["폐기 확인", r.revoked ? (r.revokeVerified ? badge(true, "토큰 죽음 확인") : badge(false, "", "아직 살아 있음")) : ""],
+    ["폐기 오류", r.revokeError ? `<span style="color:var(--destructive)">${esc(r.revokeError)}</span>` : ""],
   ]);
 
   renderTrace(r.trace);
@@ -179,11 +140,11 @@ function renderTrace(trace) {
   $("trace-box").classList.remove("hide");
   $("trace").innerHTML = steps.map(s => `
     <tr>
-      <td class="n">${s.seq}</td>
-      <td>${esc(s.label)}${s.detail ? `<br><span class="sub" style="color:${s.ok ? "var(--muted)" : "var(--bad)"}">${esc(s.detail)}</span>` : ""}</td>
-      <td class="u">${s.method ? esc(s.method) + " " : ""}${esc(s.url)}</td>
-      <td>${s.status ? pill(s.ok, s.status, s.status || "실패") : pill(s.ok, "-", "실패")}</td>
-      <td class="n">${s.tookMs ?? ""}</td>
+      <td class="tabular">${s.seq}</td>
+      <td>${esc(s.label)}${s.detail ? `<br><span style="color:${s.ok ? "var(--muted-foreground)" : "var(--destructive)"}">${esc(s.detail)}</span>` : ""}</td>
+      <td style="color:var(--muted-foreground); overflow-wrap:anywhere">${s.method ? esc(s.method) + " " : ""}${esc(s.url)}</td>
+      <td>${s.status ? badge(s.ok, s.status, s.status || "실패") : badge(s.ok, "-", "실패")}</td>
+      <td class="tabular" style="text-align:right">${s.tookMs ?? ""}</td>
     </tr>`).join("");
 }
 
