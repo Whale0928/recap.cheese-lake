@@ -1,0 +1,215 @@
+/* recap 컴포넌트 층
+ *
+ * shadcn/ui 의 컴포넌트 어휘를 소재 그대로 옮긴 것이다. 클래스 이름과 variant 이름을
+ * shadcn 과 맞춰 두었으므로, 나중에 React + Tailwind 로 옮길 때 이 파일을 버리고
+ * 같은 이름의 shadcn 컴포넌트를 끼우면 화면이 그대로 산다.
+ *
+ * Tailwind 를 쓰지 않는 이유는 하나다 — 프론트 스택이 아직 안 정해졌고(ADR-0004),
+ * Tailwind 는 빌드를 요구한다. 토큰(tokens.css)이 규격을 지키고 있으므로
+ * 이 파일만 갈아끼우면 되지 결정을 앞당길 필요가 없다.
+ *
+ * 의존 관계: tokens.css 를 먼저 불러와야 한다.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  word-break: keep-all;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible { outline: none; }
+
+/* ── Button ────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  height: 2.25rem; padding: 0 1rem;
+  border: 1px solid transparent; border-radius: var(--radius-md);
+  font-family: inherit; font-size: 0.875rem; font-weight: 500; line-height: 1;
+  white-space: nowrap; cursor: pointer;
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+.btn:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+}
+.btn:disabled { opacity: .5; pointer-events: none; }
+
+.btn-default     { background: var(--primary); color: var(--primary-foreground); }
+.btn-default:hover { background: color-mix(in oklab, var(--primary) 90%, transparent); }
+.btn-secondary   { background: var(--secondary); color: var(--secondary-foreground); }
+.btn-secondary:hover { background: color-mix(in oklab, var(--secondary) 80%, transparent); }
+.btn-outline     { background: var(--background); color: var(--foreground); border-color: var(--border); }
+.btn-outline:hover { background: var(--accent); color: var(--accent-foreground); }
+.btn-ghost       { background: transparent; color: var(--foreground); }
+.btn-ghost:hover { background: var(--accent); color: var(--accent-foreground); }
+.btn-destructive { background: var(--destructive); color: var(--destructive-foreground); }
+.btn-destructive:hover { background: color-mix(in oklab, var(--destructive) 90%, transparent); }
+.btn-link        { background: none; color: var(--primary); text-decoration: underline;
+                   text-underline-offset: 4px; height: auto; padding: 0; }
+
+.btn-sm   { height: 2rem; padding: 0 .75rem; font-size: .8125rem; }
+.btn-lg   { height: 2.5rem; padding: 0 1.5rem; }
+.btn-icon { width: 2.25rem; padding: 0; }
+
+/* ── Card ──────────────────────────────────────────────────── */
+.card {
+  display: flex; flex-direction: column; gap: 1.5rem;
+  background: var(--card); color: var(--card-foreground);
+  border: 1px solid var(--border); border-radius: var(--radius-xl);
+  padding: 1.5rem 0;
+}
+.card-header  { padding: 0 1.5rem; display: flex; flex-direction: column; gap: .375rem; }
+.card-title   { font-size: 1rem; font-weight: 600; line-height: 1.4; margin: 0; }
+.card-description { font-size: .875rem; color: var(--muted-foreground); margin: 0; }
+.card-content { padding: 0 1.5rem; }
+.card-footer  { padding: 0 1.5rem; display: flex; align-items: center; gap: .5rem; }
+
+/* ── Badge ─────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: .25rem;
+  padding: .125rem .5rem; border: 1px solid transparent; border-radius: var(--radius-md);
+  font-size: .75rem; font-weight: 500; line-height: 1.4; white-space: nowrap;
+}
+.badge-default     { background: var(--primary); color: var(--primary-foreground); }
+.badge-secondary   { background: var(--secondary); color: var(--secondary-foreground); }
+.badge-outline     { color: var(--foreground); border-color: var(--border); }
+.badge-destructive { background: var(--destructive); color: var(--destructive-foreground); }
+
+/* ── Input · Label · Checkbox ──────────────────────────────── */
+.label { font-size: .875rem; font-weight: 500; line-height: 1.4; }
+.input {
+  display: block; width: 100%; height: 2.25rem; padding: 0 .75rem;
+  background: transparent; color: var(--foreground);
+  border: 1px solid var(--input); border-radius: var(--radius-md);
+  font-family: inherit; font-size: .875rem;
+}
+.input::placeholder { color: var(--muted-foreground); }
+.input:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+}
+.checkbox {
+  appearance: none; -webkit-appearance: none;
+  width: 1rem; height: 1rem; flex: 0 0 auto; position: relative; cursor: pointer;
+  background: var(--background); border: 1px solid var(--input); border-radius: var(--radius-sm);
+}
+.checkbox:checked { background: var(--primary); border-color: var(--primary); }
+.checkbox:checked::after {
+  content: "\2713"; position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-size: .7rem; font-weight: 700; line-height: 1; color: var(--primary-foreground);
+}
+.checkbox:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+}
+
+/* 동의 체크 줄 — 02단계 동의 화면의 실제 형태.
+   라벨이 길어 줄바꿈되므로 wrap 이 아니라 flex:1 로 흘려야 체크박스가 안 어긋난다 */
+.check-row { display: flex; align-items: flex-start; gap: .625rem; cursor: pointer; }
+.check-row > .checkbox { margin-top: .3rem; }
+.check-row > span { flex: 1; font-size: .875rem; font-weight: 400; line-height: 1.6; }
+.check-row .hint { color: var(--muted-foreground); }
+
+/* ── Progress · Separator · Skeleton ───────────────────────── */
+.progress {
+  position: relative; height: .5rem; width: 100%; overflow: hidden;
+  border-radius: 9999px; background: color-mix(in oklab, var(--primary) 20%, transparent);
+}
+.progress > i {
+  display: block; height: 100%; width: 0; background: var(--primary);
+  transition: width .5s cubic-bezier(.4, 0, .2, 1);
+}
+.separator { height: 1px; width: 100%; background: var(--border); border: 0; margin: 0; }
+.skeleton  { background: var(--accent); border-radius: var(--radius-md); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .5; } }
+
+/* ── Alert ─────────────────────────────────────────────────── */
+.alert {
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: .75rem 1rem; font-size: .875rem; background: var(--card); color: var(--card-foreground);
+}
+.alert-title { font-weight: 600; margin: 0 0 .25rem; }
+.alert-description { color: var(--muted-foreground); margin: 0; }
+.alert-destructive { color: var(--destructive); border-color: color-mix(in oklab, var(--destructive) 40%, transparent); }
+.alert-destructive .alert-description { color: color-mix(in oklab, var(--destructive) 85%, var(--foreground)); }
+
+/* ── Table ─────────────────────────────────────────────────── */
+.table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.table th, .table td { padding: .5rem .75rem; text-align: left; vertical-align: middle; }
+.table th { height: 2.5rem; color: var(--muted-foreground); font-weight: 500; }
+.table tbody tr { border-top: 1px solid var(--border); }
+.table tbody tr:hover { background: color-mix(in oklab, var(--muted) 50%, transparent); }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* ══ recap 전용 블록 ══════════════════════════════════════════
+   위는 shadcn 어휘, 아래는 이 서비스에만 있는 것들이다.
+   본문 열두 조각이 실제로 요구하는 형태만 넣었다. */
+
+/* 01·03 총량·넓이 — 큰 숫자 하나 */
+.stat-value {
+  font-family: var(--font-display); font-size: 2.5rem; font-weight: 700; line-height: 1.05;
+  letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--foreground);
+}
+.stat-value small { font-size: .9rem; font-weight: 400; color: var(--muted-foreground); margin-left: .15rem; }
+.stat-label {
+  font-family: var(--font-mono); font-size: .6875rem; font-weight: 500; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted-foreground);
+}
+
+/* 04·09 쏠림·변화 — 순위 바 */
+.rank { list-style: none; margin: 0; padding: 0; }
+.rank > li { display: grid; grid-template-columns: 1.5rem 1fr; gap: .75rem; align-items: center;
+             padding: .5rem 0; border-bottom: 1px solid var(--border); }
+.rank > li:last-child { border-bottom: none; }
+.rank .rank-no { font-family: var(--font-mono); font-size: .75rem; color: var(--muted-foreground);
+                 font-variant-numeric: tabular-nums; }
+.rank .rank-head { display: flex; justify-content: space-between; align-items: baseline;
+                   gap: 1rem; margin-bottom: .3rem; }
+.rank .rank-head strong { font-weight: 500; }
+.rank .rank-head span { font-family: var(--font-mono); font-size: .75rem;
+                        color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.rank .rank-bar { height: .375rem; border-radius: 9999px; background: var(--muted); overflow: hidden; }
+.rank .rank-bar > i { display: block; height: 100%; width: 0; border-radius: 9999px;
+                      background: var(--chart-1); transition: width .9s cubic-bezier(.2,.8,.3,1); }
+/* 4위 아래는 색을 죽여 상위 셋만 눈에 들어오게 한다 */
+.rank > li:nth-child(n+4) .rank-bar > i { background: var(--chart-3); }
+
+/* 05·06 한 해의 결·리듬 — 히트맵 격자 */
+.heat { overflow-x: auto; }
+.heat-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 10px);
+             gap: 2px; min-width: max-content; }
+.heat-cell { width: 10px; height: 10px; border-radius: 2px; background: var(--heat-0); }
+.heat-cell[data-level="1"] { background: var(--heat-1); }
+.heat-cell[data-level="2"] { background: var(--heat-2); }
+.heat-cell[data-level="3"] { background: var(--heat-3); }
+.heat-cell[data-level="4"] { background: var(--heat-4); }
+.heat-legend { display: flex; align-items: center; gap: .3rem; margin-top: .7rem;
+               font-family: var(--font-mono); font-size: .6875rem; color: var(--muted-foreground); }
+
+/* 03단계 대기 화면 — 단계형 진행 */
+.steps { list-style: none; margin: 0; padding: 0; }
+.steps > li { display: grid; grid-template-columns: 1.25rem 1fr auto; gap: .625rem;
+              align-items: center; padding: .5rem .125rem; font-size: .875rem;
+              color: var(--muted-foreground); border-bottom: 1px solid var(--border); }
+.steps > li:last-child { border-bottom: none; }
+.steps .step-mark { font-family: var(--font-mono); text-align: center; color: var(--border); }
+.steps .step-ms { font-family: var(--font-mono); font-size: .6875rem;
+                  font-variant-numeric: tabular-nums; opacity: 0; }
+.steps > li[data-state="running"] { color: var(--foreground); }
+.steps > li[data-state="running"] .step-mark { color: var(--primary); animation: step-blink 1.1s steps(2, end) infinite; }
+.steps > li[data-state="done"] .step-mark { color: var(--primary); }
+.steps > li[data-state="done"] .step-ms { opacity: 1; }
+@keyframes step-blink { 50% { opacity: .25; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+                           transition-duration: .01ms !important; }
+}

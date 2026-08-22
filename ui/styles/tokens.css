@@ -1,0 +1,146 @@
+/* recap 디자인 토큰
+ *
+ * shadcn/ui 의 토큰 규격을 그대로 따르되 색만 recap 것으로 바꿨다.
+ * 변수 이름이 같으므로 나중에 Tailwind + shadcn/ui 로 옮길 때
+ * 이 파일을 globals.css 의 @layer base 에 그대로 붙이고
+ * @theme inline 으로 매핑하면 컴포넌트가 손대지 않고 붙는다.
+ *
+ * 색 공간은 oklch 다. 명도(L)가 지각적으로 균일해서
+ * 라이트·다크 짝을 맞출 때 값만 보고도 대비를 가늠할 수 있다.
+ *
+ * 테마는 세 가지 상태를 모두 다룬다.
+ *   1) :root                      — 라이트 (기본)
+ *   2) prefers-color-scheme: dark — 시스템 설정을 따르는 경우
+ *   3) .dark / .light             — 이용자가 직접 고른 경우 (시스템보다 우선)
+ * 색을 미디어 쿼리 안에서만 정의하면 1번 상태에서 비어 버리므로
+ * 반드시 :root 에 전부 정의하고 나머지는 덮어쓰기만 한다.
+ */
+
+:root {
+  /* 바탕과 글자 */
+  --background:            oklch(0.9898 0.0028 128.49);
+  --foreground:            oklch(0.2218 0.0208 156.36);
+
+  /* 면 — 카드와 팝오버는 바탕보다 한 단계 위로 뜬다 */
+  --card:                  oklch(1.0000 0 0);
+  --card-foreground:       oklch(0.2218 0.0208 156.36);
+  --popover:               oklch(1.0000 0 0);
+  --popover-foreground:    oklch(0.2218 0.0208 156.36);
+
+  /* 주색 — 치즈레이크 그린 */
+  --primary:               oklch(0.5329 0.1101 163.11);
+  --primary-foreground:    oklch(0.9805 0.0066 160.08);
+
+  /* 보조면 — 눌린 배경, 표 머리, 비활성 */
+  --secondary:             oklch(0.9537 0.0079 139.44);
+  --secondary-foreground:  oklch(0.2742 0.0231 157.47);
+  --muted:                 oklch(0.9537 0.0079 139.44);
+  --muted-foreground:      oklch(0.5140 0.0258 159.56);
+
+  /* 강조면 — 선택·호버처럼 주색을 옅게 깔 때 */
+  --accent:                oklch(0.9289 0.0200 164.57);
+  --accent-foreground:     oklch(0.3899 0.0802 162.60);
+
+  /* 파괴적 동작 — 동의 철회, 삭제 */
+  --destructive:           oklch(0.4917 0.1400 31.33);
+  --destructive-foreground: oklch(0.9805 0.0066 160.08);
+
+  /* 선과 초점 */
+  --border:                oklch(0.9088 0.0110 149.85);
+  --input:                 oklch(0.9088 0.0110 149.85);
+  --ring:                  oklch(0.5329 0.1101 163.11);
+
+  /* 차트 — 범주형. 서로 구분되는 것이 목적이다 */
+  --chart-1:               oklch(0.5329 0.1101 163.11);
+  --chart-2:               oklch(0.6460 0.1108 164.23);
+  --chart-3:               oklch(0.7559 0.0781 165.52);
+  --chart-4:               oklch(0.6953 0.1050 92.35);
+  --chart-5:               oklch(0.5841 0.0979 308.42);
+
+  /* 히트맵 — 범주가 아니라 강도 램프다. shadcn 에 없는 recap 전용 토큰.
+     명도가 단조 감소하도록 잡아서 흑백으로 인쇄해도 순서가 유지된다 */
+  --heat-0:                oklch(0.9318 0.0085 145.51);
+  --heat-1:                oklch(0.8924 0.0294 163.16);
+  --heat-2:                oklch(0.7966 0.0681 164.01);
+  --heat-3:                oklch(0.6677 0.1062 164.06);
+  --heat-4:                oklch(0.5329 0.1101 163.11);
+
+  /* 모서리 — 하나만 바꾸면 전부 따라온다 */
+  --radius:                0.5rem;
+  --radius-sm:             calc(var(--radius) * 0.6);
+  --radius-md:             calc(var(--radius) * 0.8);
+  --radius-lg:             var(--radius);
+  --radius-xl:             calc(var(--radius) * 1.4);
+
+  /* 서체 — Pretendard 는 OFL 이라 OG 카드 임베딩까지 자유롭다 */
+  --font-sans:  "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+                system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-mono:  "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-display: var(--font-sans);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background:            oklch(0.1792 0.0111 163.39);
+    --foreground:            oklch(0.9361 0.0109 149.85);
+    --card:                  oklch(0.2174 0.0142 154.02);
+    --card-foreground:       oklch(0.9361 0.0109 149.85);
+    --popover:               oklch(0.2174 0.0142 154.02);
+    --popover-foreground:    oklch(0.9361 0.0109 149.85);
+    --primary:               oklch(0.7860 0.1461 162.98);
+    --primary-foreground:    oklch(0.1846 0.0246 161.10);
+    --secondary:             oklch(0.2618 0.0169 155.88);
+    --secondary-foreground:  oklch(0.9361 0.0109 149.85);
+    --muted:                 oklch(0.2618 0.0169 155.88);
+    --muted-foreground:      oklch(0.6883 0.0258 158.85);
+    --accent:                oklch(0.2739 0.0358 165.11);
+    --accent-foreground:     oklch(0.8581 0.1178 164.88);
+    --destructive:           oklch(0.7092 0.1275 34.58);
+    --destructive-foreground: oklch(0.1846 0.0246 161.10);
+    --border:                oklch(0.3160 0.0205 153.54);
+    --input:                 oklch(0.3160 0.0205 153.54);
+    --ring:                  oklch(0.7860 0.1461 162.98);
+    --chart-1:               oklch(0.7860 0.1461 162.98);
+    --chart-2:               oklch(0.6541 0.1262 163.06);
+    --chart-3:               oklch(0.8581 0.1178 164.88);
+    --chart-4:               oklch(0.7516 0.1054 75.76);
+    --chart-5:               oklch(0.6860 0.0922 306.95);
+    --heat-0:                oklch(0.2451 0.0171 155.75);
+    --heat-1:                oklch(0.3442 0.0481 165.55);
+    --heat-2:                oklch(0.4769 0.0809 164.74);
+    --heat-3:                oklch(0.6193 0.1128 164.39);
+    --heat-4:                oklch(0.7860 0.1461 162.98);
+  }
+}
+
+.dark {
+  --background:            oklch(0.1792 0.0111 163.39);
+  --foreground:            oklch(0.9361 0.0109 149.85);
+  --card:                  oklch(0.2174 0.0142 154.02);
+  --card-foreground:       oklch(0.9361 0.0109 149.85);
+  --popover:               oklch(0.2174 0.0142 154.02);
+  --popover-foreground:    oklch(0.9361 0.0109 149.85);
+  --primary:               oklch(0.7860 0.1461 162.98);
+  --primary-foreground:    oklch(0.1846 0.0246 161.10);
+  --secondary:             oklch(0.2618 0.0169 155.88);
+  --secondary-foreground:  oklch(0.9361 0.0109 149.85);
+  --muted:                 oklch(0.2618 0.0169 155.88);
+  --muted-foreground:      oklch(0.6883 0.0258 158.85);
+  --accent:                oklch(0.2739 0.0358 165.11);
+  --accent-foreground:     oklch(0.8581 0.1178 164.88);
+  --destructive:           oklch(0.7092 0.1275 34.58);
+  --destructive-foreground: oklch(0.1846 0.0246 161.10);
+  --border:                oklch(0.3160 0.0205 153.54);
+  --input:                 oklch(0.3160 0.0205 153.54);
+  --ring:                  oklch(0.7860 0.1461 162.98);
+  --chart-1:               oklch(0.7860 0.1461 162.98);
+  --chart-2:               oklch(0.6541 0.1262 163.06);
+  --chart-3:               oklch(0.8581 0.1178 164.88);
+  --chart-4:               oklch(0.7516 0.1054 75.76);
+  --chart-5:               oklch(0.6860 0.0922 306.95);
+  --heat-0:                oklch(0.2451 0.0171 155.75);
+  --heat-1:                oklch(0.3442 0.0481 165.55);
+  --heat-2:                oklch(0.4769 0.0809 164.74);
+  --heat-3:                oklch(0.6193 0.1128 164.39);
+  --heat-4:                oklch(0.7860 0.1461 162.98);
+}

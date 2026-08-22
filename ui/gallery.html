@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>recap 스타일 갤러리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="./styles/tokens.css">
+<link rel="stylesheet" href="./styles/components.css">
+<style>
+  /* 갤러리 자체의 레이아웃. 디자인 시스템에는 들어가지 않는다 */
+  main { max-width: 60rem; margin: 0 auto; padding: 2.5rem 1.25rem 6rem;
+         display: flex; flex-direction: column; gap: 3rem; }
+  .head { display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+  .head h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; margin: 0 0 .3rem; }
+  .head p { margin: 0; color: var(--muted-foreground); max-width: 52ch; }
+  section > h2 { font-family: var(--font-mono); font-size: .6875rem; font-weight: 600;
+                 letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground);
+                 margin: 0 0 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+  .row { display: flex; flex-wrap: wrap; gap: .625rem; align-items: center; }
+  .stack { display: flex; flex-direction: column; gap: 1.25rem; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: .5rem; }
+  .sw { border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+  .sw .chip { height: 2.75rem; }
+  .sw .nm { padding: .35rem .5rem; font-family: var(--font-mono); font-size: .625rem;
+            color: var(--muted-foreground); background: var(--card); }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; }
+  code { font-family: var(--font-mono); font-size: .8em;
+         background: var(--muted); padding: .1em .35em; border-radius: var(--radius-sm); }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="head">
+    <div style="flex:1; min-width:18rem">
+      <h1>recap 스타일 갤러리</h1>
+      <p>토큰은 <code>styles/tokens.css</code>, 컴포넌트는 <code>styles/components.css</code>에 있다.
+         변수 이름과 variant 이름을 shadcn/ui 규격에 맞춰 두었으므로,
+         나중에 React + Tailwind 로 옮길 때 화면을 다시 그리지 않아도 된다.</p>
+    </div>
+    <button class="btn btn-outline btn-sm" id="theme">테마 전환</button>
+  </div>
+
+  <section>
+    <h2>토큰</h2>
+    <div class="swatches" id="swatches"></div>
+  </section>
+
+  <section>
+    <h2>Button</h2>
+    <div class="stack">
+      <div class="row">
+        <button class="btn btn-default">치지직으로 로그인</button>
+        <button class="btn btn-secondary">secondary</button>
+        <button class="btn btn-outline">outline</button>
+        <button class="btn btn-ghost">ghost</button>
+        <button class="btn btn-destructive">동의 철회</button>
+        <button class="btn btn-link">link</button>
+      </div>
+      <div class="row">
+        <button class="btn btn-default btn-sm">sm</button>
+        <button class="btn btn-default">default</button>
+        <button class="btn btn-default btn-lg">lg</button>
+        <button class="btn btn-outline btn-icon" aria-label="새로고침">↻</button>
+        <button class="btn btn-default" disabled>disabled</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Badge</h2>
+    <div class="row">
+      <span class="badge badge-default">상위 4%</span>
+      <span class="badge badge-secondary">37 채널</span>
+      <span class="badge badge-outline">2026</span>
+      <span class="badge badge-destructive">동의 필요</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Form — 02단계 동의 화면에 쓰인다</h2>
+    <div class="card" style="max-width:30rem">
+      <div class="card-header">
+        <h3 class="card-title">기록을 보여드려도 될까요</h3>
+        <p class="card-description">동의하지 않으시면 아무것도 보여드리지 않습니다. 언제든 거두실 수 있습니다.</p>
+      </div>
+      <div class="card-content stack" style="gap:.75rem">
+        <label class="check-row">
+          <input type="checkbox" class="checkbox">
+          <span>제 채팅 기록을 저에게 보여주는 것에 동의합니다
+            <span class="hint">(개인정보 보호법 제15조제1항제1호)</span></span>
+        </label>
+        <div>
+          <label class="label" for="ch">채널 아이디로 확인</label>
+          <input class="input" id="ch" placeholder="a5352cc0…" style="margin-top:.35rem">
+        </div>
+      </div>
+      <div class="card-footer">
+        <button class="btn btn-default">동의하고 계속</button>
+        <button class="btn btn-ghost">동의하지 않음</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Progress · Alert · Skeleton</h2>
+    <div class="stack" style="max-width:34rem">
+      <div class="progress"><i style="width:62%"></i></div>
+      <div class="alert">
+        <p class="alert-title">채팅 기록이 없습니다</p>
+        <p class="alert-description">시청만 하고 채팅하지 않으면 아무것도 남지 않습니다. 오류가 아닙니다.</p>
+      </div>
+      <div class="alert alert-destructive">
+        <p class="alert-title">동의를 거두었습니다</p>
+        <p class="alert-description">화면이 닫혔습니다. 다시 동의하시면 언제든 열립니다.</p>
+      </div>
+      <div class="stack" style="gap:.5rem">
+        <div class="skeleton" style="height:1.75rem; width:45%"></div>
+        <div class="skeleton" style="height:.875rem; width:80%"></div>
+        <div class="skeleton" style="height:.875rem; width:65%"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>본문 조각 — 01·03 총량과 넓이</h2>
+    <div class="grid2">
+      <div class="card"><div class="card-content">
+        <p class="stat-label">보낸 채팅</p>
+        <p class="stat-value" style="margin:.5rem 0 .35rem">12,480</p>
+        <p style="margin:0; color:var(--muted-foreground)">11,170명 중 <strong style="color:var(--primary)">56위</strong></p>
+      </div></div>
+      <div class="card"><div class="card-content">
+        <p class="stat-label">머문 채널</p>
+        <p class="stat-value" style="margin:.5rem 0 .35rem">37<small>곳</small></p>
+        <p style="margin:0; color:var(--muted-foreground)">그중 <strong style="color:var(--primary)">3곳</strong>에 절반이 몰렸습니다</p>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>본문 조각 — 04 쏠림</h2>
+    <ol class="rank" id="rank">
+      <li><span class="rank-no">01</span><div><div class="rank-head"><strong>채널 A</strong><span>3,204</span></div><div class="rank-bar"><i data-w="100"></i></div></div></li>
+      <li><span class="rank-no">02</span><div><div class="rank-head"><strong>채널 B</strong><span>2,118</span></div><div class="rank-bar"><i data-w="66"></i></div></div></li>
+      <li><span class="rank-no">03</span><div><div class="rank-head"><strong>채널 C</strong><span>1,540</span></div><div class="rank-bar"><i data-w="48"></i></div></div></li>
+      <li><span class="rank-no">04</span><div><div class="rank-head"><strong>채널 D</strong><span>884</span></div><div class="rank-bar"><i data-w="27"></i></div></div></li>
+      <li><span class="rank-no">05</span><div><div class="rank-head"><strong>채널 E</strong><span>430</span></div><div class="rank-bar"><i data-w="13"></i></div></div></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>본문 조각 — 05 한 해의 결</h2>
+    <div class="heat">
+      <div class="heat-grid" id="heat"></div>
+      <div class="heat-legend">
+        <span>적음</span>
+        <span class="heat-cell" data-level="0"></span><span class="heat-cell" data-level="1"></span>
+        <span class="heat-cell" data-level="2"></span><span class="heat-cell" data-level="3"></span>
+        <span class="heat-cell" data-level="4"></span>
+        <span>많음</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>03단계 대기 화면</h2>
+    <div class="card" style="max-width:32rem">
+      <div class="card-header">
+        <h3 class="card-title">기록을 모으고 있습니다</h3>
+        <p class="card-description">처음 한 번만 걸립니다. 창을 닫으셔도 계속 진행됩니다.</p>
+      </div>
+      <div class="card-content">
+        <div class="progress" style="margin-bottom:1.1rem"><i id="wbar"></i></div>
+        <ul class="steps" id="steps">
+          <li data-state="waiting"><span class="step-mark">·</span><span>본인 확인</span><span class="step-ms"></span></li>
+          <li data-state="waiting"><span class="step-mark">·</span><span>채팅 기록 조회</span><span class="step-ms"></span></li>
+          <li data-state="waiting"><span class="step-mark">·</span><span>채널별 집계</span><span class="step-ms"></span></li>
+          <li data-state="waiting"><span class="step-mark">·</span><span>문장 다듬기</span><span class="step-ms"></span></li>
+        </ul>
+      </div>
+      <div class="card-footer"><button class="btn btn-outline btn-sm" id="replay">다시 재생</button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Table</h2>
+    <table class="table">
+      <thead><tr><th>단계</th><th>요청</th><th>상태</th><th style="text-align:right">ms</th></tr></thead>
+      <tbody>
+        <tr><td>토큰 교환</td><td style="color:var(--muted-foreground)">POST /auth/token</td><td><span class="badge badge-default">200</span></td><td class="tabular" style="text-align:right">35</td></tr>
+        <tr><td>본인 확인</td><td style="color:var(--muted-foreground)">GET /open/v1/users/me</td><td><span class="badge badge-default">200</span></td><td class="tabular" style="text-align:right">51</td></tr>
+        <tr><td>토큰 폐기</td><td style="color:var(--muted-foreground)">POST /auth/token/revoke</td><td><span class="badge badge-default">200</span></td><td class="tabular" style="text-align:right">30</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</main>
+
+<script>
+const TOKENS = ["background","foreground","card","primary","primary-foreground","secondary",
+  "muted","muted-foreground","accent","accent-foreground","destructive","border","ring",
+  "chart-1","chart-2","chart-3","chart-4","chart-5",
+  "heat-0","heat-1","heat-2","heat-3","heat-4"];
+
+document.getElementById("swatches").innerHTML = TOKENS.map(t =>
+  `<div class="sw"><div class="chip" style="background:var(--${t})"></div><div class="nm">--${t}</div></div>`
+).join("");
+
+// 히트맵 — 371칸을 그리는 데 라이브러리가 필요 없다
+let seed = 20260823;
+const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+document.getElementById("heat").innerHTML = Array.from({length: 53 * 7}, (_, i) => {
+  const weekend = i % 7 === 0 || i % 7 === 6;
+  const r = rnd() * (weekend ? 1.5 : 1);
+  const l = r < .35 ? 0 : r < .6 ? 1 : r < .8 ? 2 : r < .94 ? 3 : 4;
+  return `<span class="heat-cell" data-level="${l}"></span>`;
+}).join("");
+
+function playRank() {
+  const bars = document.querySelectorAll("#rank .rank-bar > i");
+  bars.forEach(b => b.style.width = "0");
+  setTimeout(() => bars.forEach((b, i) =>
+    setTimeout(() => b.style.width = b.dataset.w + "%", i * 90)), 60);
+}
+
+let timers = [];
+function playWait() {
+  timers.forEach(clearTimeout); timers = [];
+  const lis = [...document.querySelectorAll("#steps > li")];
+  const bar = document.getElementById("wbar");
+  lis.forEach(li => {
+    li.dataset.state = "waiting";
+    li.querySelector(".step-mark").textContent = "·";
+    li.querySelector(".step-ms").textContent = "";
+  });
+  bar.style.width = "0%";
+  const ms = [180, 1240, 760, 2100];
+  let t = 300;
+  lis.forEach((li, i) => {
+    timers.push(setTimeout(() => {
+      li.dataset.state = "running";
+      li.querySelector(".step-mark").textContent = "▸";
+      bar.style.width = ((i + .35) / lis.length * 100) + "%";
+    }, t));
+    t += ms[i] * .6 + 200;
+    timers.push(setTimeout(() => {
+      li.dataset.state = "done";
+      li.querySelector(".step-mark").textContent = "✓";
+      li.querySelector(".step-ms").textContent = ms[i] + "ms";
+      bar.style.width = ((i + 1) / lis.length * 100) + "%";
+    }, t));
+  });
+}
+
+document.getElementById("replay").addEventListener("click", playWait);
+document.getElementById("theme").addEventListener("click", () => {
+  const r = document.documentElement;
+  const dark = r.classList.contains("dark") ||
+    (!r.classList.contains("light") && matchMedia("(prefers-color-scheme: dark)").matches);
+  r.classList.remove("dark", "light");
+  r.classList.add(dark ? "light" : "dark");
+});
+
+playRank(); playWait();
+</script>
+</body>
+</html>
