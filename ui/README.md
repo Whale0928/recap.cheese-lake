@@ -13,7 +13,9 @@ ui/
 │   ├── tokens.css       색·모서리·서체 토큰 (shadcn/ui 변수 이름 그대로, oklch)
 │   └── components.css   컴포넌트 층 (shadcn/ui 어휘 + recap 전용 블록)
 ├── gallery.html         살아 있는 스타일 참조. 토큰과 컴포넌트 전부를 한 화면에
-└── index.html           로그인 확인 화면 (이 시스템의 첫 소비자)
+├── index.html           로그인 확인 화면 (이 시스템의 첫 소비자)
+└── prototype/           확정 전 시안. 결론이 나면 옮기거나 지운다
+    └── recap.html       본문 열두 조각을 순서대로 조립한 것 (가짜 데이터)
 ```
 
 ## 보는 방법
@@ -24,6 +26,17 @@ task backend:dev              # http://localhost:8180
 
 - `/` — 로그인 확인 화면
 - `/gallery.html` — 스타일 갤러리. 우상단 「테마 전환」으로 라이트·다크를 오간다
+- `/prototype/recap.html` — 본문 조립 시안
+
+## 프로토타입
+
+`prototype/` 안의 것은 **확정된 화면이 아니다.** 판단을 돕기 위해 세워 본 것이고,
+결론이 나면 밖으로 옮기거나 지운다. 실제 화면의 근거로 인용하지 않는다.
+
+현재 `prototype/recap.html` 기준으로 **조각과 순서는 유지하기로 했고,
+데이터 구성은 미정이다.** 화면이 요구하는 값과 아직 안 풀린 질문은
+[prototype/README.md](prototype/README.md) 에 절별로 적어 두었다.
+이게 풀려야 [ADR-0005](../module.secrets/project/cheese-lake/recap/docs/adr/0005-contract-first-api.md) 의 스펙을 쓸 수 있다.
 
 ## 규칙
 
