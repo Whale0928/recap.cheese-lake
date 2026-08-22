@@ -1,0 +1,37 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  enable:
+    - bodyclose      # HTTP 응답 바디 미close 탐지 — 치지직·lab 을 자주 호출한다
+    - errorlint      # 에러 래핑·비교 오용
+    - sloglint       # 구조화 로깅 일관성
+    - gosec          # 보안 취약 패턴
+    - revive         # 스타일 전반
+    - noctx          # context 없는 HTTP 요청 금지
+    - rowserrcheck   # sql.Rows.Err() 누락 — 큐를 PostgreSQL 로 돌린다 (ADR-0006)
+    - nilerr
+    - unconvert
+    - wastedassign
+  settings:
+    revive:
+      rules:
+        - name: exported
+          disabled: true   # 초기 단계라 주석 강제는 미룬다
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        linters: [gosec, noctx]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/Whale0928/recap.cheese-lake/backend

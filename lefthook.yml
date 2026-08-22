@@ -1,0 +1,39 @@
+# lefthook — git 훅 관리. 워크트리마다 `lefthook install` 이 필요하다.
+# Go 와 프론트엔드가 한 저장소에 있으므로 glob 으로 갈라 건다.
+
+pre-commit:
+  parallel: true
+  commands:
+    go-fmt:
+      root: backend/
+      glob: "*.go"
+      run: |
+        unformatted=$(gofmt -l {staged_files})
+        if [ -n "$unformatted" ]; then
+          echo "gofmt 필요:"; echo "$unformatted"; exit 1
+        fi
+    go-lint:
+      root: backend/
+      glob: "*.go"
+      run: golangci-lint run --new-from-rev=HEAD --fix
+      stage_fixed: true
+    spec-changed:
+      glob: "backend/api/*.yaml"
+      run: |
+        echo "OpenAPI 스펙이 변경됨 — task gen 을 돌렸는지 확인하십시오"
+
+pre-push:
+  commands:
+    go-test:
+      root: backend/
+      run: go test ./...
+    gen-drift:
+      # 생성물이 스펙과 어긋난 채 푸시되는 것을 막는다 (ADR-0005).
+      # 저장소가 갈려 lab 원본과의 일치는 검증하지 못한다 — 사본 갱신은 사람의 몫이다.
+      run: |
+        if command -v task >/dev/null 2>&1 && [ -f backend/api/recap.openapi.yaml ]; then
+          task backend:gen >/dev/null 2>&1 || true
+          if ! git diff --quiet -- backend/internal/gen 2>/dev/null; then
+            echo "생성물이 스펙과 다릅니다. task backend:gen 후 커밋하십시오."; exit 1
+          fi
+        fi

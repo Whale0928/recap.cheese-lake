@@ -1,0 +1,27 @@
+# recap 로컬 개발용. recap 은 PostgreSQL 하나만 쓴다 (ADR-0006).
+#
+# 포트는 orca-setup.sh 가 만드는 .env.ports 에서 온다. 직접 부를 때는
+#   docker compose --env-file .env.ports up -d
+# 를 쓴다. task up · task down 은 이미 붙여서 부른다.
+
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    environment:
+      POSTGRES_USER: recap
+      POSTGRES_PASSWORD: recap
+      POSTGRES_DB: recap
+    ports:
+      # 기본값을 두는 이유는 --env-file 을 잊었을 때 뜨긴 뜨게 하려는 것이다.
+      # 다만 그때는 다른 워크트리와 충돌할 수 있다.
+      - "${POSTGRES_PORT:-5480}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recap"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

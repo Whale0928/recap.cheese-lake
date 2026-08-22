@@ -57,7 +57,7 @@ fi
 # 시크릿이 untracked로 남아 실수로 커밋될 수 있다.
 #
 # 치지직 clientSecret 이 여기 들어간다. 권한 600 을 유지할 것.
-SECRET_FILES=(.env .env.local config.local.yaml)
+SECRET_FILES=(.env .env.local backend/config.local.yaml)
 
 step "로컬 설정"
 copied=0
@@ -73,7 +73,7 @@ if [[ -n "$ROOT" && -d "$ROOT" ]]; then
     fi
   done
 fi
-for pair in ".env.example:.env" "config.example.yaml:config.local.yaml"; do
+for pair in ".env.example:.env" "backend/config.example.yaml:backend/config.local.yaml"; do
   src="${pair%%:*}"; dst="${pair##*:}"
   if [[ -f "$src" && ! -f "$dst" ]]; then
     cp "$src" "$dst" && chmod 600 "$dst" && ok "$dst 생성 ($src 기반)" && copied=$((copied+1))
@@ -119,16 +119,16 @@ fi
 # ── 4. Go 의존성 ──────────────────────────────────────────────
 # 모듈 캐시($GOPATH/pkg/mod)는 워크트리 간 공유되므로 대개 즉시 끝난다.
 step "Go 의존성"
-if [[ -f go.mod ]]; then
+if [[ -f backend/go.mod ]]; then
   # 파이프를 물리면 종료 상태가 tail 의 것이 되어 실패가 늘 성공으로 보인다.
-  if out=$(go mod download 2>&1); then
-    ok "go mod download 완료 ($(go list -m 2>/dev/null || echo '?'))"
+  if out=$(cd backend && go mod download 2>&1); then
+    ok "go mod download 완료 ($(cd backend && go list -m 2>/dev/null || echo '?'))"
   else
     warn "go mod download 실패"
     printf '%s\n' "$out" | tail -5 | sed 's/^/    /'
   fi
 else
-  skip "go.mod 없음 (스캐폴딩 전)"
+  skip "backend/go.mod 없음 (스캐폴딩 전)"
 fi
 
 # ── 4b. 코드 생성 도구 ────────────────────────────────────────
@@ -138,11 +138,11 @@ step "코드 생성 도구"
 if [[ -f Taskfile.yml ]] && command -v task >/dev/null 2>&1; then
   # grep -q 는 첫 매치에서 파이프를 닫아 task 를 SIGPIPE(141) 로 죽인다.
   # pipefail 이 켜져 있으면 그 141 이 파이프라인의 종료 상태가 된다.
-  tasklist=$(task --list 2>/dev/null)
-  if printf '%s\n' "$tasklist" | grep -q '^\* tools:'; then
-    task tools >/dev/null 2>&1 && ok "task tools 완료" || warn "task tools 실패"
+  tasklist=$(task --list-all 2>/dev/null)
+  if printf '%s\n' "$tasklist" | grep -q 'backend:tools'; then
+    task backend:tools >/dev/null 2>&1 && ok "task backend:tools 완료" || warn "task backend:tools 실패"
   else
-    skip "tools 태스크 없음"
+    skip "backend:tools 태스크 없음"
   fi
 else
   skip "Taskfile.yml 또는 task 명령 없음"
@@ -153,9 +153,7 @@ fi
 # 스택이 정해지지 않아 위치를 탐색한다. 확정되면 경로를 고정할 것.
 step "프론트엔드 의존성"
 FE_DIR=""
-for d in ui web frontend .; do
-  [[ -f "$d/package.json" ]] && FE_DIR="$d" && break
-done
+[[ -f ui/package.json ]] && FE_DIR="ui"
 if [[ -n "$FE_DIR" ]]; then
   if command -v pnpm >/dev/null 2>&1; then
     ( cd "$FE_DIR" && pnpm install --frozen-lockfile --silent ) \
@@ -189,8 +187,8 @@ cat <<SUMMARY
 
   다음 단계
     task up                              # .env.ports 를 자동으로 넘긴다
-    RECAP_SERVER_ADDR=":$SERVE_PORT" go run . serve
-    RECAP_SERVER_ADDR=":$SERVE_PORT" go run . worker
+    RECAP_SERVER_ADDR=":$SERVE_PORT" task backend:serve
+    RECAP_SERVER_ADDR=":$SERVE_PORT" task backend:worker
 
   주의
     · docker compose 를 직접 부를 때는 --env-file .env.ports 를 붙인다.

@@ -1,0 +1,13 @@
+# 빌드 컨텍스트에서 뺄 것. 여기 걸리는 게 많을수록 빌드가 빨라진다.
+.git
+.task
+bin/
+coverage.out
+
+# 비밀·로컬 설정
+.env
+.env.*
+config.local.yaml
+
+# 테스트 데이터와 문서는 이미지에 필요 없다
+testdata/

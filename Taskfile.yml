@@ -1,0 +1,72 @@
+version: '3'
+
+# 루트는 위임만 한다. 실제 작업은 각 네임스페이스에 있다.
+#   task backend:build   task ui:dev
+# 루트 태스크(lint·test·gen)는 양쪽을 한 번에 돈다.
+
+includes:
+  backend:
+    taskfile: ./backend/Taskfile.yml
+    dir: ./backend
+  ui:
+    taskfile: ./ui/Taskfile.yml
+    dir: ./ui
+    optional: true   # 스택 미정 (ADR-0004). 정해지면 optional 을 뗀다
+
+vars:
+  REGISTRY: docker-registry.dead-whale.org
+
+tasks:
+  default:
+    cmds: [task: --list]
+
+  submodules:
+    desc: 서브모듈을 추적 브랜치의 최신으로 갱신
+    cmds:
+      # --remote 는 gitlink 에 박힌 커밋이 아니라 각 서브모듈의 추적 브랜치
+      # 끝을 가져온다. 끝나면 부모의 gitlink 가 변경된 상태로 남으므로,
+      # 확인 후 커밋하는 것은 사람의 몫이다.
+      - git submodule update --init --recursive --remote
+      - cmd: git submodule status
+        silent: true
+      - cmd: echo "gitlink 가 바뀌었으면 git add <경로> 로 확인 후 커밋하십시오"
+        silent: true
+
+  submodules:sync:
+    desc: 서브모듈을 부모가 기록한 커밋으로 되돌린다
+    cmds:
+      # 최신화와 반대 방향. 워크트리를 옮겨 다니다 gitlink 와 실제 체크아웃이
+      # 어긋났을 때 부모 기준으로 맞춘다.
+      - git submodule update --init --recursive --force
+      - cmd: git submodule status
+        silent: true
+
+  up:
+    desc: PostgreSQL 기동 (.env.ports 의 포트를 쓴다)
+    cmds:
+      # --env-file 을 빼면 compose 가 오류 없이 기본 포트로 떨어져
+      # 워크트리끼리 충돌한다. orca-setup.sh 가 .env.ports 를 만든다.
+      - docker compose --env-file .env.ports up -d
+
+  down:
+    desc: PostgreSQL 종료
+    cmds:
+      - docker compose --env-file .env.ports down
+
+  lint:
+    desc: 전체 린트
+    cmds:
+      - task: backend:lint
+      - task: ui:lint
+
+  test:
+    desc: 전체 테스트
+    cmds:
+      - task: backend:test
+      - task: ui:test
+
+  gen:
+    desc: OpenAPI 스펙에서 생성물을 만든다
+    cmds:
+      - task: backend:gen
+      - task: ui:gen

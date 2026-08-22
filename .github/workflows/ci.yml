@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        # 서브모듈은 체크아웃하지 않는다. private 이고 빌드에 필요 없다.
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: 의존성 검증
+        run: |
+          go mod download
+          go mod verify
+
+      - name: 빌드
+        run: go build ./...
+
+      - name: vet
+        run: go vet ./...
+
+      - uses: golangci/golangci-lint-action@v7
+        with:
+          working-directory: backend
+
+      - name: 테스트
+        run: go test -race -count=1 ./...
+
+  gen-drift:
+    # 생성물이 스펙과 어긋난 채 머지되는 것을 막는다 (ADR-0005).
+    # lab 원본과 app.openapi.yaml 사본의 일치는 여기서 검증하지 못한다 —
+    # 저장소가 갈려 있기 때문이고, 사본 갱신은 사람이 의도적으로 한다.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: 스펙 존재 확인
+        id: spec
+        run: |
+          if [ -f api/recap.openapi.yaml ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "스펙이 아직 없음 — 건너뜀"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 도구 설치
+        if: steps.spec.outputs.found == 'true'
+        run: go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.0
+
+      - name: 생성물 재생성
+        if: steps.spec.outputs.found == 'true'
+        run: |
+          mkdir -p internal/gen/recapapi
+          "$(go env GOPATH)/bin/oapi-codegen" -config api/oapi-codegen.server.yaml api/recap.openapi.yaml
+          if [ -f api/app.openapi.yaml ]; then
+            mkdir -p internal/gen/labclient
+            "$(go env GOPATH)/bin/oapi-codegen" -config api/oapi-codegen.labclient.yaml api/app.openapi.yaml
+          fi
+
+      - name: 생성물 동기화 검증
+        if: steps.spec.outputs.found == 'true'
+        run: |
+          if ! git diff --exit-code -- internal/gen; then
+            echo "생성물이 스펙과 다릅니다. task backend:gen 후 커밋하십시오."
+            exit 1
+          fi
