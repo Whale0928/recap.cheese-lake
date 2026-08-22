@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>recap · 본문 조립 (목업)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="./styles/tokens.css">
+<link rel="stylesheet" href="./styles/components.css">
+<style>
+  /* 이 화면에만 필요한 것. 컴포넌트로 승격할지는 조립해 보고 판단한다 */
+  .bar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: .75rem;
+         padding: .55rem 1.25rem; background: var(--card); border-bottom: 1px solid var(--border); }
+  .bar .who { font-family: var(--font-mono); font-size: .6875rem; color: var(--muted-foreground);
+              margin-left: auto; }
+  .hero { padding: 4.5rem 0 3rem; }
+  .hero .name { font-family: var(--font-mono); font-size: .8125rem; letter-spacing: .1em;
+                color: var(--muted-foreground); margin: 0 0 .75rem; }
+  .hero h1 { font-family: var(--font-display); font-size: clamp(2.25rem, 9vw, 3.5rem);
+             font-weight: 700; line-height: 1.1; letter-spacing: -.03em; margin: 0; }
+  .hero h1 span { color: var(--primary); }
+  .wide { margin-inline: calc(50% - 50vw); padding-inline: max(1.25rem, calc(50vw - 22rem)); }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="badge badge-secondary">목업</span>
+  <span style="font-size:.8125rem; color:var(--muted-foreground)">가짜 데이터입니다. 순서가 이야기가 되는지 보는 화면입니다.</span>
+  <span class="who"><button class="btn btn-ghost btn-sm" id="theme">테마</button></span>
+</div>
+
+<main class="recap">
+
+  <header class="hero">
+    <p class="name">날아다니는 고래</p>
+    <h1>2026년,<br>당신은 <span>12,480번</span> 말했습니다</h1>
+  </header>
+
+  <!-- 01 총량 · 02 위치 — 숫자 하나를 던지고 곧바로 맥락을 준다 -->
+  <section class="recap-section reveal">
+    <p class="recap-eyebrow">01 · 보낸 채팅</p>
+    <p class="figure" data-count="12480">0</p>
+    <p class="recap-note" style="margin-top:1rem">
+      같은 기간 채팅을 남긴 <strong>11,170명</strong> 가운데
+      <strong style="color:var(--primary)">56위</strong>입니다. 상위 0.5%.
+    </p>
+    <p class="recap-note">하루 평균 34번. 안 한 날을 빼면 42번.</p>
+  </section>
+
+  <!-- 03 넓이 — 예상 범위 안에 둔다. 크게 쓰지 않는다 -->
+  <section class="recap-section reveal">
+    <p class="recap-eyebrow">02 · 머문 채널</p>
+    <p class="figure" data-count="37">0<small>곳</small></p>
+    <p class="recap-note" style="margin-top:1rem">
+      1월에 다섯 곳이었고, 12월에는 아홉 곳이었습니다.
+    </p>
+  </section>
+
+  <!-- 04 쏠림 — 여기서 꺾인다. 앞 두 조각이 이 반전을 위한 준비다 -->
+  <section class="recap-section reveal">
+    <p class="recap-eyebrow">03 · 그런데</p>
+    <p class="recap-lead">서른일곱 곳을 오갔지만,<br><em>절반은 세 곳</em>에 있었습니다</p>
+    <p class="recap-note" style="margin-bottom:1.75rem">상위 세 채널이 6,862번. 전체의 55%입니다.</p>
+    <ol class="rank" id="rank">
+      <li><span class="rank-no">01</span><div><div class="rank-head"><strong>새벽정비소</strong><span>3,204</span></div><div class="rank-bar"><i data-w="100"></i></div></div></li>
+      <li><span class="rank-no">02</span><div><div class="rank-head"><strong>고래책방</strong><span>2,118</span></div><div class="rank-bar"><i data-w="66"></i></div></div></li>
+      <li><span class="rank-no">03</span><div><div class="rank-head"><strong>라면과기타</strong><span>1,540</span></div><div class="rank-bar"><i data-w="48"></i></div></div></li>
+      <li><span class="rank-no">04</span><div><div class="rank-head"><strong>초저녁라디오</strong><span>884</span></div><div class="rank-bar"><i data-w="27"></i></div></div></li>
+      <li><span class="rank-no">05</span><div><div class="rank-head"><strong>목요일의숲</strong><span>430</span></div><div class="rank-bar"><i data-w="13"></i></div></div></li>
+    </ol>
+    <p class="recap-note" style="margin-top:1rem">나머지 32곳을 합쳐도 4,304번입니다.</p>
+  </section>
+
+  <!-- 05 한 해의 결 — 숫자로 안 보이던 것이 여기서 보인다 -->
+  <section class="recap-section reveal">
+    <p class="recap-eyebrow">04 · 한 해의 결</p>
+    <div class="heat wide">
+      <div class="heat-grid" id="heat"></div>
+      <div class="heat-legend">
+        <span>적음</span>
+        <span class="heat-cell" data-level="0"></span><span class="heat-cell" data-level="1"></span>
+        <span class="heat-cell" data-level="2"></span><span class="heat-cell" data-level="3"></span>
+        <span class="heat-cell" data-level="4"></span>
+        <span>많음</span>
+      </div>
+    </div>
+    <p class="recap-note" style="margin-top:1.25rem">
+      371칸 중 <strong>294칸</strong>에 흔적이 있습니다. 비어 있는 77일 중 41일이 한여름에 몰려 있습니다.
+    </p>
+  </section>
+
+  <!-- 06 리듬 — 새벽이 몰려 있으면 그게 캐릭터가 된다 -->
+  <section class="recap-section reveal">
+    <p class="recap-eyebrow">05 · 리듬</p>
+    <p class="recap-lead">당신의 하루는 <em>밤 열한 시</em>에 가장 시끄러웠습니다</p>
+    <p class="recap-note" style="margin-bottom:1.5rem">전체 채팅의 18%가 23시에서 자정 사이에 있었습니다.</p>
+    <div class="rhythm" id="rhythm"></div>
+  </section>
+
+  <!-- 07 정점 — 날짜만 던지면 못 알아본다. 어느 채널이었는지가 붙어야 한다.
+       주의: 방송 길이와 시청 시간은 쓸 수 없다. 채팅만 수집하므로 알 방법이 없고,
+       처리방침도 «시청만 하면 아무것도 남지 않는다»고 적었다.
+       그날의 첫·마지막 채팅 시각까지만 도출된다 -->
+  <section class="recap-section reveal">
+    <p class="recap-eyebrow">06 · 가장 시끄러웠던 날</p>
+    <p class="recap-lead"><em>3월 14일</em>, 하루에 612번</p>
+    <p class="recap-note">
+      「새벽정비소」에서 473번. 밤 10시 14분에 시작해 새벽 3시 2분에 멈췄으니
+      네 시간 48분 동안이었습니다.
+    </p>
+    <p class="recap-note">평소 하루치의 <strong>18배</strong>입니다.</p>
+  </section>
+
+  <!-- 08 지속 — 공백을 보여주는 쪽이 반응이 좋다. 돌아온 시점이 이야기가 된다 -->
+  <section class="recap-section reveal">
+    <p class="recap-eyebrow">07 · 이어짐과 끊김</p>
+    <div class="span-track">
+      <div class="span-fill streak" style="left:2.2%; width:6.3%"></div>
+      <div class="span-fill gap" style="left:50.1%; width:11.2%"></div>
+    </div>
+    <div class="span-axis"><span>1월</span><span>4월</span><span>7월</span><span>10월</span><span>12월</span></div>
+    <div class="span-key">
+      <span><i style="background:var(--primary)"></i>최장 연속 <strong style="color:var(--foreground)">23일</strong> · 1월 8일~30일</span>
+      <span><i style="background:color-mix(in oklab, var(--destructive) 28%, var(--muted))"></i>가장 긴 공백 <strong style="color:var(--foreground)">41일</strong> · 7월 2일~8월 12일</span>
+    </div>
+    <p class="recap-note" style="margin-top:1.25rem">
+      8월 12일에 돌아와서 「고래책방」에 남긴 첫 마디는 «오랜만입니다»였습니다.
+    </p>
+  </section>
+
+  <!-- 09 변화 — 집계에서 이야기로 넘어가는 지점 -->
+  <section class="recap-section reveal">
+    <p class="recap-eyebrow">08 · 달라진 것</p>
+    <div class="delta">
+      <div class="delta-new">
+        <h3>하반기에 새로 간 곳</h3>
+        <ul>
+          <li><span class="mark">+</span>겨울문구점<span class="count">418</span></li>
+          <li><span class="mark">+</span>밤의공작소<span class="count">257</span></li>
+          <li><span class="mark">+</span>조용한식탁<span class="count">96</span></li>
+        </ul>
+        <p class="recap-note" style="margin-top:.6rem; font-size:.8125rem">그밖에 8곳</p>
+      </div>
+      <div class="delta-gone">
+        <h3>발길이 끊긴 곳</h3>
+        <ul>
+          <li><span class="mark">−</span>오후세시<span class="count">612</span></li>
+          <li><span class="mark">−</span>반지하스튜디오<span class="count">344</span></li>
+          <li><span class="mark">−</span>금요일의창<span class="count">129</span></li>
+        </ul>
+        <p class="recap-note" style="margin-top:.6rem; font-size:.8125rem">그밖에 5곳</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 첫과 끝 — 본인 발화라 원문 그대로. 이 화면 밖으로 나가지 않는다 -->
+  <section class="recap-section reveal">
+    <p class="recap-eyebrow">09 · 처음과 마지막</p>
+    <blockquote class="quote" style="margin-bottom:1.75rem">
+      <p>올해도 잘 부탁드립니다</p>
+      <footer>1월 1일 00:03 · 새벽정비소</footer>
+    </blockquote>
+    <blockquote class="quote closing">
+      <p>내년에도 봬요</p>
+      <footer>12월 31일 23:51 · 새벽정비소</footer>
+    </blockquote>
+    <p class="recap-note" style="margin-top:1.5rem">시작한 곳에서 끝냈습니다.</p>
+  </section>
+
+  <!-- 11 목소리 — 워드클라우드는 피한다. 빈도 순위가 더 짧고 정확하다 -->
+  <section class="recap-section reveal">
+    <p class="recap-eyebrow">10 · 자주 쓴 말</p>
+    <ul class="freq" id="freq">
+      <li data-w="100"><span>ㅋㅋㅋ</span><span class="n">1,842</span></li>
+      <li data-w="33"><span>ㅇㅈ</span><span class="n">604</span></li>
+      <li data-w="21"><span>미쳤다</span><span class="n">388</span></li>
+      <li data-w="16"><span>ㄱㄱ</span><span class="n">301</span></li>
+      <li data-w="13"><span>개웃기네</span><span class="n">244</span></li>
+    </ul>
+    <p class="recap-note" style="margin-top:1.25rem">이모티콘은 「탄식」을 411번 썼습니다.</p>
+  </section>
+
+  <!-- 12 닫기 — LLM 이 실제로 값을 하는 유일한 자리 -->
+  <section class="recap-section reveal">
+    <p class="recap-eyebrow">11 · 한 줄로 줄이면</p>
+    <p class="recap-lead">
+      서른일곱 군데를 기웃거렸지만 결국 <em>세 곳의 단골</em>이었고,<br>
+      한여름 한 달을 쉬고 돌아와 시작한 자리에서 한 해를 닫았습니다.
+    </p>
+    <div class="row" style="display:flex; gap:.625rem; margin-top:2rem; flex-wrap:wrap">
+      <button class="btn btn-default">링크 복사</button>
+      <button class="btn btn-outline">이 기록 지우기</button>
+    </div>
+    <p class="recap-note" style="margin-top:1.5rem; font-size:.8125rem">
+      이 페이지는 검색에 노출되지 않으며 주소를 아는 사람만 볼 수 있습니다.
+      처음과 마지막 채팅 원문은 이 화면에만 있습니다.
+    </p>
+  </section>
+
+</main>
+
+<script>
+let seed = 20261231;
+const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+
+// 04 히트맵 — 여름에 공백이 생기도록 만든다 (07 지속 절과 이야기를 맞춘다)
+document.getElementById("heat").innerHTML = Array.from({ length: 53 * 7 }, (_, i) => {
+  const week = Math.floor(i / 7), dow = i % 7;
+  const summerGap = week >= 26 && week <= 32;
+  const r = rnd() * (dow === 0 || dow === 6 ? 1.45 : 1) * (summerGap ? .18 : 1);
+  const l = r < .3 ? 0 : r < .55 ? 1 : r < .76 ? 2 : r < .93 ? 3 : 4;
+  return `<span class="heat-cell" data-level="${l}"></span>`;
+}).join("");
+
+// 05 리듬 — 밤 11시가 봉우리가 되도록
+const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
+// 하루를 0시가 아니라 6시에서 시작한다.
+// 0시 기준이면 밤 봉우리가 자정에서 잘려 좌우로 쪼개진다 — 조립해 보고 알았다.
+const START = 6;
+document.getElementById("rhythm").innerHTML = DAYS.map((d, di) => {
+  const cells = Array.from({ length: 24 }, (_, i) => {
+    const h = (i + START) % 24;
+    const peak = Math.exp(-Math.pow((h - 23 + (h < 4 ? 24 : 0)) / 3.2, 2));
+    const weekend = di >= 5 ? 1.3 : 1;
+    const v = peak * weekend * (.65 + rnd() * .7);
+    const l = v < .08 ? 0 : v < .22 ? 1 : v < .45 ? 2 : v < .72 ? 3 : 4;
+    return `<span class="rhythm-cell" data-level="${l}"></span>`;
+  }).join("");
+  return `<span class="rhythm-day">${d}</span><div class="rhythm-row">${cells}</div>`;
+}).join("") + `<div class="rhythm-hours">${
+  Array.from({ length: 24 }, (_, i) => {
+    const h = (i + START) % 24;
+    return `<span>${h % 6 === 0 ? h : ""}</span>`;
+  }).join("")}</div>`;
+
+// 등장 연출 + 조각별 애니메이션
+function countUp(el) {
+  const to = +el.dataset.count, t0 = performance.now(), dur = 1300;
+  // 첫 자식이 텍스트 노드가 아니면(예: <small> 이 먼저 오면) 만들어 앞에 끼운다
+  let node = el.firstChild;
+  if (!node || node.nodeType !== Node.TEXT_NODE) {
+    node = document.createTextNode("");
+    el.insertBefore(node, el.firstChild);
+  }
+  (function tick(now) {
+    const p = Math.min((now - t0) / dur, 1);
+    node.nodeValue = Math.round(to * (1 - Math.pow(1 - p, 3))).toLocaleString("ko-KR");
+    if (p < 1) requestAnimationFrame(tick);
+  })(t0);
+}
+
+const io = new IntersectionObserver((entries, obs) => {
+  entries.forEach(en => {
+    if (!en.isIntersecting) return;
+    en.target.classList.add("shown");
+    en.target.querySelectorAll("[data-count]").forEach(countUp);
+    en.target.querySelectorAll(".rank-bar > i").forEach((b, i) =>
+      setTimeout(() => b.style.width = b.dataset.w + "%", 120 + i * 90));
+    en.target.querySelectorAll(".freq li").forEach((li, i) =>
+      setTimeout(() => li.style.setProperty("--w", li.dataset.w + "%"), 120 + i * 70));
+    obs.unobserve(en.target);
+  });
+}, { threshold: .2, rootMargin: "0px 0px -8% 0px" });
+
+document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+
+document.getElementById("theme").addEventListener("click", () => {
+  const r = document.documentElement;
+  const dark = r.classList.contains("dark") ||
+    (!r.classList.contains("light") && matchMedia("(prefers-color-scheme: dark)").matches);
+  r.classList.remove("dark", "light");
+  r.classList.add(dark ? "light" : "dark");
+});
+</script>
+</body>
+</html>
