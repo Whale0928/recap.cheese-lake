@@ -91,9 +91,9 @@ git submodule update --init --recursive
 bash "$ORCA_WORKTREE_PATH/scripts/orca-setup.sh"
 ```
 
-워크트리마다 포트가 달라집니다. 치지직 OAuth의 `redirectUri`는 애플리케이션 등록값과
-정확히 일치해야 하므로, 로그인 흐름을 테스트할 때는 고정 포트로 띄우거나
-개발용 `redirectUri`를 따로 등록해야 합니다.
+워크트리마다 포트가 달라집니다. 치지직 OAuth는 애플리케이션당 리디렉션 URL을
+하나만 받고 등록값과 정확히 일치해야 하므로, 로그인 흐름을 테스트할 때는
+`:8180`으로 띄우거나 8180에서 해당 워크트리로 넘겨야 합니다.
 
 ## 구조
 

@@ -194,9 +194,10 @@ cat <<SUMMARY
     · docker compose 를 직접 부를 때는 --env-file .env.ports 를 붙인다.
     · 서버와 워커를 함께 띄워야 리캡 생성이 진행된다.
     · 리캡에 데이터를 채우려면 데이터 API 가 떠 있어야 한다.
-    · 치지직 OAuth 의 redirectUri 는 애플리케이션 등록값과 정확히 일치해야 한다.
-      워크트리마다 포트가 다르므로 로컬 개발용 redirectUri 를 따로 등록하거나
-      고정 포트로 띄워야 한다 — 이 오프셋이 OAuth 로그인을 깨뜨리는 지점이다.
+    · 치지직 OAuth 는 애플리케이션당 리디렉션 URL 을 하나만 받는다.
+      로컬 앱의 등록값은 http://localhost:8180/auth/callback 고정이다.
+      이 오프셋이 OAuth 로그인을 깨뜨리는 지점이므로, 로그인 흐름을 태울 때는
+      RECAP_SERVER_ADDR=":8180" 으로 띄우거나 8180 에서 이 워크트리로 넘긴다.
     · clientSecret 은 .env 계열에만 두고 커밋하지 않는다.
 
 SUMMARY
