@@ -1,0 +1,50 @@
+# 빌드 산출물
+/bin/
+/dist/
+recap
+*.exe
+*.test
+*.out
+coverage.*
+
+# 로컬 설정 · 시크릿
+# orca-setup.sh 의 SECRET_FILES 와 동기화할 것
+.env
+.env.*
+!.env.example
+config.local.yaml
+*.local.yaml
+
+# 프론트엔드
+# 스택 확정 전이라 후보 산출물을 함께 막아둔다 (ADR-0004)
+node_modules/
+.pnpm-store/
+dist/
+.next/
+.svelte-kit/
+*.tsbuildinfo
+
+# 도구 · 에디터
+.task/
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.claude/
+.playwright-mcp/
+
+# 작업 중 흘린 것 — 스크린샷·덤프는 저장소에 남기지 않는다
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+!docs/**/*.png
+!docs/**/*.svg
+
+# 서브모듈 내부는 각자 관리
+# module.platform, module.secrets, module.deploy 는 gitlink 로만 추적된다
+
+# 생성물은 커밋한다 (ADR-0005)
+#   internal/gen/recapapi/    — oapi-codegen (Echo v5 서버)
+#   internal/gen/labclient/   — oapi-codegen (lab 클라이언트)
