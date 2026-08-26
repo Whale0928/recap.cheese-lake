@@ -1,0 +1,36 @@
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  install:
+    desc: 프론트엔드 의존성 설치
+    cmds:
+      - pnpm install --frozen-lockfile
+
+  dev:
+    desc: Vite 개발 서버 기동
+    cmds:
+      - pnpm dev
+
+  build:
+    desc: TypeScript 검사 후 프로덕션 빌드
+    cmds:
+      - pnpm build
+
+  lint:
+    desc: TypeScript 정적 검사
+    cmds:
+      - pnpm lint
+
+  test:
+    desc: 프론트엔드 타입 검증
+    cmds:
+      - pnpm test
+
+  preview:
+    desc: 프로덕션 빌드 미리보기
+    cmds:
+      - pnpm preview

@@ -1,8 +1,9 @@
 # 빌드 산출물
-backend/bin/
-backend/recap
-backend/backend
-backend/coverage.*
+bff/bin/
+bff/recap
+bff/bff
+bff/backend
+bff/coverage.*
 *.exe
 *.test
 *.out
@@ -12,7 +13,7 @@ backend/coverage.*
 .env
 .env.*
 !.env.example
-backend/config.local.yaml
+bff/config.local.yaml
 *.local.yaml
 
 # 프론트엔드
@@ -46,5 +47,5 @@ ui/.svelte-kit/
 # module.platform, module.secrets, module.deploy 는 gitlink 로만 추적된다
 
 # 생성물은 커밋한다 (ADR-0005)
-#   backend/internal/gen/recapapi/   — oapi-codegen (Echo v5 서버)
-#   backend/internal/gen/labclient/  — oapi-codegen (lab 클라이언트)
+#   bff/internal/gen/recapapi/   — oapi-codegen (Echo v5 서버)
+#   bff/internal/gen/labclient/  — oapi-codegen (lab 클라이언트)

@@ -1,24 +1,24 @@
 version: '3'
 
 # 루트는 위임만 한다. 실제 작업은 각 네임스페이스에 있다.
-#   task backend:build   task ui:dev
-# 루트 태스크(lint·test·gen)는 양쪽을 한 번에 돈다.
+#   task bff:build   task ui:dev
+# 루트 태스크(lint·test)는 양쪽을 한 번에 돈다.
 
 includes:
-  backend:
-    taskfile: ./backend/Taskfile.yml
-    dir: ./backend
+  bff:
+    taskfile: ./bff/Taskfile.yml
+    dir: ./bff
   ui:
     taskfile: ./ui/Taskfile.yml
     dir: ./ui
-    optional: true   # 스택 미정 (ADR-0004). 정해지면 optional 을 뗀다
 
 vars:
   REGISTRY: docker-registry.dead-whale.org
 
 tasks:
   default:
-    cmds: [task: --list]
+    cmds:
+      - task --list
 
   submodules:
     desc: 서브모듈을 추적 브랜치의 최신으로 갱신
@@ -56,17 +56,16 @@ tasks:
   lint:
     desc: 전체 린트
     cmds:
-      - task: backend:lint
+      - task: bff:lint
       - task: ui:lint
 
   test:
     desc: 전체 테스트
     cmds:
-      - task: backend:test
+      - task: bff:test
       - task: ui:test
 
   gen:
-    desc: OpenAPI 스펙에서 생성물을 만든다
+    desc: OpenAPI 스펙에서 BFF 생성물을 만든다
     cmds:
-      - task: backend:gen
-      - task: ui:gen
+      - task: bff:gen

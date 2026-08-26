@@ -1,12 +1,8 @@
 /* recap 컴포넌트 층
  *
  * shadcn/ui 의 컴포넌트 어휘를 소재 그대로 옮긴 것이다. 클래스 이름과 variant 이름을
- * shadcn 과 맞춰 두었으므로, 나중에 React + Tailwind 로 옮길 때 이 파일을 버리고
- * 같은 이름의 shadcn 컴포넌트를 끼우면 화면이 그대로 산다.
- *
- * Tailwind 를 쓰지 않는 이유는 하나다 — 프론트 스택이 아직 안 정해졌고(ADR-0004),
- * Tailwind 는 빌드를 요구한다. 토큰(tokens.css)이 규격을 지키고 있으므로
- * 이 파일만 갈아끼우면 되지 결정을 앞당길 필요가 없다.
+ * shadcn 과 맞춰 두었다. React 애플리케이션은 Tailwind 없이 이 클래스와
+ * tokens.css 를 직접 사용한다.
  *
  * 의존 관계: tokens.css 를 먼저 불러와야 한다.
  */

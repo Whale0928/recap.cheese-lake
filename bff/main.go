@@ -28,7 +28,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	uiDir := env("RECAP_UI_DIR", "../ui")
+	uiDir := env("RECAP_UI_DIR", "../ui/dist")
 	if _, err := os.Stat(uiDir + "/index.html"); err != nil {
 		slog.Warn("UI 를 찾지 못했습니다. RECAP_UI_DIR 을 확인하십시오.", "경로", uiDir)
 	}

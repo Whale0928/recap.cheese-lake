@@ -7,8 +7,8 @@
 <sub>비공식 서비스 · 치지직 및 네이버와 제휴·후원·연계 관계가 없습니다</sub>
 
 ![status](https://img.shields.io/badge/status-설계_단계-blue)
-![backend](https://img.shields.io/badge/backend-Go_·_Echo-00ADD8)
-![frontend](https://img.shields.io/badge/frontend-미정-lightgrey)
+![bff](https://img.shields.io/badge/BFF-Go-00ADD8)
+![frontend](https://img.shields.io/badge/frontend-React_·_Vite-646CFF)
 
 </div>
 
@@ -29,8 +29,7 @@
 이때 메시지 본문도 함께 보관하지만 **화면에 보여주지 않습니다** — 자세한 내용은
 [개인정보 처리방침](legal/개인정보%20처리방침.md)에 적어두었습니다.
 
-> **현재 상태: 설계 단계.** 아직 애플리케이션 코드가 없습니다.
-> 이 저장소에는 개발 환경 설정만 있습니다.
+> **현재 상태: 초기 구현 단계.** 치지직 로그인 검증용 BFF와 메인 페이지를 구현하고 있습니다.
 
 ## 원칙
 
@@ -62,11 +61,11 @@
 
 | 영역 | 결정 |
 |---|---|
-| 백엔드 | Go · Echo v5 · Cobra · Viper |
+| BFF | Go — 현재 OAuth 검증 스파이크, Echo v5 · Cobra · Viper 도입 예정 |
 | 저장소 | PostgreSQL |
 | 계약 | OpenAPI · oapi-codegen |
 | 인증 | 치지직 OAuth 2.0 (본인 확인 전용) |
-| 프론트엔드 | 미정 — 가벼움 · 공유 카드 · 화면 품질을 기준으로 검토 중 |
+| 프론트엔드 | React · Vite |
 
 ## 개발
 
@@ -99,6 +98,8 @@ bash "$ORCA_WORKTREE_PATH/scripts/orca-setup.sh"
 
 ```
 recap.cheese-lake/
+├── bff/                    # Go BFF
+├── ui/                     # React · Vite 프론트엔드
 ├── scripts/
 │   └── orca-setup.sh     # 워크트리 초기화
 └── module.*/             # 배포·플랫폼·설정 서브모듈
