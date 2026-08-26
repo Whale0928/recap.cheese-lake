@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import privacyPolicy from "../legal/개인정보 처리방침.md?raw";
+import termsOfService from "../legal/이용약관.md?raw";
+import { LegalDocument } from "./LegalDocument";
 
 type Theme = "light" | "dark";
+type AuthState = "loading" | "guest" | "authenticated";
+
+type SessionResponse = {
+  loggedIn?: boolean;
+};
 
 const activityPattern = [
   0, 0, 1, 2, 1, 0, 0, 0, 1, 3, 2, 1, 0, 0, 2, 3, 4, 2, 1, 0, 0, 1, 2, 4, 3, 2, 0, 0,
@@ -31,19 +39,89 @@ function ThemeButton({ theme, onToggle }: { theme: Theme; onToggle: () => void }
   );
 }
 
-function YearTexture() {
+function Wordmark({ footer = false }: { footer?: boolean }) {
+  return (
+    <a className={`wordmark${footer ? " footer-wordmark" : ""}`} href="/" aria-label="recap 홈">
+      <span className="wordmark-mark" aria-hidden="true">r</span>
+      <span>recap</span>
+    </a>
+  );
+}
+
+function SiteFooter() {
+  return (
+    <footer className="site-footer">
+      <Wordmark footer />
+      <div className="footer-content">
+        <nav className="footer-links" aria-label="법적 고지">
+          <a href="/privacy/">개인정보 처리방침</a>
+          <a href="/terms/">이용약관</a>
+        </nav>
+        <p>치지직 및 네이버와 제휴·후원·연계 관계가 없는 비공식 서비스입니다.</p>
+        <p>© 2026 recap.cheese-lake</p>
+      </div>
+    </footer>
+  );
+}
+
+function AuthButtons({
+  authState,
+  compact = false,
+  showLogout = false,
+  logoutPending,
+  onLogout
+}: {
+  authState: AuthState;
+  compact?: boolean;
+  showLogout?: boolean;
+  logoutPending: boolean;
+  onLogout: () => void;
+}) {
+  const size = compact ? "btn-sm" : "btn-lg";
+
+  if (authState === "loading") {
+    return <button className={`btn btn-default ${size}`} type="button" disabled>로그인 확인 중</button>;
+  }
+
+  if (authState === "guest") {
+    return (
+      <a className={`btn btn-default ${size}`} href="/auth/login">
+        내 리캡 보기 <span aria-hidden="true">→</span>
+      </a>
+    );
+  }
+
+  const recapButton = (
+    <a className={`btn btn-default ${size}`} href="/prototype/recap.html">
+      내 리캡 보기
+    </a>
+  );
+
+  if (!showLogout) return recapButton;
+
+  return (
+    <div className="authenticated-actions">
+      {recapButton}
+      <button className={`btn btn-outline ${size}`} type="button" onClick={onLogout} disabled={logoutPending}>
+        {logoutPending ? "로그아웃 중" : "로그아웃"}
+      </button>
+    </div>
+  );
+}
+
+function ActivityTexture() {
   const cells = useMemo(
-    () => Array.from({ length: 371 }, (_, index) => activityPattern[index % activityPattern.length]),
+    () => Array.from({ length: 112 }, (_, index) => activityPattern[index % activityPattern.length]),
     []
   );
 
   return (
-    <div className="year-texture" aria-label="한 해 동안 날짜별 채팅 수를 나타내는 예시 히트맵">
-      <div className="year-spine" aria-hidden="true">
-        <span>CHZZK RECAP</span>
-        <strong>2026</strong>
+    <div className="activity-texture" aria-label="최근 날짜별 채팅 수를 나타내는 예시 히트맵">
+      <div className="activity-spine" aria-hidden="true">
+        <span>CHAT RECAP</span>
+        <strong>RECENT</strong>
       </div>
-      <div className="year-content">
+      <div className="activity-content">
         <div className="preview-label">
           <span className="badge badge-secondary">화면 예시</span>
           <span>날짜별 채팅 수</span>
@@ -56,7 +134,7 @@ function YearTexture() {
           </div>
         </div>
         <div className="month-axis" aria-hidden="true">
-          <span>1월</span><span>4월</span><span>7월</span><span>10월</span><span>12월</span>
+          <span>5월</span><span>6월</span><span>7월</span><span>8월</span>
         </div>
         <p className="texture-caption">일별 채팅 수를 보여줍니다.</p>
       </div>
@@ -66,6 +144,10 @@ function YearTexture() {
 
 function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [authState, setAuthState] = useState<AuthState>("loading");
+  const [logoutPending, setLogoutPending] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
 
   useEffect(() => {
     document.documentElement.classList.remove("light", "dark");
@@ -77,18 +159,87 @@ function App() {
     }
   }, [theme]);
 
+  useEffect(() => {
+    if (path !== "/") {
+      setAuthState("guest");
+      return;
+    }
+
+    const controller = new AbortController();
+    fetch("/api/session", {
+      headers: { Accept: "application/json" },
+      credentials: "same-origin",
+      signal: controller.signal
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error(`세션 확인 실패: ${response.status}`);
+        return response.json() as Promise<SessionResponse>;
+      })
+      .then((session) => setAuthState(session.loggedIn ? "authenticated" : "guest"))
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setAuthState("guest");
+      });
+
+    return () => controller.abort();
+  }, [path]);
+
+  const logout = () => {
+    setAuthError("");
+    setLogoutPending(true);
+    fetch("/auth/logout", { method: "POST", credentials: "same-origin" })
+      .then((response) => {
+        if (!response.ok) throw new Error(`로그아웃 실패: ${response.status}`);
+        setAuthState("guest");
+      })
+      .catch(() => setAuthError("로그아웃하지 못했습니다. 다시 시도해 주세요."))
+      .finally(() => setLogoutPending(false));
+  };
+
+  const authenticated = authState === "authenticated";
+
+  if (path === "/privacy") {
+    return (
+      <>
+        <a className="skip-link" href="#main">본문으로 건너뛰기</a>
+        <header className="site-header">
+          <Wordmark />
+          <nav className="site-nav" aria-label="주요 메뉴">
+            <a href="/">홈</a>
+            <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
+          </nav>
+        </header>
+        <LegalDocument markdown={privacyPolicy} />
+        <SiteFooter />
+      </>
+    );
+  }
+
+  if (path === "/terms") {
+    return (
+      <>
+        <a className="skip-link" href="#main">본문으로 건너뛰기</a>
+        <header className="site-header">
+          <Wordmark />
+          <nav className="site-nav" aria-label="주요 메뉴">
+            <a href="/">홈</a>
+            <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
+          </nav>
+        </header>
+        <LegalDocument markdown={termsOfService} />
+        <SiteFooter />
+      </>
+    );
+  }
+
   return (
     <>
       <a className="skip-link" href="#main">본문으로 건너뛰기</a>
 
       <header className="site-header">
-        <a className="wordmark" href="/" aria-label="recap 홈">
-          <span className="wordmark-mark" aria-hidden="true">r</span>
-          <span>recap</span>
-        </a>
+        <Wordmark />
         <nav className="site-nav" aria-label="주요 메뉴">
-          <a href="#preview">리캡 예시</a>
-          <a className="btn btn-outline btn-sm" href="/auth/login">내 리캡 보기</a>
+          <AuthButtons authState={authState} compact showLogout logoutPending={logoutPending} onLogout={logout} />
           <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
         </nav>
       </header>
@@ -96,41 +247,45 @@ function App() {
       <main id="main">
         <section className="hero">
           <div className="hero-copy">
-            <p className="hero-eyebrow">2026 CHZZK RECAP</p>
-            <h1>올해, 어디서 제일 많이<br /><em>채팅했을까.</em></h1>
+            <p className="hero-eyebrow">CHZZK CHAT RECAP</p>
+            <h1>어디서 제일 많이<br /><em>채팅했을까.</em></h1>
             <p className="hero-description">
               자주 찾은 채널부터 많이 채팅한 시간대까지.<br className="desktop-break" />
-              올해 치지직 활동을 한 번에 봅니다.
+              치지직 채팅 활동을 한 번에 봅니다.
             </p>
             <div className="hero-actions">
-              <a className="btn btn-default btn-lg" href="/auth/login">
-                내 리캡 보기 <span aria-hidden="true">→</span>
-              </a>
-              <a className="text-link" href="#preview">리캡 예시 보기</a>
+              <AuthButtons authState={authState} logoutPending={logoutPending} onLogout={logout} />
             </div>
-            <p className="hero-footnote">* 치지직 공개 채팅을 바탕으로 만든 채팅 리캡입니다. 시청 기록은 포함하지 않습니다.</p>
+            <p className="hero-footnote" aria-live="polite">
+              {authError && <><span className="auth-error" role="alert">{authError}</span><br /></>}
+              {authenticated && <><strong>로그인 완료.</strong> 본인 확인에 쓴 접근 토큰은 폐기했습니다.<br /></>}
+              * 치지직 공개 채팅을 바탕으로 만든 채팅 리캡입니다. 시청 기록은 포함하지 않습니다.
+            </p>
           </div>
 
-          <YearTexture />
+          <ActivityTexture />
         </section>
 
         <section className="principles" id="how" aria-labelledby="principles-title">
           <div className="section-heading">
-            <p className="section-kicker">이용 방법</p>
-            <h2 id="principles-title">로그인 한 번,<br />바로 확인.</h2>
+            <p className="section-kicker">{authenticated ? "로그인 상태" : "이용 방법"}</p>
+            <h2 id="principles-title">{authenticated ? <>본인 확인<br />완료.</> : <>로그인 한 번,<br />바로 확인.</>}</h2>
           </div>
           <div className="principle-list">
             <article>
-              <span className="principle-mark" aria-hidden="true">↗</span>
-              <div><h3>치지직 로그인</h3><p>새 계정 없이 치지직으로 로그인합니다.</p></div>
+              <span className="principle-mark" aria-hidden="true">{authenticated ? "✓" : "↗"}</span>
+              <div><h3>치지직 로그인</h3><p>{authenticated ? "치지직 계정으로 본인 확인을 마쳤습니다." : "새 계정 없이 치지직으로 로그인합니다."}</p></div>
             </article>
             <article>
               <span className="principle-mark" aria-hidden="true">○</span>
-              <div><h3>내 리캡</h3><p>채널별 채팅 기록은 로그인한 본인만 볼 수 있습니다.</p></div>
+              <div>
+                <h3>내 리캡</h3>
+                <p>{authenticated ? "리캡에는 이 계정의 기록만 표시됩니다." : "치지직 로그인 후 본인의 채팅 기록을 확인할 수 있습니다."}</p>
+              </div>
             </article>
             <article>
-              <span className="principle-mark" aria-hidden="true">⌁</span>
-              <div><h3>토큰 폐기</h3><p>본인 확인이 끝나면 접근 토큰을 바로 폐기합니다.</p></div>
+              <span className="principle-mark" aria-hidden="true">{authenticated ? "✓" : "⌁"}</span>
+              <div><h3>토큰 폐기</h3><p>{authenticated ? "본인 확인에 쓴 접근 토큰을 폐기했습니다." : "본인 확인이 끝나면 접근 토큰을 바로 폐기합니다."}</p></div>
             </article>
           </div>
         </section>
@@ -170,17 +325,13 @@ function App() {
         </section>
 
         <section className="closing">
-          <p className="section-kicker">2026 RECAP</p>
-          <h2>올해 채팅 기록을<br />한 번에 봅니다.</h2>
-          <a className="btn btn-default btn-lg" href="/auth/login">내 리캡 보기 <span aria-hidden="true">→</span></a>
+          <p className="section-kicker">CHAT RECAP</p>
+          <h2>{authenticated ? <>본인 확인을<br />마쳤습니다.</> : <>채팅 기록을<br />한 번에 봅니다.</>}</h2>
+          <AuthButtons authState={authState} logoutPending={logoutPending} onLogout={logout} />
         </section>
       </main>
 
-      <footer className="site-footer">
-        <div className="wordmark footer-wordmark"><span className="wordmark-mark" aria-hidden="true">r</span><span>recap</span></div>
-        <p>치지직 및 네이버와 제휴·후원·연계 관계가 없는 비공식 서비스입니다.</p>
-        <p>© 2026 recap.cheese-lake</p>
-      </footer>
+      <SiteFooter />
     </>
   );
 }
