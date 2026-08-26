@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -29,6 +30,7 @@ func NewTrace() *Trace { return &Trace{} }
 func (t *Trace) add(s Step) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	s.URL = safeURLForLog(s.URL)
 	s.Seq = len(t.Steps) + 1
 	t.Steps = append(t.Steps, s)
 
@@ -37,6 +39,22 @@ func (t *Trace) add(s Step) {
 	} else {
 		slog.Error("치지직 호출 실패", "단계", s.Label, "상태", s.Status, "상세", s.Detail)
 	}
+}
+
+// safeURLForLog 는 OAuth code, state 같은 쿼리와 사용자 정보를 로그와 trace 에 남기지 않는다.
+func safeURLForLog(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "[잘못된 URL]"
+	}
+	u.User = nil
+	u.RawQuery = ""
+	u.ForceQuery = false
+	u.Fragment = ""
+	return safeForLog(u.String())
 }
 
 func (t *Trace) OK(label, method, url string, status int, took time.Duration) {

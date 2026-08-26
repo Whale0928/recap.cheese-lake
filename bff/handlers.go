@@ -78,7 +78,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	setCookie(w, stateCookie, state, stateTTL)
 
 	dest := s.chzzk.AuthorizeURL(state)
-	slog.Info("인가 요청으로 보냅니다", "url", dest)
+	slog.Info("인가 요청으로 보냅니다", "url", safeURLForLog(dest))
 	http.Redirect(w, r, dest, http.StatusFound)
 }
 
@@ -101,13 +101,13 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 
 	q := r.URL.Query()
 
-	// 동의 거부 시 무엇이 오는지 문서에 없다. 있는 그대로 남긴다.
+	// 동의 거부처럼 code 없이 돌아온 경우에도 쿼리는 기록하지 않는다.
 	if code := q.Get("code"); code == "" {
-		res.Error = "콜백에 code 가 없습니다. 쿼리: " + r.URL.RawQuery
+		res.Error = "콜백에 code 가 없습니다"
 		tr.Fail("콜백 수신", "GET", r.URL.Path, 0, 0, res.Error)
 		return
 	}
-	tr.OK("콜백 수신", "GET", r.URL.Path+"?"+r.URL.RawQuery, 200, 0)
+	tr.OK("콜백 수신", "GET", r.URL.String(), 200, 0)
 
 	if err := verifyState(s.cfg.SessionKey, stateFromCookie, q.Get("state")); err != nil {
 		res.Error = err.Error()
@@ -147,6 +147,8 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 
 	setCookie(w, sessionCookie, issueSession(s.cfg.SessionKey, user), sessionTTL)
 	tr.Note("세션 쿠키 발급 — channelId 와 channelName 만 담았습니다")
+	// TODO: LoginSucceeded 이벤트를 발행해 별도 로그인 이력 저장을 트리거한다.
+	// channelId 와 성공 시각만 담고 OAuth code, state, token 은 이벤트에 포함하지 않는다.
 	res.OK = true
 }
 
