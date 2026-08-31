@@ -8,10 +8,12 @@ React와 Vite로 구성한 프론트엔드다. 디자인 시스템은 기존 결
 ```
 ui/
 ├── src/                  React 애플리케이션
+│   └── blocks/          리캡 조각 스물아홉 개. types.ts 가 곧 API 응답 스키마다
 ├── styles/
 │   ├── tokens.css       색·모서리·서체 토큰 (shadcn/ui 변수 이름 그대로, oklch)
 │   └── components.css   컴포넌트 층 (shadcn/ui 어휘 + recap 전용 블록)
 ├── gallery.html         살아 있는 스타일 참조. 토큰과 컴포넌트 전부를 한 화면에
+├── catalog/             리캡 카탈로그 진입점
 ├── index.html           메인 페이지 진입점
 ├── chzzk-login-check.html  기존 치지직 로그인 검증 화면
 └── prototype/           확정 전 시안. 결론이 나면 옮기거나 지운다
@@ -28,6 +30,7 @@ task bff:dev                  # UI를 빌드하고 http://localhost:8180에서 �
 - `/` — 메인 페이지
 - `/chzzk-login-check.html` — 기존 로그인 검증 화면
 - `/gallery.html` — 스타일 갤러리. 우상단 「테마 전환」으로 라이트·다크를 오간다
+- `/catalog/` — 리캡 카탈로그. 조각별 화면과 그 조각이 먹는 값을 나란히 본다
 - `/prototype/recap.html` — 본문 조립 시안
 
 ## 프로토타입
