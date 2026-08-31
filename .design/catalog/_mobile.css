@@ -1,0 +1,25 @@
+.mtop { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: .5rem;
+        padding: .55rem 1rem; background: var(--card); border-bottom: 1px solid var(--border); }
+.mtop-title { font-size: .875rem; font-weight: 600; letter-spacing: -.01em; }
+.mshell { padding: .9rem 1rem 5.5rem; display: flex; flex-direction: column; gap: .9rem; }
+.mchips { display: flex; gap: .35rem; overflow-x: auto; margin: 0 -1rem; padding: 0 1rem .2rem; }
+.mchips .mchip { flex: 0 0 auto; }
+.mrow { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: .7rem;
+        padding: .75rem 0; border-bottom: 1px solid var(--border); align-items: start; }
+.mrow:last-child { border-bottom: none; }
+.mrow .th { width: 64px; height: 44px; padding: 4px 5px; }
+.mrow .th-num span { font-size: .9375rem; }
+.mrow .th-num small { font-size: .5rem; }
+.mrow .th-ring-n { font-size: .6875rem; margin-left: .25rem; }
+.mrow .th-text > span { font-size: .4375rem; padding: .05rem .2rem; }
+.mrow .th-dots > i { transform: scale(0.55); }
+.mrow-b { display: flex; flex-direction: column; gap: .35rem; }
+.mrow-head { display: flex; align-items: center; gap: .35rem; }
+.mrow-head .nm { font-size: .875rem; font-weight: 600; }
+.mrow .comp-desc { font-size: .75rem; }
+.mrow .add { height: 1.7rem; align-self: flex-start; padding: 0 .8rem; }
+.mbar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: .75rem;
+        padding: .7rem 1rem; background: var(--card); border-top: 1px solid var(--border); }
+.mbar-n { font-size: .8125rem; font-weight: 600; }
+.mbar-s { font-size: .6875rem; color: var(--muted-foreground); }
+.mbar .btn-primary { width: auto; margin-left: auto; padding: 0 1.1rem; }

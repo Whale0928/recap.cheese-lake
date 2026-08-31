@@ -1,0 +1,271 @@
+  </style>
+</helmet>
+
+<div class="app {{themeClass}}">
+
+  <div class="topbar">
+    <span class="badge badge-secondary">목업</span>
+    <strong class="topbar-title">리캡 조각 고르기</strong>
+    <span class="topbar-sub">스물아홉 조각 중 원하는 것만 담아 내 리캡을 만든다</span>
+    <span class="topbar-right">recap.cheese-lake · 데이터 구성 미정</span>
+  </div>
+
+  <div class="shell">
+
+    <aside class="rail">
+      <p class="label">분류</p>
+      <ul class="catlist">
+        <sc-for list="{{cats}}" as="c" hint-placeholder-count="8">
+          <li>
+            <button class="catbtn" data-on="{{c.on}}" onClick="{{c.pick}}">
+              <span>{{c.name}}</span><span class="n">{{c.n}}</span>
+            </button>
+          </li>
+        </sc-for>
+      </ul>
+
+      <p class="label">거르기</p>
+      <ul class="catlist">
+        <li>
+          <button class="catbtn" data-on="{{fNowOn}}" onClick="{{toggleNow}}">
+            <span>지금 실데이터로 되는 것만</span><span class="n">{{nowN}}</span>
+          </button>
+        </li>
+        <li>
+          <button class="catbtn" data-on="{{fNewOn}}" onClick="{{toggleNew}}">
+            <span>신규 조각만</span><span class="n">{{newN}}</span>
+          </button>
+        </li>
+        <li>
+          <button class="catbtn" data-on="{{fPossibleOn}}" onClick="{{togglePossible}}">
+            <span>본문 없이도 되는 것만</span><span class="n">{{possibleN}}</span>
+          </button>
+        </li>
+        <li>
+          <button class="catbtn" data-on="{{fPinOn}}" onClick="{{togglePin}}">
+            <span>채널 지정 되는 것만</span><span class="n">{{pinN}}</span>
+          </button>
+        </li>
+      </ul>
+
+      <p class="label">원천</p>
+      <p class="note">
+        조각 대부분은 <strong>chat_trace</strong> 에서 나온다. 수집 모드와 상관없이 쌓이는 표다.
+        본문이 필요한 조각만 <strong>chat_messages</strong> 를 보는데, 이쪽은 풀로 수집한 방송만 들어 있다.
+      </p>
+      <p class="note">
+        <strong>live_census</strong> 는 정찰이 10분마다 남기는 전수다. 동접·카테고리·관측 시점 채널명이
+        들어 있어 「방」 분류가 통째로 여기서 나온다. 채널명을 치지직 API 없이 붙이는 길도 여기 있다.
+      </p>
+      <p class="note">
+        <strong>chat_subscription_state</strong> 는 말한 그 순간의 구독 상태다. 나중에 되살릴 방법이
+        없어서, 지금 안 쌓으면 영영 못 만든다.
+      </p>
+    </aside>
+
+    <main>
+      <div class="probe">
+        <p class="probe-h">2026.08.30 dev ClickHouse 실측</p>
+        <p class="probe-b">
+          쌓인 것은 <strong>9일</strong>이다. chat_trace 는 명목상 08-08 부터지만 08-21 까지는 하루 수백 건짜리
+          시험 흔적이고, 본 수집은 <strong>08-22</strong> 부터다(일 130만~380만 행). 구독 상태는 08-26 부터 닷새,
+          live_census 는 08-24 부터 엿새다. 그래서 값이 나오느냐와 이야기가 되느냐가 갈린다.
+          아래 판정은 <strong>지금 데이터</strong> 기준이고, 기간이 쌓이면 대부분 저절로 풀린다.
+        </p>
+        <div class="probe-k">
+          <span><i data-v="now"></i>지금 됨 <strong>{{nowN}}</strong></span>
+          <span><i data-v="partial"></i>값은 나오나 반쪽 <strong>{{partialN}}</strong></span>
+          <span><i data-v="soon"></i>기간이 쌓이면 <strong>{{soonN}}</strong></span>
+          <span class="probe-x">원천이 없어 못 만드는 조각은 없다</span>
+        </div>
+      </div>
+      <div class="probe key">
+        <p class="probe-h">모든 조각의 전제 — 사람을 찾는 열쇠</p>
+        <p class="probe-b">
+          치지직에서는 <strong>채널 아이디가 곧 사람 아이디</strong>다. 로그인할 때 받는 채널 아이디와
+          레이크가 쌓아 둔 user_id 는 같은 값 공간이다. 실측으로 확인했다.
+          chat_trace 의 채널 1,399곳 중 <strong>1,127곳</strong>이 user_id 로도 등장한다.
+          스트리머가 자기 방에 친 채팅이고, 128비트 공간에서 우연히 겹칠 수 있는 수가 아니다.
+          live_census 기준으로도 1,680곳 중 1,185곳이 겹친다.
+        </p>
+        <p class="probe-b">
+          그래서 리캡은 로그인으로 받은 채널 아이디를 그대로 <strong>user_id 로 조회</strong>하면 된다.
+          매핑 표도 별도 수집도 필요 없다. 아래 조각 전부가 이 한 줄에 걸려 있다.
+          <strong>실제 로그인 한 건으로 끝까지 이어지는지 보는 게 첫 번째 할 일</strong>이다.
+          지금 확인된 건 레이크 안에서 같은 공간이라는 데까지고, OAuth 가 주는 값과 맞춰 보는 건 남았다.
+        </p>
+      </div>
+
+      <div class="grid">
+        <sc-for list="{{rows}}" as="it" hint-placeholder-count="10">
+
+          <sc-if value="{{it.isHead}}" hint-placeholder-val="{{ false }}">
+            <div class="sec-h {{it.first}}">
+              <h2>{{it.name}}</h2>
+              <p>{{it.desc}}</p>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{it.isComp}}" hint-placeholder-val="{{ true }}">
+            <article class="comp" data-picked="{{it.picked}}" data-v="{{it.v}}">
+
+              <sc-if value="{{it.kNum}}" hint-placeholder-val="{{ true }}">
+                <div class="th th-num"><span>{{it.tnum}}</span><small>{{it.tsub}}</small></div>
+              </sc-if>
+              <sc-if value="{{it.kBars}}" hint-placeholder-val="{{ false }}">
+                <div class="th th-bars">
+                  <sc-for list="{{it.bars}}" as="b" hint-placeholder-count="4"><i style="width: {{b.w}}"></i></sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kCells}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <div class="th-cells" style="grid-template-columns: repeat({{it.cols}}, 4px)">
+                    <sc-for list="{{it.cells}}" as="c" hint-placeholder-count="40"><span data-level="{{c.l}}"></span></sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kDots}}" hint-placeholder-val="{{ false }}">
+                <div class="th th-dots">
+                  <sc-for list="{{it.dots}}" as="d" hint-placeholder-count="6"><i style="width: {{d.s}}; height: {{d.s}}; opacity: {{d.o}}"></i></sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kLine}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <svg class="th-svg" viewBox="0 0 120 44" preserveAspectRatio="none">
+                    <sc-for list="{{it.paths}}" as="p" hint-placeholder-count="0">
+                      <polyline points="{{p.pts}}" fill="none" stroke="{{p.c}}" stroke-width="2" stroke-linejoin="round"></polyline>
+                    </sc-for>
+                  </svg>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kArea}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <svg class="th-svg" viewBox="0 0 120 44" preserveAspectRatio="none">
+                    <sc-for list="{{it.bands}}" as="b" hint-placeholder-count="0">
+                      <polygon points="{{b.pts}}" fill="{{b.c}}"></polygon>
+                    </sc-for>
+                  </svg>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kRing}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <svg class="th-ring" viewBox="0 0 44 44">
+                    <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="6"></circle>
+                    <circle cx="22" cy="22" r="17" fill="none" stroke="var(--chart-1)" stroke-width="6" stroke-linecap="round" stroke-dasharray="{{it.dash}}" transform="rotate(-90 22 22)"></circle>
+                  </svg>
+                  <span class="th-ring-n">{{it.tnum}}</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kSpan}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <div class="th-span" style="width: 100%; height: 100%">
+                    <sc-for list="{{it.segs}}" as="s" hint-placeholder-count="2"><i style="left: {{s.l}}; width: {{s.w}}; background: {{s.c}}"></i></sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kNet}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <svg class="th-svg" viewBox="0 0 120 44">
+                    <sc-for list="{{it.edges}}" as="e" hint-placeholder-count="0">
+                      <line x1="{{e.x1}}" y1="{{e.y1}}" x2="{{e.x2}}" y2="{{e.y2}}" stroke="var(--chart-3)" stroke-width="1"></line>
+                    </sc-for>
+                    <sc-for list="{{it.nodes}}" as="n" hint-placeholder-count="0">
+                      <circle cx="{{n.x}}" cy="{{n.y}}" r="{{n.r}}" fill="var(--chart-1)"></circle>
+                    </sc-for>
+                  </svg>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kText}}" hint-placeholder-val="{{ false }}">
+                <div class="th th-text">
+                  <sc-for list="{{it.words}}" as="w" hint-placeholder-count="4"><span style="opacity: {{w.o}}">{{w.t}}</span></sc-for>
+                </div>
+              </sc-if>
+
+              <div class="comp-name">
+                <span>{{it.name}}</span>
+                <sc-if value="{{it.isNew}}" hint-placeholder-val="{{ false }}"><span class="tag-new">신규</span></sc-if>
+              </div>
+              <p class="comp-desc">{{it.desc}}</p>
+              <p class="vnote"><span class="chip v" data-v="{{it.v}}">{{it.vLabel}}</span>{{it.vnote}}</p>
+              <div class="comp-meta">
+                <span class="chip">{{it.key}}</span>
+                <span class="chip dim">{{it.src}}</span>
+                <sc-if value="{{it.needFull}}" hint-placeholder-val="{{ false }}"><span class="chip warn">full 전용</span></sc-if>
+                <sc-if value="{{it.pinnable}}" hint-placeholder-val="{{ false }}"><span class="chip pin">채널 지정</span></sc-if>
+              </div>
+              <button class="add" data-picked="{{it.picked}}" onClick="{{it.toggle}}">{{it.btn}}</button>
+            </article>
+          </sc-if>
+
+        </sc-for>
+      </div>
+
+      <div class="foot">
+        <p class="label">만들지 않는 조각</p>
+        <div class="notmade">
+          <div>
+            <h3>이모티콘</h3>
+            <p>빈도는 정확히 나온다. 그런데 코드가 어떤 그림인지 알 길이 없다. 수집할 때 이미지 맵을 버렸다(ADR-0009).</p>
+          </div>
+          <div>
+            <h3>처음과 마지막 메시지</h3>
+            <p>원문을 화면에 꺼내는 조각이라 뺐다. 본문은 집계 쪽에 남고 리캡으로 나오지 않는다.</p>
+          </div>
+          <div>
+            <h3>시청 시간</h3>
+            <p>채팅을 남긴 순간만 기록된다. 방송 길이와 동접은 live_census 로 알 수 있지만 내 시청 시간은 아니다.</p>
+          </div>
+          <div>
+            <h3>닉네임 변천</h3>
+            <p>chat_users 는 ReplacingMergeTree(seen_at) 라 최신 이름만 남는다. 이전 이름은 복원되지 않는다.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div class="tray-col">
+      <aside class="tray">
+        <div>
+          <p class="label" style="margin-bottom: .25rem">내 리캡</p>
+          <p class="tray-sub">{{pickN}}조각 · 담은 순서가 페이지 순서다</p>
+        </div>
+
+        <ol class="tray-list">
+          <sc-for list="{{picked}}" as="p" hint-placeholder-count="6">
+            <li>
+              <span class="tray-no">{{p.no}}</span>
+              <span class="tray-name">{{p.name}}</span>
+              <span class="tray-ch">{{p.chLabel}}</span>
+              <button class="tray-x" onClick="{{p.remove}}">빼기</button>
+            </li>
+          </sc-for>
+        </ol>
+        <sc-if value="{{noPick}}" hint-placeholder-val="{{ false }}">
+          <p class="tray-empty">아직 담은 조각이 없다. 왼쪽에서 담으면 여기에 순서대로 쌓인다.</p>
+        </sc-if>
+
+        <div>
+          <p class="label">채널 지정</p>
+          <div class="chsel">
+            <sc-for list="{{channels}}" as="c" hint-placeholder-count="5">
+              <button class="mchip" data-on="{{c.on}}" onClick="{{c.pick}}">{{c.name}}</button>
+            </sc-for>
+          </div>
+          <p class="note" style="margin-top: .6rem">
+            「채널 지정」이 붙은 조각만 <strong>{{chName}}</strong> 하나로 좁혀 그린다.
+            나머지는 채널을 가리지 않고 전체로 그린다.
+          </p>
+        </div>
+
+        <button class="btn-primary">이 구성으로 리캡 만들기</button>
+        <p class="note">
+          고른 구성은 리캡 주소에 묶인다. 나중에 조각을 더하거나 빼면 같은 주소가 다시 그려진다.
+        </p>
+      </aside>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"theme":{"editor":"enum","options":["라이트","다크"],"default":"라이트","section":"보기"},"$preview":{"width":1920,"height":3820}}'>

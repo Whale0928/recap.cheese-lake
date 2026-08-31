@@ -1,0 +1,145 @@
+  </style>
+</helmet>
+
+<div class="app {{themeClass}}">
+
+  <div class="mtop">
+    <span class="badge badge-secondary">목업</span>
+    <strong class="mtop-title">리캡 조각 고르기</strong>
+  </div>
+
+  <div class="mshell">
+
+    <div class="mchips">
+      <sc-for list="{{channels}}" as="c" hint-placeholder-count="5">
+        <button class="mchip" data-on="{{c.on}}" onClick="{{c.pick}}">{{c.name}}</button>
+      </sc-for>
+    </div>
+
+    <div class="mchips">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="8">
+        <button class="mchip" data-on="{{c.on}}" onClick="{{c.pick}}">{{c.name}} {{c.n}}</button>
+      </sc-for>
+    </div>
+
+    <div>
+      <sc-for list="{{rows}}" as="it" hint-placeholder-count="6">
+
+        <sc-if value="{{it.isHead}}" hint-placeholder-val="{{ false }}">
+          <div class="sec-h first" style="border-bottom: 0; padding-bottom: 0; margin: .5rem 0 0">
+            <h2>{{it.name}}</h2>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{it.isComp}}" hint-placeholder-val="{{ true }}">
+          <div class="mrow">
+              <sc-if value="{{it.kNum}}" hint-placeholder-val="{{ true }}">
+                <div class="th th-num"><span>{{it.tnum}}</span><small>{{it.tsub}}</small></div>
+              </sc-if>
+              <sc-if value="{{it.kBars}}" hint-placeholder-val="{{ false }}">
+                <div class="th th-bars">
+                  <sc-for list="{{it.bars}}" as="b" hint-placeholder-count="4"><i style="width: {{b.w}}"></i></sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kCells}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <div class="th-cells" style="grid-template-columns: repeat({{it.cols}}, 4px)">
+                    <sc-for list="{{it.cells}}" as="c" hint-placeholder-count="40"><span data-level="{{c.l}}"></span></sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kDots}}" hint-placeholder-val="{{ false }}">
+                <div class="th th-dots">
+                  <sc-for list="{{it.dots}}" as="d" hint-placeholder-count="6"><i style="width: {{d.s}}; height: {{d.s}}; opacity: {{d.o}}"></i></sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kLine}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <svg class="th-svg" viewBox="0 0 120 44" preserveAspectRatio="none">
+                    <sc-for list="{{it.paths}}" as="p" hint-placeholder-count="0">
+                      <polyline points="{{p.pts}}" fill="none" stroke="{{p.c}}" stroke-width="2" stroke-linejoin="round"></polyline>
+                    </sc-for>
+                  </svg>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kArea}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <svg class="th-svg" viewBox="0 0 120 44" preserveAspectRatio="none">
+                    <sc-for list="{{it.bands}}" as="b" hint-placeholder-count="0">
+                      <polygon points="{{b.pts}}" fill="{{b.c}}"></polygon>
+                    </sc-for>
+                  </svg>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kRing}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <svg class="th-ring" viewBox="0 0 44 44">
+                    <circle cx="22" cy="22" r="17" fill="none" stroke="var(--border)" stroke-width="6"></circle>
+                    <circle cx="22" cy="22" r="17" fill="none" stroke="var(--chart-1)" stroke-width="6" stroke-linecap="round" stroke-dasharray="{{it.dash}}" transform="rotate(-90 22 22)"></circle>
+                  </svg>
+                  <span class="th-ring-n">{{it.tnum}}</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kSpan}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <div class="th-span" style="width: 100%; height: 100%">
+                    <sc-for list="{{it.segs}}" as="s" hint-placeholder-count="2"><i style="left: {{s.l}}; width: {{s.w}}; background: {{s.c}}"></i></sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kNet}}" hint-placeholder-val="{{ false }}">
+                <div class="th">
+                  <svg class="th-svg" viewBox="0 0 120 44">
+                    <sc-for list="{{it.edges}}" as="e" hint-placeholder-count="0">
+                      <line x1="{{e.x1}}" y1="{{e.y1}}" x2="{{e.x2}}" y2="{{e.y2}}" stroke="var(--chart-3)" stroke-width="1"></line>
+                    </sc-for>
+                    <sc-for list="{{it.nodes}}" as="n" hint-placeholder-count="0">
+                      <circle cx="{{n.x}}" cy="{{n.y}}" r="{{n.r}}" fill="var(--chart-1)"></circle>
+                    </sc-for>
+                  </svg>
+                </div>
+              </sc-if>
+              <sc-if value="{{it.kText}}" hint-placeholder-val="{{ false }}">
+                <div class="th th-text">
+                  <sc-for list="{{it.words}}" as="w" hint-placeholder-count="4"><span style="opacity: {{w.o}}">{{w.t}}</span></sc-for>
+                </div>
+              </sc-if>
+
+            <div class="mrow-b">
+              <div class="mrow-head">
+                <span class="nm">{{it.name}}</span>
+                <sc-if value="{{it.isNew}}" hint-placeholder-val="{{ false }}"><span class="tag-new">신규</span></sc-if>
+              </div>
+              <p class="comp-desc">{{it.desc}}</p>
+              <p class="vnote"><span class="chip v" data-v="{{it.v}}">{{it.vLabel}}</span>{{it.vnote}}</p>
+              <div class="comp-meta">
+                <span class="chip">{{it.key}}</span>
+                <sc-if value="{{it.needFull}}" hint-placeholder-val="{{ false }}"><span class="chip warn">full 전용</span></sc-if>
+                <sc-if value="{{it.pinnable}}" hint-placeholder-val="{{ false }}"><span class="chip pin">채널 지정</span></sc-if>
+              </div>
+              <button class="add" data-picked="{{it.picked}}" onClick="{{it.toggle}}">{{it.btn}}</button>
+            </div>
+          </div>
+        </sc-if>
+
+      </sc-for>
+    </div>
+
+    <p class="note">
+      좁은 화면에서는 한 번에 한 분류만 본다. 담은 조각은 아래 막대에 쌓이고,
+      담은 순서가 곧 리캡의 순서다.
+    </p>
+
+  </div>
+
+  <div class="mbar">
+    <span>
+      <span class="mbar-n">{{pickN}}조각 담김</span><br>
+      <span class="mbar-s">{{chName}} 기준</span>
+    </span>
+    <button class="btn-primary">리캡 만들기</button>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"theme":{"editor":"enum","options":["라이트","다크"],"default":"라이트","section":"보기"},"$preview":{"width":390,"height":1760}}'>

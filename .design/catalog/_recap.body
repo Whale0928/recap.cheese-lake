@@ -1,0 +1,232 @@
+  </style>
+</helmet>
+
+<div class="app {{themeClass}}">
+
+  <div class="pickbar">
+    <span class="badge badge-secondary">목업</span>
+    <span class="pickbar-sub">내가 고른 <strong>9조각</strong>으로 조립된 리캡</span>
+    <span class="pickbar-right">
+      <button>조각 다시 고르기</button>
+      <button>순서 바꾸기</button>
+    </span>
+  </div>
+
+  <main class="recap">
+
+    <header class="hero">
+      <p class="who">날아다니는 고래</p>
+      <h1>2026년,<br>당신은 <em>12,480번</em> 말했습니다</h1>
+    </header>
+
+    <section class="recap-section">
+      <p class="recap-eyebrow">얼마나 떠들었나</p>
+      <p class="figure">12,480</p>
+      <p class="recap-note" style="margin-top: 1rem">
+        같은 기간 채팅을 남긴 <strong>11,170명</strong> 가운데
+        <strong style="color: var(--primary)">56위</strong>입니다. 상위 0.5%.
+      </p>
+      <p class="recap-note">하루 평균 34번. 안 한 날을 빼면 42번.</p>
+    </section>
+
+    <section class="recap-section">
+      <p class="recap-eyebrow">떠든 시간</p>
+      <p class="figure">4,182<small>분</small></p>
+      <p class="recap-note" style="margin-top: 1rem">
+        69시간 42분입니다. 12,480번을 그 안에 나눠 쳤으니 <strong>1분에 세 번</strong>꼴이었습니다.
+      </p>
+      <p class="recap-note">
+        본 시간이 아니라 말한 시간입니다. 조용히 보고만 있던 시간은 여기에 들어 있지 않습니다.
+      </p>
+    </section>
+
+    <section class="recap-section">
+      <p class="recap-eyebrow">그런데</p>
+      <p class="recap-lead">서른일곱 곳을 오갔지만,<br><em>절반은 세 곳</em>에 있었습니다</p>
+      <p class="recap-note" style="margin-bottom: 1.5rem">상위 세 채널이 6,862번. 전체의 55%입니다.</p>
+      <ol class="rank">
+        <li><span class="rank-no">01</span><div><div class="rank-head"><strong>새벽정비소</strong><span>3,204</span></div><div class="rank-bar"><i style="width: 100%"></i></div></div></li>
+        <li><span class="rank-no">02</span><div><div class="rank-head"><strong>고래책방</strong><span>2,118</span></div><div class="rank-bar"><i style="width: 66%"></i></div></div></li>
+        <li><span class="rank-no">03</span><div><div class="rank-head"><strong>라면과기타</strong><span>1,540</span></div><div class="rank-bar"><i style="width: 48%"></i></div></div></li>
+        <li><span class="rank-no">04</span><div><div class="rank-head"><strong>초저녁라디오</strong><span>884</span></div><div class="rank-bar"><i style="width: 28%"></i></div></div></li>
+        <li><span class="rank-no">05</span><div><div class="rank-head"><strong>목요일의숲</strong><span>430</span></div><div class="rank-bar"><i style="width: 13%"></i></div></div></li>
+      </ol>
+      <p class="recap-note" style="margin-top: 1rem">나머지 32곳을 합쳐도 4,304번입니다.</p>
+    </section>
+
+    <section class="recap-section">
+      <p class="recap-eyebrow">옮겨간 자리</p>
+      <p class="recap-lead">여름을 지나며 <em>무게중심이 옮겨갔습니다</em></p>
+      <p class="recap-note" style="margin-bottom: 1.25rem">
+        상반기의 새벽정비소가 하반기에는 고래책방으로 바뀝니다.
+      </p>
+      <svg class="stream" viewBox="0 0 720 190" preserveAspectRatio="none">
+        <sc-for list="{{bands}}" as="b" hint-placeholder-count="0">
+          <polygon points="{{b.pts}}" fill="{{b.c}}"></polygon>
+        </sc-for>
+      </svg>
+      <div class="stream-months">
+        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span>
+        <span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span>
+      </div>
+      <div class="stream-key">
+        <span><i style="background: var(--chart-1)"></i>새벽정비소</span>
+        <span><i style="background: var(--chart-2)"></i>고래책방</span>
+        <span><i style="background: var(--chart-3)"></i>라면과기타</span>
+        <span><i style="background: var(--chart-4)"></i>초저녁라디오</span>
+        <span><i style="background: var(--muted)"></i>나머지 33곳</span>
+      </div>
+    </section>
+
+    <section class="recap-section">
+      <p class="recap-eyebrow">한 해의 결</p>
+      <div class="heat">
+        <div class="heat-grid">
+          <sc-for list="{{heat}}" as="d" hint-placeholder-count="80">
+            <span class="heat-cell" data-level="{{d.l}}"></span>
+          </sc-for>
+        </div>
+        <div class="heat-legend">
+          <span>적음</span>
+          <span class="heat-cell" data-level="0"></span>
+          <span class="heat-cell" data-level="1"></span>
+          <span class="heat-cell" data-level="2"></span>
+          <span class="heat-cell" data-level="3"></span>
+          <span class="heat-cell" data-level="4"></span>
+          <span>많음</span>
+        </div>
+      </div>
+      <p class="recap-note" style="margin-top: 1.25rem">
+        371칸 중 <strong>294칸</strong>에 흔적이 있습니다. 비어 있는 77일 중 41일이 한여름에 몰려 있습니다.
+      </p>
+    </section>
+
+    <section class="recap-section">
+      <p class="recap-eyebrow">뭘 보고 있었나</p>
+      <p class="recap-lead">거의 <em>말하는 방</em>에 있었습니다</p>
+      <p class="recap-note" style="margin-bottom: 1.25rem">
+        채팅을 남긴 방송의 카테고리를 세면 이렇습니다.
+      </p>
+      <ul class="cat-list">
+        <li style="--w: 46%"><span>토크</span><span class="n">46%</span></li>
+        <li style="--w: 21%"><span>종합 게임</span><span class="n">21%</span></li>
+        <li style="--w: 18%"><span>공포 게임</span><span class="n">18%</span></li>
+        <li style="--w: 9%"><span>리듬 게임</span><span class="n">9%</span></li>
+        <li style="--w: 6%"><span>그 밖에</span><span class="n">6%</span></li>
+      </ul>
+      <p class="recap-note" style="margin-top: 1.25rem">
+        카테고리는 방송이 열려 있는 동안 기록해 둔 것에서 왔습니다.
+      </p>
+    </section>
+
+    <section class="recap-section">
+      <p class="recap-eyebrow">구독한 지</p>
+      <p class="recap-lead">네 곳은 <em>구독까지</em> 하고 있었습니다</p>
+      <ul class="subs" style="margin-top: 1.25rem">
+        <li><span class="nm">새벽정비소</span><span class="bar"><i style="width: 100%"></i></span><span class="mo">14개월</span></li>
+        <li><span class="nm">고래책방</span><span class="bar"><i style="width: 57%"></i></span><span class="mo">8개월</span></li>
+        <li><span class="nm">라면과기타</span><span class="bar"><i style="width: 21%"></i></span><span class="mo">3개월</span></li>
+        <li><span class="nm">초저녁라디오</span><span class="bar"><i style="width: 14%"></i></span><span class="mo">2개월</span></li>
+      </ul>
+      <p class="recap-note" style="margin-top: 1.25rem">
+        구독 개월은 채팅을 칠 때만 딸려 오는 값이라 <strong>말하지 않은 달은 셀 수 없습니다.</strong>
+        여기 숫자는 「말하면서 확인된 최대 개월」입니다.
+      </p>
+    </section>
+
+    <section class="recap-section">
+      <p class="recap-eyebrow">자주 쓴 말</p>
+      <ul class="freq">
+        <li style="--w: 100%"><span>ㅋㅋㅋ</span><span class="n">1,842</span></li>
+        <li style="--w: 33%"><span>ㅇㅈ</span><span class="n">604</span></li>
+        <li style="--w: 21%"><span>미쳤다</span><span class="n">388</span></li>
+        <li style="--w: 16%"><span>ㄱㄱ</span><span class="n">301</span></li>
+        <li style="--w: 13%"><span>개웃기네</span><span class="n">244</span></li>
+      </ul>
+      <p class="recap-note" style="margin-top: 1.25rem">
+        빈도만 넘어옵니다. 문장은 이 화면으로 나오지 않습니다.
+      </p>
+    </section>
+
+    <section class="recap-section">
+      <p class="recap-eyebrow">한 줄로 줄이면</p>
+      <p class="recap-lead">
+        서른일곱 군데를 기웃거렸지만 결국 <em>세 곳의 단골</em>이었고,<br>
+        여름을 지나며 자리를 옮겨 한 해를 닫았습니다.
+      </p>
+      <div class="actions">
+        <button class="go">공유 카드 만들기</button>
+        <button class="sub">조각 바꾸기</button>
+        <button class="sub">이 기록 지우기</button>
+      </div>
+      <p class="recap-note" style="margin-top: 1.5rem; font-size: .8125rem">
+        이 페이지는 검색에 노출되지 않으며 주소를 아는 사람만 볼 수 있습니다.
+        문장을 만들 때 채널 아이디와 닉네임은 보내지 않았습니다.
+      </p>
+    </section>
+
+  </main>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"theme":{"editor":"enum","options":["라이트","다크"],"default":"라이트","section":"보기"},"$preview":{"width":900,"height":3560}}'>
+class Component extends DCLogic {
+  rand(seed) {
+    var s = seed;
+    return function () { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; };
+  }
+
+  renderVals() {
+    // 04 한 해의 결 — 371칸. 여름 공백이 보이도록 만들고, 채운 칸 수를 294에 맞춘다.
+    var r = this.rand(20261231), vals = [], i, week, dow;
+    for (i = 0; i < 371; i++) {
+      week = Math.floor(i / 7);
+      dow = i % 7;
+      vals.push(week >= 26 && week <= 32 ? r() * 0.001 : r() * (dow === 0 || dow === 6 ? 1.45 : 1));
+    }
+    var idx = vals.map(function (v, k) { return { v: v, k: k }; });
+    idx.sort(function (a, b) { return a.v - b.v; });
+    var heat = new Array(371), zeros = 77, rest = 294;
+    var c1 = Math.round(rest * 0.4), c2 = Math.round(rest * 0.27), c3 = Math.round(rest * 0.2), lv, n;
+    for (n = 0; n < idx.length; n++) {
+      if (n < zeros) lv = 0;
+      else if (n < zeros + c1) lv = 1;
+      else if (n < zeros + c1 + c2) lv = 2;
+      else if (n < zeros + c1 + c2 + c3) lv = 3;
+      else lv = 4;
+      heat[idx[n].k] = { l: lv };
+    }
+
+    // 07 월별 구성 — 채널별 월간 건수를 아래에서부터 쌓는다.
+    var SERIES = [
+      { c: 'var(--chart-1)', v: [420, 380, 612, 340, 300, 260, 90, 120, 180, 210, 160, 132] },
+      { c: 'var(--chart-2)', v: [80, 140, 120, 110, 90, 72, 60, 210, 280, 320, 340, 296] },
+      { c: 'var(--chart-3)', v: [190, 220, 300, 290, 280, 260, 0, 0, 0, 0, 0, 0] },
+      { c: 'var(--chart-4)', v: [0, 0, 0, 0, 0, 0, 60, 110, 140, 180, 210, 184] },
+      { c: 'var(--muted)', v: [300, 340, 420, 380, 400, 420, 380, 400, 420, 440, 430, 404] }
+    ];
+    var W = 720, H = 190, N = 12, maxTotal = 0, m, s;
+    for (m = 0; m < N; m++) {
+      var t = 0;
+      for (s = 0; s < SERIES.length; s++) t += SERIES[s].v[m];
+      if (t > maxTotal) maxTotal = t;
+    }
+    var base = new Array(N).fill(0);
+    var bands = SERIES.map(function (ser) {
+      var top = [], bot = [], x;
+      for (m = 0; m < N; m++) {
+        x = (m / (N - 1) * W).toFixed(1);
+        top.push(x + ',' + (H - (base[m] + ser.v[m]) / maxTotal * (H - 6)).toFixed(1));
+        bot.push(x + ',' + (H - base[m] / maxTotal * (H - 6)).toFixed(1));
+        base[m] = base[m] + ser.v[m];
+      }
+      return { c: ser.c, pts: top.concat(bot.reverse()).join(' ') };
+    });
+
+    return {
+      themeClass: this.props.theme === '다크' ? 'dark' : '',
+      heat: heat,
+      bands: bands
+    };
+  }
+}
