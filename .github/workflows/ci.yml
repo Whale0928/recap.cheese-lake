@@ -16,10 +16,10 @@ jobs:
       run:
         working-directory: bff
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         # 서브모듈은 체크아웃하지 않는다. private 이고 빌드에 필요 없다.
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: bff/go.mod
           cache-dependency-path: bff/go.sum
@@ -35,7 +35,7 @@ jobs:
       - name: vet
         run: go vet ./...
 
-      - uses: golangci/golangci-lint-action@v7
+      - uses: golangci/golangci-lint-action@v9
         with:
           working-directory: bff
 
@@ -48,9 +48,9 @@ jobs:
       run:
         working-directory: ui
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -75,9 +75,9 @@ jobs:
       run:
         working-directory: bff
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: bff/go.mod
           cache-dependency-path: bff/go.sum
