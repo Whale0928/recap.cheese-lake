@@ -148,6 +148,7 @@ func readSession(key []byte, token string) (*Session, error) {
 // setCookie 는 Secure 를 붙이지 않는다. 로컬이 http 라 붙이면 저장되지 않는다.
 // 배포 시에는 반드시 켜야 한다.
 func setCookie(w http.ResponseWriter, name, value string, ttl time.Duration) {
+	//nolint:gosec // G124: Secure 는 배포 환경에서 켠다 (위 주석). 변수로 넣어도 gosec 은 리터럴만 인정한다.
 	http.SetCookie(w, &http.Cookie{
 		Name:     name,
 		Value:    value,
@@ -159,6 +160,7 @@ func setCookie(w http.ResponseWriter, name, value string, ttl time.Duration) {
 }
 
 func clearCookie(w http.ResponseWriter, name string) {
+	//nolint:gosec // G124: 같은 이유. 삭제용 쿠키라 값도 비어 있다.
 	http.SetCookie(w, &http.Cookie{
 		Name:     name,
 		Value:    "",
