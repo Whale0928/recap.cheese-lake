@@ -42,6 +42,8 @@ ui/.svelte-kit/
 *.webp
 !docs/**/*.png
 !docs/**/*.svg
+# 브랜드 아이콘은 흘린 것이 아니라 자산이다
+!ui/assets/*.png
 
 # 서브모듈 내부는 각자 관리
 # module.platform, module.secrets, module.deploy 는 gitlink 로만 추적된다

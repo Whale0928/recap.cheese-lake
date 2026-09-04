@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  // 정적 자산(아이콘)은 public 대신 assets 에 둔다. 서빙 경로는 루트 그대로다.
+  publicDir: "assets",
   build: {
     rollupOptions: {
       input: {

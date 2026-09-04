@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="cheese-lake">
+  <title>cheese-lake</title>
+<g fill="none" stroke-width="5" stroke-linecap="round">
+    <path stroke="#00FFA3" d="M8 13q8 -8 16 0t16 0t16 0"/>
+    <path stroke="#60a5fa" stroke-linejoin="miter" d="M8 32 16 24 24 39 32 27 40 37 48 25 56 33"/>
+    <path stroke="#60a5fa" opacity="0.4" d="M8 49q8 -8 16 0t16 0t16 0"/>
+  </g>
+</svg>
