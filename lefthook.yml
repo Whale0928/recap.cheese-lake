@@ -5,7 +5,7 @@ pre-commit:
   parallel: true
   commands:
     go-fmt:
-      root: bff/
+      root: api/
       glob: "*.go"
       run: |
         unformatted=$(gofmt -l {staged_files})
@@ -13,27 +13,27 @@ pre-commit:
           echo "gofmt 필요:"; echo "$unformatted"; exit 1
         fi
     go-lint:
-      root: bff/
+      root: api/
       glob: "*.go"
       run: golangci-lint run --new-from-rev=HEAD --fix
       stage_fixed: true
     spec-changed:
-      glob: "bff/api/*.yaml"
+      glob: "api/api/*.yaml"
       run: |
         echo "OpenAPI 스펙이 변경됨 — task gen 을 돌렸는지 확인하십시오"
 
 pre-push:
   commands:
     go-test:
-      root: bff/
+      root: api/
       run: go test ./...
     gen-drift:
       # 생성물이 스펙과 어긋난 채 푸시되는 것을 막는다 (ADR-0005).
       # 저장소가 갈려 lab 원본과의 일치는 검증하지 못한다 — 사본 갱신은 사람의 몫이다.
       run: |
-        if command -v task >/dev/null 2>&1 && [ -f bff/api/recap.openapi.yaml ]; then
-          task bff:gen >/dev/null 2>&1 || true
-          if ! git diff --quiet -- bff/internal/gen 2>/dev/null; then
-            echo "생성물이 스펙과 다릅니다. task bff:gen 후 커밋하십시오."; exit 1
+        if command -v task >/dev/null 2>&1 && [ -f api/api/recap.openapi.yaml ]; then
+          task api:gen >/dev/null 2>&1 || true
+          if ! git diff --quiet -- api/internal/gen 2>/dev/null; then
+            echo "생성물이 스펙과 다릅니다. task api:gen 후 커밋하십시오."; exit 1
           fi
         fi

@@ -1,7 +1,7 @@
 version: '3'
 
 vars:
-  MODULE: github.com/Whale0928/recap.cheese-lake/bff
+  MODULE: github.com/Whale0928/recap.cheese-lake/api
   BIN: bin/recap
   REGISTRY: docker-registry.dead-whale.org
   # serve 와 worker 가 같은 이미지를 쓴다 (ADR-0004). 역할은 command 로 갈린다.
@@ -99,7 +99,7 @@ tasks:
       - go run .
 
   dev:
-    desc: UI 빌드 후 로컬 시크릿을 읽어 BFF 기동
+    desc: UI 빌드 후 로컬 시크릿을 읽어 API 기동
     dotenv: ['../module.secrets/project/cheese-lake/recap/local/.env']
     cmds:
       - task --dir ../ui build

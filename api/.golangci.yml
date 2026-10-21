@@ -34,4 +34,4 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/Whale0928/recap.cheese-lake/bff
+        - github.com/Whale0928/recap.cheese-lake/api

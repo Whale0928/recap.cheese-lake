@@ -24,7 +24,7 @@ ui/
 
 ```
 task ui:dev                   # http://localhost:5273
-task bff:dev                  # UI를 빌드하고 http://localhost:8180에서 함께 제공
+task api:dev                  # UI를 빌드하고 http://localhost:8180에서 함께 제공
 ```
 
 - `/` — 메인 페이지
@@ -63,3 +63,20 @@ task bff:dev                  # UI를 빌드하고 http://localhost:8180에서 �
   하기로 하면 Satori 계열이 사실상 유일한 실용안이고, 그때 프레임워크가 따라 정해진다
 
 개발·빌드·검증 명령은 `task ui:*` 네임스페이스로 제공한다.
+
+## UI 미리보기 배포
+
+`Dockerfile`은 UI만 빌드하고 nginx의 8080 포트로 제공한다.
+Node와 nginx 베이스 이미지는 Lab Admin UI의 기존 구성을 따른다.
+Go API와 OAuth는 포함하지 않는다. 이 이미지에서 「내 리캡 보기」는
+로그인 없이 가짜 데이터로 만든 `/prototype/recap.html`을 연다.
+`/api/`는 404를 반환하며 로그인 상태를 만들지 않는다.
+
+```sh
+docker build -t docker-registry.dead-whale.org/recap-ui:0.0.2 ui
+docker run --rm -p 18180:8080 docker-registry.dead-whale.org/recap-ui:0.0.2
+```
+
+배포 선언은 `deploy.cheese-lake` 저장소의 `base/recap-ui.yaml`과
+`base/recap-route.yaml`에 있다. 공개 주소는 `https://recap.cheese-lake.com`이다.
+이미지 push와 deploy 저장소의 main 반영 후에만 실제 배포가 진행된다.
