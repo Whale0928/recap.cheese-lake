@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import privacyPolicy from "../legal/개인정보 처리방침.md?raw";
 import termsOfService from "../legal/이용약관.md?raw";
-import { BlockGallery } from "./BlockGallery";
 import { LegalDocument } from "./LegalDocument";
+import { SideBanners } from "./SideBanners";
 
 type Theme = "light" | "dark";
 type AuthState = "loading" | "guest" | "authenticated";
@@ -93,7 +93,7 @@ function AuthButtons({
   }
 
   const recapButton = (
-    <a className={`btn btn-default ${size}`} href="/prototype/recap.html">
+    <a className={`btn btn-default ${size}`} href="/recap/">
       내 리캡 보기
     </a>
   );
@@ -199,23 +199,6 @@ function App() {
 
   const authenticated = authState === "authenticated";
 
-  if (path === "/catalog") {
-    return (
-      <>
-        <a className="skip-link" href="#main">본문으로 건너뛰기</a>
-        <header className="site-header">
-          <Wordmark />
-          <nav className="site-nav" aria-label="주요 메뉴">
-            <a href="/">홈</a>
-            <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
-          </nav>
-        </header>
-        <BlockGallery />
-        <SiteFooter />
-      </>
-    );
-  }
-
   if (path === "/privacy") {
     return (
       <>
@@ -224,7 +207,6 @@ function App() {
           <Wordmark />
           <nav className="site-nav" aria-label="주요 메뉴">
             <a href="/">홈</a>
-            <a href="/catalog/">카탈로그</a>
             <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
           </nav>
         </header>
@@ -242,7 +224,6 @@ function App() {
           <Wordmark />
           <nav className="site-nav" aria-label="주요 메뉴">
             <a href="/">홈</a>
-            <a href="/catalog/">카탈로그</a>
             <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
           </nav>
         </header>
@@ -256,11 +237,13 @@ function App() {
     <>
       <a className="skip-link" href="#main">본문으로 건너뛰기</a>
 
+      <SideBanners />
+
       <header className="site-header">
         <Wordmark />
         <nav className="site-nav" aria-label="주요 메뉴">
-          <a href="/catalog/">카탈로그</a>
           <AuthButtons authState={authState} compact showLogout logoutPending={logoutPending} onLogout={logout} />
+          <a className="btn btn-outline btn-sm profile-button" href="/me/">내 정보 보기</a>
           <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
         </nav>
       </header>

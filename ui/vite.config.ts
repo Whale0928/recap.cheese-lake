@@ -11,8 +11,8 @@ export default defineConfig({
         main: "index.html",
         privacy: "privacy/index.html",
         terms: "terms/index.html",
-        prototypeRecap: "prototype/recap.html",
-        catalog: "catalog/index.html"
+        recap: "recap/index.html",
+        me: "me/index.html"
       }
     }
   },

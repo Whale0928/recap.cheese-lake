@@ -1,115 +1,45 @@
 version: '3'
 
-vars:
-  MODULE: github.com/Whale0928/recap.cheese-lake/api
-  BIN: bin/recap
-  REGISTRY: docker-registry.dead-whale.org
-  # serve 와 worker 가 같은 이미지를 쓴다 (ADR-0004). 역할은 command 로 갈린다.
-  APP_IMAGE: recap
-  TAG:
-    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
-
-env:
-  CGO_ENABLED: '0'
-
 tasks:
-  default:
+  install:
+    desc: API 의존성 설치
     cmds:
-      - task --list
-
-  tools:
-    desc: 코드 생성·개발 도구 설치
-    cmds:
-      - go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.0
-      - go install github.com/pressly/goose/v3/cmd/goose@latest
-    status:
-      - test -x "$(go env GOPATH)/bin/oapi-codegen"
-      - test -x "$(go env GOPATH)/bin/goose"
-
-  gen:
-    desc: OpenAPI 스펙에서 서버 스텁과 lab 클라이언트를 생성 (ADR-0005)
-    cmds:
-      - task: gen:server
-      - task: gen:labclient
-
-  gen:server:
-    desc: oapi-codegen — Echo v5 서버 인터페이스 (recap.openapi.yaml)
-    cmds:
-      - mkdir -p internal/gen/recapapi
-      - '"$(go env GOPATH)/bin/oapi-codegen" -config api/oapi-codegen.server.yaml api/recap.openapi.yaml'
-    sources: [api/recap.openapi.yaml, api/oapi-codegen.server.yaml]
-    generates: [internal/gen/recapapi/recapapi.gen.go]
-    status:
-      - test ! -f api/recap.openapi.yaml
-
-  gen:labclient:
-    desc: oapi-codegen — lab 호출 클라이언트 (app.openapi.yaml 사본)
-    cmds:
-      - mkdir -p internal/gen/labclient
-      - '"$(go env GOPATH)/bin/oapi-codegen" -config api/oapi-codegen.labclient.yaml api/app.openapi.yaml'
-    sources: [api/app.openapi.yaml, api/oapi-codegen.labclient.yaml]
-    generates: [internal/gen/labclient/labclient.gen.go]
-    status:
-      - test ! -f api/app.openapi.yaml
-
+      - pnpm install --frozen-lockfile
   build:
-    desc: 단일 바이너리 빌드 (serve·worker 공용)
+    desc: NestJS API 빌드
     cmds:
-      - go build -trimpath -ldflags "-s -w -X main.version={{.TAG}}" -o {{.BIN}} .
-
-  image:
-    desc: 앱 이미지를 로컬에 빌드 (현재 아키텍처)
-    cmds:
-      - docker build --build-arg VERSION={{.TAG}} -t {{.REGISTRY}}/{{.APP_IMAGE}}:{{.TAG}} .
-
-  image:push:
-    desc: 멀티아치 빌드 후 레지스트리 푸시 (ARM+x86 혼합 클러스터용)
-    cmds:
-      - >-
-        docker buildx build --platform linux/amd64,linux/arm64
-        --build-arg VERSION={{.TAG}}
-        -t {{.REGISTRY}}/{{.APP_IMAGE}}:{{.TAG}}
-        -t {{.REGISTRY}}/{{.APP_IMAGE}}:latest --push .
-
+      - pnpm build
   lint:
-    desc: golangci-lint
+    desc: API TypeScript 정적 검사
     cmds:
-      - golangci-lint run ./...
-
-  fmt:
-    desc: 포매팅
-    cmds:
-      - gofmt -w .
-      - goimports -w -local {{.MODULE}} .
-
+      - pnpm lint
   test:
-    desc: 테스트
+    desc: 인증 단위 및 HTTP 통합 테스트
     cmds:
-      - go test -race -count=1 ./...
-
-  test:cover:
-    desc: 커버리지
-    cmds:
-      - go test -race -coverprofile=coverage.out ./...
-      - go tool cover -func=coverage.out | tail -1
-
+      - pnpm test
   serve:
-    desc: HTTP 서버 기동
+    desc: 빌드된 API 기동
+    deps: [build]
     cmds:
-      - go run .
-
+      - pnpm start
   dev:
-    desc: UI 빌드 후 로컬 시크릿을 읽어 API 기동
-    dotenv: ['../module.secrets/project/cheese-lake/recap/local/.env']
+    desc: UI를 빌드하고 로컬 인증 API 기동
     cmds:
       - task --dir ../ui build
-      - go run .
-
-  dev:tokens:
-    desc: dev와 같되 토큰 원문을 화면에 노출한다
-    dotenv: ['../module.secrets/project/cheese-lake/recap/local/.env']
-    env:
-      RECAP_DEBUG_TOKENS: '1'
+      - pnpm build
+      - task: watch
+  watch:
+    internal: true
+    deps: [watch:build, watch:serve]
+  watch:build:
+    internal: true
     cmds:
-      - task --dir ../ui build
-      - go run .
+      - pnpm build:watch
+  watch:serve:
+    internal: true
+    cmds:
+      - pnpm dev
+  image:
+    desc: API 이미지 로컬 빌드
+    cmds:
+      - docker build -t recap-api:local .

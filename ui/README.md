@@ -8,16 +8,12 @@ React와 Vite로 구성한 프론트엔드다. 디자인 시스템은 기존 결
 ```
 ui/
 ├── src/                  React 애플리케이션
-│   └── blocks/          리캡 조각 스물아홉 개. types.ts 가 곧 API 응답 스키마다
 ├── styles/
 │   ├── tokens.css       색·모서리·서체 토큰 (shadcn/ui 변수 이름 그대로, oklch)
 │   └── components.css   컴포넌트 층 (shadcn/ui 어휘 + recap 전용 블록)
 ├── gallery.html         살아 있는 스타일 참조. 토큰과 컴포넌트 전부를 한 화면에
-├── catalog/             리캡 카탈로그 진입점
 ├── index.html           메인 페이지 진입점
-├── chzzk-login-check.html  기존 치지직 로그인 검증 화면
-└── prototype/           확정 전 시안. 결론이 나면 옮기거나 지운다
-    └── recap.html       본문 열두 조각을 순서대로 조립한 것 (가짜 데이터)
+└── recap/               빈 리캡 페이지
 ```
 
 ## 보는 방법
@@ -28,20 +24,9 @@ task api:dev                  # UI를 빌드하고 http://localhost:8180에서 �
 ```
 
 - `/` — 메인 페이지
-- `/chzzk-login-check.html` — 기존 로그인 검증 화면
 - `/gallery.html` — 스타일 갤러리. 우상단 「테마 전환」으로 라이트·다크를 오간다
-- `/catalog/` — 리캡 카탈로그. 조각별 화면과 그 조각이 먹는 값을 나란히 본다
-- `/prototype/recap.html` — 본문 조립 시안
-
-## 프로토타입
-
-`prototype/` 안의 것은 **확정된 화면이 아니다.** 판단을 돕기 위해 세워 본 것이고,
-결론이 나면 밖으로 옮기거나 지운다. 실제 화면의 근거로 인용하지 않는다.
-
-현재 `prototype/recap.html` 기준으로 **조각과 순서는 유지하기로 했고,
-데이터 구성은 미정이다.** 화면이 요구하는 값과 아직 안 풀린 질문은
-[prototype/README.md](prototype/README.md) 에 절별로 적어 두었다.
-이게 풀려야 [ADR-0005](../module.secrets/project/cheese-lake/recap/docs/adr/0005-contract-first-api.md) 의 스펙을 쓸 수 있다.
+- `/recap/` — 로그인 후 「내 리캡 보기」가 여는 빈 페이지
+- `/me/` — 상단 「내 정보 보기」가 여는 빈 페이지. 사용자 정보 표시는 아직 구현하지 않았다.
 
 ## 규칙
 
@@ -68,8 +53,8 @@ task api:dev                  # UI를 빌드하고 http://localhost:8180에서 �
 
 `Dockerfile`은 UI만 빌드하고 nginx의 8080 포트로 제공한다.
 Node와 nginx 베이스 이미지는 Lab Admin UI의 기존 구성을 따른다.
-Go API와 OAuth는 포함하지 않는다. 이 이미지에서 「내 리캡 보기」는
-로그인 없이 가짜 데이터로 만든 `/prototype/recap.html`을 연다.
+NestJS API와 OAuth는 포함하지 않는다. 이 이미지에서 「내 리캡 보기」는
+로그인 없이 빈 `/recap/` 페이지를 연다.
 `/api/`는 404를 반환하며 로그인 상태를 만들지 않는다.
 
 ```sh
@@ -80,3 +65,7 @@ docker run --rm -p 18180:8080 docker-registry.dead-whale.org/recap-ui:0.0.2
 배포 선언은 `deploy.cheese-lake` 저장소의 `base/recap-ui.yaml`과
 `base/recap-route.yaml`에 있다. 공개 주소는 `https://recap.cheese-lake.com`이다.
 이미지 push와 deploy 저장소의 main 반영 후에만 실제 배포가 진행된다.
+
+## 같이보기 배너
+
+랜딩 양쪽 배너는 [치지직 공식 공지](https://game.naver.com/lounge/chzzk/board/detail/8298140)를 수동 반영한다. `assets/images/kindaichi_notice.png`는 해당 공지의 원본 이미지이며, 배너에서는 상단 작품 이미지 부분만 CSS로 표시한다. 권리 표기는 원본에 포함되어 있다. 기간은 2026.10.21 확인 기준이며, 공지가 바뀌면 `src/SideBanners.tsx`도 함께 갱신한다.

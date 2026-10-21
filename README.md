@@ -4,7 +4,7 @@
 
 치지직 채팅 기록을 개인별 리캡으로 만드는 프로젝트
 
-![api](https://img.shields.io/badge/API-Go-00ADD8)
+![api](https://img.shields.io/badge/API-NestJS_·_TypeScript-E0234E)
 ![frontend](https://img.shields.io/badge/frontend-React_·_Vite-646CFF)
 
 </div>
@@ -26,7 +26,7 @@
 | 영역 | 기술 및 구조 |
 |---|---|
 | UI | React · Vite |
-| API | Go · OAuth 2.0 · 서명 세션 |
+| API | NestJS · TypeScript · 치지직 OAuth · 서버 세션 |
 | 수집 | Supervisor · 채널별 Worker Pool · 공통 Pipeline |
 | 데이터 | PostgreSQL · Redis Sentinel · ClickHouse |
 | LLM Service | Grok · Claude · Codex |
@@ -34,3 +34,9 @@
 ---
 
 <sub>치지직·네이버와 제휴 또는 후원 관계가 없는 비공식 프로젝트입니다.</sub>
+
+## 로컬 API
+
+현재 API는 치지직 공식 OAuth를 통한 본인 확인만 구현합니다.
+실행 방법과 설정은 [api/README.md](api/README.md), 결정 기록은 [api/adr](api/adr)에 있습니다.
+기존 Go 프로토타입은 제거했으며 Lab 조회와 리캡 가공은 아직 구현하지 않았습니다.

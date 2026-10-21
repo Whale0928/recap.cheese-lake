@@ -38,6 +38,50 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .theme-button:hover { background: var(--accent); color: var(--accent-foreground); }
 .theme-button:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 45%, transparent); }
 
+.side-banner { display: none; }
+
+/* 본문 폭과 양옆 간격이 확보되는 화면에서만 배너를 표시한다. */
+@media (min-width: 124rem) {
+  .side-banner {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    display: flex; width: 16rem; height: 52.5rem;
+    max-height: calc(100svh - 8rem);
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background: var(--card); color: var(--muted-foreground);
+    font-size: .8125rem;
+  }
+  .side-banner-left { left: calc(50% - 60rem); }
+  .side-banner-right { right: calc(50% - 60rem); }
+}
+
+.notice-banner {
+  display: flex; flex-direction: column; justify-content: center; gap: 1.75rem;
+  width: 100%; min-height: 0; padding: 1.5rem;
+  border-radius: inherit; color: var(--muted-foreground);
+}
+.notice-source { font-size: .75rem; }
+.notice-art { aspect-ratio: 1500 / 1150; overflow: hidden; border-radius: var(--radius-sm); }
+.notice-art img { display: block; width: 100%; height: auto; filter: saturate(.55); }
+.notice-copy h2 { margin: 0; color: var(--foreground); font-size: 1.375rem; line-height: 1.45; letter-spacing: -.035em; font-weight: 650; }
+.notice-copy h2 span { display: block; }
+.notice-copy p { margin: .75rem 0 0; line-height: 1.8; }
+.notice-schedule { padding-top: 1.25rem; border-top: 1px solid var(--border); font-size: .6875rem; line-height: 1.7; }
+.notice-schedule p { margin: .4rem 0; color: var(--foreground); font-size: .9375rem; font-variant-numeric: tabular-nums; }
+.notice-link { align-self: flex-start; padding-bottom: .2rem; border-bottom: 1px solid var(--border); font-size: .75rem; }
+.notice-banner:hover .notice-link { color: var(--foreground); border-color: currentColor; }
+.notice-banner:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
+@media (max-height: 45rem) {
+  .notice-banner { gap: 1rem; }
+  .notice-art { display: none; }
+}
+@media (max-height: 32rem) {
+  .notice-banner { gap: .75rem; padding: 1rem 1.5rem; }
+  .notice-copy h2 { font-size: 1.125rem; }
+  .notice-copy h2 span { display: inline; }
+  .notice-copy p { display: none; }
+  .notice-schedule { padding-top: .75rem; }
+}
+
 .hero {
   width: min(100% - 2.5rem, 72rem); min-height: calc(100svh - 5rem); margin: 0 auto;
   display: grid; grid-template-columns: minmax(0, .95fr) minmax(28rem, 1.05fr);
@@ -160,7 +204,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .site-header, .hero, .principles, .site-footer { width: min(100% - 2rem, 72rem); }
   .site-header { height: 4.25rem; }
   .site-nav { gap: .5rem; }
-  .site-nav .btn { display: none; }
+  .site-nav .btn:not(.profile-button) { display: none; }
   .hero { padding: 3.5rem 0 4.5rem; gap: 3.5rem; }
   .hero h1 { font-size: clamp(2.8rem, 14vw, 4rem); }
   .desktop-break { display: none; }

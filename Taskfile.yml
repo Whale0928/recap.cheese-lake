@@ -64,8 +64,3 @@ tasks:
     cmds:
       - task: api:test
       - task: ui:test
-
-  gen:
-    desc: OpenAPI 스펙에서 API 생성물을 만든다
-    cmds:
-      - task: api:gen

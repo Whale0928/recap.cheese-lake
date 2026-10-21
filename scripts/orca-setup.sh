@@ -12,8 +12,8 @@
 # 실패해도 워크트리 생성 자체를 막지 않도록 각 단계를 격리한다.
 # 치명적이지 않은 실패는 경고만 남기고 계속 진행한다.
 #
-# recap 은 PostgreSQL 하나를 쓴다 (ADR-0006). 오프셋 대상은 서버·워커가 쓰는
-# HTTP 포트, PostgreSQL, 프론트엔드 개발 서버다.
+# 기존 PostgreSQL 개발 설정의 포트 할당은 보존한다.
+# 현재 인증 API는 데이터베이스 없이 동작한다.
 
 set -uo pipefail
 
@@ -57,7 +57,7 @@ fi
 # 시크릿이 untracked로 남아 실수로 커밋될 수 있다.
 #
 # 치지직 clientSecret 이 여기 들어간다. 권한 600 을 유지할 것.
-SECRET_FILES=(.env .env.local api/config.local.yaml)
+SECRET_FILES=(.env .env.local api/.env)
 
 step "로컬 설정"
 copied=0
@@ -73,7 +73,7 @@ if [[ -n "$ROOT" && -d "$ROOT" ]]; then
     fi
   done
 fi
-for pair in ".env.example:.env" "api/config.example.yaml:api/config.local.yaml"; do
+for pair in ".env.example:.env" "api/.env.example:api/.env"; do
   src="${pair%%:*}"; dst="${pair##*:}"
   if [[ -f "$src" && ! -f "$dst" ]]; then
     cp "$src" "$dst" && chmod 600 "$dst" && ok "$dst 생성 ($src 기반)" && copied=$((copied+1))
@@ -116,36 +116,13 @@ if [[ -n "$EXCLUDE" ]]; then
   ok "로컬 제외 목록 갱신 ($(( ${#SECRET_FILES[@]} + 1 ))개 · 워크트리 clean 유지)"
 fi
 
-# ── 4. Go 의존성 ──────────────────────────────────────────────
-# 모듈 캐시($GOPATH/pkg/mod)는 워크트리 간 공유되므로 대개 즉시 끝난다.
-step "Go 의존성"
-if [[ -f api/go.mod ]]; then
-  # 파이프를 물리면 종료 상태가 tail 의 것이 되어 실패가 늘 성공으로 보인다.
-  if out=$(cd api && go mod download 2>&1); then
-    ok "go mod download 완료 ($(cd api && go list -m 2>/dev/null || echo '?'))"
-  else
-    warn "go mod download 실패"
-    printf '%s\n' "$out" | tail -5 | sed 's/^/    /'
-  fi
+# ── 4. API 의존성 ─────────────────────────────────────────────
+step "API 의존성"
+if [[ -f api/package.json ]] && command -v pnpm >/dev/null 2>&1; then
+  ( cd api && pnpm install --frozen-lockfile ) \
+    && ok "API 의존성 설치 완료" || warn "API 의존성 설치 실패"
 else
-  skip "api/go.mod 없음 (스캐폴딩 전)"
-fi
-
-# ── 4b. 코드 생성 도구 ────────────────────────────────────────
-# 생성물은 커밋되므로 재생성이 필수는 아니다. 도구만 준비해 두고
-# 실제 생성은 필요할 때 task gen 으로 돌린다.
-step "코드 생성 도구"
-if [[ -f Taskfile.yml ]] && command -v task >/dev/null 2>&1; then
-  # grep -q 는 첫 매치에서 파이프를 닫아 task 를 SIGPIPE(141) 로 죽인다.
-  # pipefail 이 켜져 있으면 그 141 이 파이프라인의 종료 상태가 된다.
-  tasklist=$(task --list-all 2>/dev/null)
-  if printf '%s\n' "$tasklist" | grep -q 'api:tools'; then
-    task api:tools >/dev/null 2>&1 && ok "task api:tools 완료" || warn "task api:tools 실패"
-  else
-    skip "api:tools 태스크 없음"
-  fi
-else
-  skip "Taskfile.yml 또는 task 명령 없음"
+  skip "api/package.json 또는 pnpm 없음"
 fi
 
 # ── 5. 프론트엔드 의존성 ──────────────────────────────────────
@@ -186,19 +163,14 @@ printf '\n'
 cat <<SUMMARY
 
   다음 단계
-    task up                              # .env.ports 를 자동으로 넘긴다
-    RECAP_SERVER_ADDR=":$SERVE_PORT" task api:serve
-    RECAP_SERVER_ADDR=":$SERVE_PORT" task api:worker
+    task api:dev                         # 기본 http://localhost:8180
 
   주의
-    · docker compose 를 직접 부를 때는 --env-file .env.ports 를 붙인다.
-    · 서버와 워커를 함께 띄워야 리캡 생성이 진행된다.
-    · 리캡에 데이터를 채우려면 데이터 API 가 떠 있어야 한다.
-    · 치지직 OAuth 는 애플리케이션당 리디렉션 URL 을 하나만 받는다.
-      로컬 앱의 등록값은 http://localhost:8180/auth/callback 고정이다.
-      이 오프셋이 OAuth 로그인을 깨뜨리는 지점이므로, 로그인 흐름을 태울 때는
-      RECAP_SERVER_ADDR=":8180" 으로 띄우거나 8180 에서 이 워크트리로 넘긴다.
-    · clientSecret 은 .env 계열에만 두고 커밋하지 않는다.
+    · API의 api/.env에 치지직 설정과 RECAP_SESSION_KEY를 지정한다.
+    · 등록된 redirectUri와 RECAP_CHZZK_REDIRECT_URI를 일치시킨다.
+    · 포트를 바꾸면 PORT와 redirectUri를 함께 맞춘다.
+    · 현재 인증 서버는 로컬 단일 프로세스용이다. PostgreSQL은 필요하지 않다.
+    · clientSecret은 .env 계열에만 두고 커밋하지 않는다.
 
 SUMMARY
 exit 0
