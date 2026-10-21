@@ -204,7 +204,6 @@ function App() {
               <AuthButtons authState={authState} />
             </div>
             <p className="hero-footnote" aria-live="polite">
-              {authenticated && <><strong>로그인 완료.</strong> 본인 확인에 쓴 접근 토큰은 폐기했습니다.<br /></>}
               * 치지직 공개 채팅을 바탕으로 만든 채팅 리캡입니다. 시청 기록은 포함하지 않습니다.
             </p>
           </div>
