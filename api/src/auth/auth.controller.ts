@@ -1,3 +1,4 @@
+import { SessionStore } from "../runtime/session.store.js";
 import { BadRequestException, Controller, Get, Header, HttpCode, Post, Query, Req, Res, UnauthorizedException } from "@nestjs/common";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import type { Request, Response } from "express";
@@ -14,6 +15,7 @@ export class AuthController {
     private readonly config: AuthConfig,
     private readonly auth: AuthService,
     private readonly chzzk: ChzzkClient,
+    private readonly sessions: SessionStore,
   ) {}
 
   @Get("auth/login")
@@ -49,7 +51,10 @@ export class AuthController {
     const user = await this.auth.authenticate(query.code, state);
     await this.regenerate(req);
     req.session.user = user;
-    req.session.expiresAt = Date.now() + this.config.sessionTtlMs;
+    req.session.sessionGroup = randomBytes(32).toString("hex");
+    req.session.authenticatedAt = Date.now();
+    req.session.rotatedAt = req.session.authenticatedAt;
+    req.session.expiresAt = req.session.authenticatedAt + this.config.sessionTtlMs;
     req.session.cookie.maxAge = this.config.sessionTtlMs;
     await this.save(req);
     res.redirect(this.config.successUrl);
@@ -71,6 +76,9 @@ export class AuthController {
     if (req.headers["sec-fetch-site"] === "cross-site" ||
       (req.headers.origin && req.headers.origin !== new URL(this.config.successUrl).origin)) {
       throw new UnauthorizedException("Cross-origin logout is not allowed");
+    }
+    if (req.session.sessionGroup && req.session.authenticatedAt !== undefined) {
+      await this.sessions.revoke(req.session.sessionGroup, req.session.authenticatedAt + this.config.sessionAbsoluteTtlMs);
     }
     await new Promise<void>((resolve, reject) => req.session.destroy((error: unknown) => error ? reject(error) : resolve()));
     res.clearCookie(COOKIE_NAME, { httpOnly: true, sameSite: "lax", secure: this.config.secureCookie, path: "/" });

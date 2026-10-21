@@ -45,7 +45,7 @@ API 포트는 `PORT`, 정적 UI 위치는 `RECAP_UI_DIR`로 설정한다.
 
 callback 성공 시 설정한 UI 주소로 이동한다. 잘못된 state는 401, 동의 거부·code
 누락은 400, 치지직 호출·응답 실패는 502를 반환한다. 오류에 토큰이나 upstream 본문을 싣지 않는다.
-세션은 12시간, OAuth state는 10분 유효하다. 토큰이나 전역 마지막 로그인 결과를 조회하는
+세션은 마지막 페이지 접속부터 30일, 최초 로그인부터 최대 90일 유효하다. 공통 `GET /api/session` 확인 시 쿠키와 서버 TTL을 갱신하고, 세션 ID는 7일마다 교체한다. OAuth state는 10분 유효하다. 토큰이나 전역 마지막 로그인 결과를 조회하는
 기존 디버그 API와 `/api/lives`, 로그인 검증 HTML은 제거했다.
 
 ## 검증과 범위
@@ -62,7 +62,7 @@ Jest·Supertest로 실제 Nest HTTP 처리를 검증하며, 치지직 HTTP 응�
 로컬 개발에서 Redis 설정을 생략하면 메모리 세션을 사용하며 재시작 시 로그인이 풀린다.
 운영에서는 `RECAP_REDIS_HOST`·`RECAP_REDIS_PORT`·`RECAP_REDIS_PASSWORD`로 인증된 Redis를 설정한다.
 `NODE_ENV=production`은 Redis와 HTTPS callback·성공 URL이 없으면 시작하지 않는다.
-세션과 OAuth state 일회성 소비를 Redis에서 공유하며 TTL은 각각 12시간·10분 이내다. API Docker 이미지는 API만 포함하므로 UI는 별도로 제공하거나
+세션과 OAuth state 일회성 소비를 Redis에서 공유하며 세션 TTL은 30일 이내이며 최초 로그인부터 90일 상한을 지킨다. OAuth state TTL은 10분 이내다. API Docker 이미지는 API만 포함하므로 UI는 별도로 제공하거나
 `RECAP_UI_DIR`에 빌드 디렉터리를 연결해야 한다. 기존 `ui/Dockerfile`은 로그인 없이
 보는 화면 미리보기 전용 이미지이며, Nest 인증 서버로 교체되지 않는다.
 
@@ -86,4 +86,4 @@ Node Pod CIDR을 지정한다. 외부 요청의 X-Forwarded-For로 접근을 허
 
 `GET /healthz`는 프로세스, `GET /readyz`는 세션 저장소 준비 상태를 확인하며 세션을 만들지 않는다.
 Kubernetes 배포 선언은 별도 deploy 저장소의 `base/recap-api.yaml`·`recap-redis.yaml`·`recap-secret.yaml`에 있다.
-Redis Pod가 교체되면 세션은 사라질 수 있으며 다시 로그인해야 한다.
+운영 Redis는 AOF(`appendfsync always`)와 전용 PVC로 세션 및 로그아웃 무효화 기록을 복구한다. 세션·쿠키는 로컬 스토리지에 저장하지 않는다. 로그아웃 무효화 기록은 해당 로그인에서 발급할 수 있는 모든 세션이 만료되는 시점까지 유지한다. 기존 12시간 세션은 새 만료 정보가 없어 한 번 다시 로그인해야 한다. 로컬 Redis 미설정 시에는 메모리 저장소이므로 API 재시작 시 로그인 상태가 사라진다.

@@ -8,5 +8,8 @@ declare module "express-session" {
     oauthState?: { value: string; expiresAt: number };
     user?: ChzzkUser;
     expiresAt?: number;
+    authenticatedAt?: number;
+    sessionGroup?: string;
+    rotatedAt?: number;
   }
 }

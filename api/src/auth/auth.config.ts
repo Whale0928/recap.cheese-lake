@@ -15,7 +15,9 @@ export class AuthConfig {
   readonly allowedPeer: (address: string | undefined) => boolean;
   readonly allowedOrigins: string[];
   readonly stateTtlMs = 10 * 60 * 1000;
-  readonly sessionTtlMs = 12 * 60 * 60 * 1000;
+  readonly sessionTtlMs = 30 * 24 * 60 * 60 * 1000;
+  readonly sessionAbsoluteTtlMs = 90 * 24 * 60 * 60 * 1000;
+  readonly sessionRotationMs = 7 * 24 * 60 * 60 * 1000;
 
   constructor() {
     const required = (name: string): string => {

@@ -1,3 +1,4 @@
+import { SessionLifecycle } from "./runtime/session.lifecycle.js";
 import { SessionStore } from "./runtime/session.store.js";
 import session from "express-session";
 import { resolve } from "node:path";
@@ -29,5 +30,9 @@ export async function configureApp(app: NestExpressApplication): Promise<void> {
     saveUninitialized: false,
     cookie: { httpOnly: true, sameSite: "lax", secure: config.secureCookie, maxAge: config.sessionTtlMs, path: "/" },
   }));
+  const lifecycle = app.get(SessionLifecycle);
+  app.use((req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => {
+    void lifecycle.maintain(req, res).then(() => next(), next);
+  });
   app.useStaticAssets(resolve(process.env.RECAP_UI_DIR ?? "../ui/dist"), { index: "index.html" });
 }

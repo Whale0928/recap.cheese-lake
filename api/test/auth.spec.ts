@@ -1,3 +1,5 @@
+import { SessionStore } from "../src/runtime/session.store.js";
+import type { SessionData } from "express-session";
 import { jest } from "@jest/globals";
 import "reflect-metadata";
 import { Test } from "@nestjs/testing";
@@ -19,7 +21,9 @@ const config = {
   allowedPeer: cidrMatcher("127.0.0.1/32,::1/128"),
   allowedOrigins: ["http://localhost:8180", "http://localhost:5273"],
   stateTtlMs: 600_000,
-  sessionTtlMs: 43_200_000,
+  sessionTtlMs: 30 * 24 * 60 * 60 * 1000,
+  sessionAbsoluteTtlMs: 90 * 24 * 60 * 60 * 1000,
+  sessionRotationMs: 7 * 24 * 60 * 60 * 1000,
 };
 
 describe("CHZZK OAuth HTTP flow", () => {
@@ -162,6 +166,91 @@ describe("CHZZK OAuth HTTP flow", () => {
     clock.mockRestore();
   });
 
+  it("persists the cookie for 30 days and renews it when the user returns", async () => {
+    const now = Date.now();
+    const clock = jest.spyOn(Date, "now").mockReturnValue(now);
+    const { agent, state } = await beginLogin();
+    const callback = await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    const cookie = String(callback.headers["set-cookie"]);
+    const expiry = /Expires=([^;]+)/.exec(cookie)![1];
+    expect(Math.abs(new Date(expiry).getTime() - (now + config.sessionTtlMs))).toBeLessThan(2_000);
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+    clock.mockReturnValue(now + 2 * 86_400_000);
+    fetchMock.mockClear();
+    const response = await agent.get("/api/session").expect(200);
+    expect(response.body.session.expiresAt).toBe(new Date(now + 32 * 86_400_000).toISOString());
+    expect(response.headers["set-cookie"]).toBeDefined();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rotates the identifier after seven days and invalidates the copied old cookie", async () => {
+    const now = Date.now();
+    const clock = jest.spyOn(Date, "now").mockReturnValue(now);
+    const { agent, state } = await beginLogin();
+    const callback = await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    const oldCookie = (callback.headers["set-cookie"] as unknown as string[])[0].split(";")[0];
+    const sid = decodeURIComponent(oldCookie.split("=")[1]).slice(2).split(".")[0];
+    const store = app.get(SessionStore).store;
+    const stale = await new Promise<SessionData>((resolve, reject) => store.get(sid, (error, data) => error ? reject(error) : data ? resolve(JSON.parse(JSON.stringify(data)) as SessionData) : reject(new Error("Missing test session"))));
+    clock.mockReturnValue(now + config.sessionRotationMs - 1);
+    const before = await agent.get("/api/session").expect(200);
+    expect((before.headers["set-cookie"] as unknown as string[])[0].split(";")[0]).toBe(oldCookie);
+    clock.mockReturnValue(now + config.sessionRotationMs);
+    fetchMock.mockClear();
+    const rotated = await agent.get("/api/session").expect(200);
+    expect((rotated.headers["set-cookie"] as unknown as string[])[0].split(";")[0]).not.toBe(oldCookie);
+    expect(rotated.body.session.channelId).toBe(user.channelId);
+    await request(app.getHttpServer()).get("/api/session").set("Cookie", oldCookie).expect(200, { loggedIn: false });
+    await new Promise<void>((resolve, reject) => store.set(sid, stale, (error) => error ? reject(error) : resolve()));
+    await request(app.getHttpServer()).get("/api/session").set("Cookie", oldCookie).expect(200, { loggedIn: false });
+    expect(fetchMock).not.toHaveBeenCalled();
+    await agent.post("/auth/logout").expect(200);
+    const newCookie = (rotated.headers["set-cookie"] as unknown as string[])[0].split(";")[0];
+    await request(app.getHttpServer()).get("/api/session").set("Cookie", newCookie).expect(200, { loggedIn: false });
+  });
+
+  it("does not extend the original 90-day limit across renewal and identifier rotation", async () => {
+    const now = Date.now();
+    const clock = jest.spyOn(Date, "now").mockReturnValue(now);
+    const { agent, state } = await beginLogin();
+    await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    for (const days of [20, 40, 60, 80, 89]) {
+      clock.mockReturnValue(now + days * 86_400_000);
+      const response = await agent.get("/api/session").expect(200);
+      expect(response.body.loggedIn).toBe(true);
+      expect(new Date(response.body.session.expiresAt).getTime()).toBe(Math.min(now + (days + 30) * 86_400_000, now + config.sessionAbsoluteTtlMs));
+    }
+    clock.mockReturnValue(now + config.sessionAbsoluteTtlMs);
+    fetchMock.mockClear();
+    await agent.get("/api/session").expect(200, { loggedIn: false });
+    await agent.get("/api/me").expect(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not issue an old cookie from a parallel profile response", async () => {
+    const { agent, state } = await beginLogin();
+    await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    const response = await agent.get("/api/me").expect(200);
+    expect(response.headers["set-cookie"]).toBeUndefined();
+  });
+
+  it("issues only one replacement cookie for concurrent rotation requests", async () => {
+    const now = Date.now();
+    const clock = jest.spyOn(Date, "now").mockReturnValue(now);
+    const { agent, state } = await beginLogin();
+    const callback = await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    const oldCookie = (callback.headers["set-cookie"] as unknown as string[])[0].split(";")[0];
+    clock.mockReturnValue(now + config.sessionRotationMs);
+    const responses = await Promise.all([1, 2].map(() => request(app.getHttpServer()).get("/api/session").set("Cookie", oldCookie)));
+    expect(responses.every(r => r.status === 200)).toBe(true);
+    const replacements = responses.filter(r => r.headers["set-cookie"]);
+    expect(replacements).toHaveLength(1);
+    const cookie = (replacements[0].headers["set-cookie"] as unknown as string[])[0].split(";")[0];
+    const response = await request(app.getHttpServer()).get("/api/session").set("Cookie", cookie).expect(200);
+    expect(response.body.loggedIn).toBe(true);
+  });
+
   it("does not share another browser's login result", async () => {
     const { agent, state } = await beginLogin();
     await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
@@ -252,6 +341,19 @@ describe("CHZZK OAuth HTTP flow", () => {
     const oldCookie = (callback.headers["set-cookie"] as unknown as string[])[0].split(";")[0];
     await agent.post("/auth/logout").expect(200, { loggedIn: false });
     await request(app.getHttpServer()).get("/api/session").set("Cookie", oldCookie).expect(200, { loggedIn: false });
+  });
+
+  it("rejects a stale request restoring session data after logout", async () => {
+    const { agent, state } = await beginLogin();
+    const callback = await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    const cookie = (callback.headers["set-cookie"] as unknown as string[])[0].split(";")[0];
+    const sid = decodeURIComponent(cookie.split("=")[1]).slice(2).split(".")[0];
+    const store = app.get(SessionStore).store;
+    const stale = await new Promise<SessionData>((resolve, reject) => store.get(sid, (error, data) => error ? reject(error) : data ? resolve(JSON.parse(JSON.stringify(data)) as SessionData) : reject(new Error("Missing test session"))));
+    await agent.post("/auth/logout").expect(200);
+    await new Promise<void>((resolve, reject) => store.set(sid, stale, (error) => error ? reject(error) : resolve()));
+    await request(app.getHttpServer()).get("/api/session").set("Cookie", cookie).expect(200, { loggedIn: false });
+    await request(app.getHttpServer()).get("/api/me").set("Cookie", cookie).expect(401);
   });
 
   it("rejects cross-origin logout", async () => {
