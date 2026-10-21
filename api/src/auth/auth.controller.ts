@@ -1,3 +1,4 @@
+import { localAuthAvailable } from "../local/local.auth.config.js";
 import { AuthSession } from "./auth.session.js";
 import { SessionStore } from "../runtime/session.store.js";
 import { BadRequestException, Controller, Get, Header, HttpCode, Post, Query, Req, Res, UnauthorizedException } from "@nestjs/common";
@@ -59,8 +60,9 @@ export class AuthController {
   @Header("Cache-Control", "no-store")
   session(@Req() req: Request) {
     const { user, expiresAt } = req.session;
-    if (!user || !expiresAt || expiresAt <= Date.now()) return { loggedIn: false };
-    return { loggedIn: true, session: { ...user, expiresAt: new Date(expiresAt).toISOString() } };
+    const localLogin = localAuthAvailable(req, this.config) ? { localLoginAvailable: true } : {};
+    if (!user || !expiresAt || expiresAt <= Date.now()) return { loggedIn: false, ...localLogin };
+    return { loggedIn: true, ...localLogin, session: { ...user, expiresAt: new Date(expiresAt).toISOString() } };
   }
 
   @Post("auth/logout")

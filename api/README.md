@@ -105,10 +105,12 @@ Kubernetes 배포 선언은 별도 deploy 저장소의 `base/recap-api.yaml`·`r
 
 ## 로컬 개발 로그인
 
-`NODE_ENV=development`와 `RECAP_LOCAL_AUTH_ENABLED=true`를 함께 설정한 로컬 서버에서만 `http://localhost:8180/_dev/login`을 직접 열 수 있다. 일반 화면에는 링크를 노출하지 않는다. 채널 ID는 환경변수에 저장하지 않고 이 화면에서 입력한다. 치지직 공식 채널 조회로 ID와 닉네임을 확인한 뒤 OAuth를 거치지 않고 기존 쿠키 세션을 발급한다. 이후 활동 API는 기존처럼 세션의 ID만 사용한다.
+`NODE_ENV=development`와 `RECAP_LOCAL_AUTH_ENABLED=true`를 함께 설정한 로컬 서버에서만 `http://localhost:8180/_dev/login`을 직접 열 수 있다. 로그아웃 상태에서는 상단의 내 리캡 보기 옆에 채널 ID로 로그인 버튼을 표시한다. 로그인 상태나 비활성 환경에서는 표시하지 않는다. 채널 ID는 환경변수에 저장하지 않고 이 화면에서 입력한다. 치지직 공식 채널 조회로 ID와 닉네임을 확인한 뒤 OAuth를 거치지 않고 기존 쿠키 세션을 발급한다. 이후 활동 API는 기존처럼 세션의 ID만 사용한다.
 
 루프백 TCP 접속과 로컬 호스트·Origin만 허용한다. 운영·테스트 환경 또는 활성화 옵션이 꺼진 경우 개발 화면과 POST 경로를 등록하지 않는다. JWT나 외부 OAuth 토큰은 생성하지 않는다.
 
 개발용 세션에는 발급 경로를 기록하며, 개발 로그인 옵션을 끄거나 운영 환경에서 해당 세션을 읽으면 인증을 무효화한다. 이 표시는 세션 교체 후에도 유지한다.
 
 내 정보의 활동 요약은 `GET /api/me/activity/summary?period=all`로 전체 수집 기간을 조회한다. 잔디의 일별 조회 기간은 최근 365일로 유지한다.
+
+`GET /api/session`은 실제 로컬 로그인 접근 조건을 충족할 때만 `localLoginAvailable: true`를 포함한다. UI는 이 응답으로 개발 로그인 버튼의 노출 여부를 결정하며, 운영 응답에는 이 항목을 포함하지 않는다.

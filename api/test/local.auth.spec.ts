@@ -41,12 +41,15 @@ describe("local development login", () => {
     await setup(node, flag);
     await request(app.getHttpServer()).get("/_dev/login").expect(404);
     await request(app.getHttpServer()).post("/_dev/login").send({ channelId: channel.channelId }).expect(404);
+    expect((await request(app.getHttpServer()).get("/api/session")).body).not.toHaveProperty("localLoginAvailable");
     expect(getChannel).not.toHaveBeenCalled();
   });
-  it("renders an unlinked native form without a configured subject", async () => {
+  it("renders a native form and exposes availability only for local requests", async () => {
     await setup();
     const r = await request(app.getHttpServer()).get("/_dev/login").expect(200);
     expect(r.text).toContain('name="channelId"');
+    expect((await request(app.getHttpServer()).get("/api/session")).body.localLoginAvailable).toBe(true);
+    expect((await request(app.getHttpServer()).get("/api/session").set("X-Test-Remote", "198.51.100.2")).body).not.toHaveProperty("localLoginAvailable");
     expect(r.headers["cache-control"]).toBe("no-store");
     expect(r.headers["referrer-policy"]).toBe("same-origin");
     expect(r.headers["content-security-policy"]).toContain("frame-ancestors 'none'");
@@ -59,10 +62,12 @@ describe("local development login", () => {
     expect(getChannel).toHaveBeenCalledWith(channel.channelId);
     expect(r.headers["set-cookie"][0]).toContain("HttpOnly");
     const session = await agent.get("/api/session").expect(200);
+    expect(session.body.localLoginAvailable).toBe(true);
     expect(session.body.session.channelId).toBe(channel.channelId);
     expect(session.body.session.channelName).toBe(channel.channelName);
     await agent.get("/api/me/activity/summary").expect(200);
     await agent.post("/auth/logout").expect(200);
+    expect((await agent.get("/api/session")).body).toEqual({ loggedIn: false, localLoginAvailable: true });
     await agent.get("/api/me/activity/summary").expect(401);
   });
   it("rejects external TCP peers and Host even with forged forwarding headers", async () => {

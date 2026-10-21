@@ -3,21 +3,15 @@ import type { Request, Response } from "express";
 import { AuthConfig } from "../auth/auth.config.js";
 import { AuthSession } from "../auth/auth.session.js";
 import { ChzzkClient } from "../auth/chzzk.client.js";
-import { cidrMatcher } from "../runtime/network.config.js";
-import { localAuthEnabled } from "./local.auth.config.js";
+import { localAuthAvailable } from "./local.auth.config.js";
 import { localAuthPage } from "./local.auth.page.js";
-const loopback = cidrMatcher("127.0.0.1/32,::1/128");
 const localHost = (hostname: string) => ["localhost", "127.0.0.1", "::1", "[::1]"].includes(hostname);
 @Controller("_dev")
 export class LocalAuthController {
   constructor(private readonly config: AuthConfig, private readonly sessions: AuthSession, private readonly chzzk: ChzzkClient) {}
   private check(req: Request, res: Response): void {
     res.set({ "Cache-Control": "no-store", "Referrer-Policy": "same-origin", "X-Robots-Tag": "noindex, nofollow", "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'" });
-    if (!localAuthEnabled() || !loopback(req.socket.remoteAddress) || !this.isLocalHost(req.headers.host) || !localHost(new URL(this.config.successUrl).hostname) || this.config.secureCookie) throw new NotFoundException();
-  }
-  private isLocalHost(host: string | undefined): boolean {
-    try { return host !== undefined && localHost(new URL(`http://${host}`).hostname); }
-    catch { return false; }
+    if (!localAuthAvailable(req, this.config)) throw new NotFoundException();
   }
   @Get("login")
   page(@Req() req: Request, @Res() res: Response): void {

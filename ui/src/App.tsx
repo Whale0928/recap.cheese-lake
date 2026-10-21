@@ -11,6 +11,7 @@ type AuthState = "loading" | "guest" | "authenticated";
 
 type SessionResponse = {
   loggedIn?: boolean;
+  localLoginAvailable?: boolean;
 };
 
 const activityPattern = [
@@ -109,6 +110,7 @@ function ActivityTexture() {
 function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [authState, setAuthState] = useState<AuthState>("loading");
+  const [localLoginAvailable, setLocalLoginAvailable] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
   const [authError, setAuthError] = useState("");
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
@@ -134,9 +136,10 @@ function App() {
         if (!response.ok) throw new Error(`세션 확인 실패: ${response.status}`);
         return response.json() as Promise<SessionResponse>;
       })
-      .then((session) => setAuthState(session.loggedIn ? "authenticated" : "guest"))
+      .then((session) => { setLocalLoginAvailable(session.localLoginAvailable === true); setAuthState(session.loggedIn ? "authenticated" : "guest"); })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
+        setLocalLoginAvailable(false);
         setAuthState("guest");
       });
 
@@ -165,6 +168,7 @@ function App() {
           <Wordmark />
           <nav className="site-nav" aria-label="주요 메뉴">
             <AuthButtons authState={authState} compact />
+            {authState === "guest" && localLoginAvailable && <a className="btn btn-outline btn-sm" href="/_dev/login">채널 ID로 로그인</a>}
             {authenticated && <a className="btn btn-outline btn-sm profile-button" href="/me/" aria-current={path === "/me" ? "page" : undefined}>내 정보 보기</a>}
             {authenticated && <button className="btn btn-outline btn-sm" type="button" disabled={logoutPending} onClick={logout}>{logoutPending ? "로그아웃 중" : "로그아웃"}</button>}
             <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
