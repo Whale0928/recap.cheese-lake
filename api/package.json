@@ -12,7 +12,8 @@
     "build:watch": "tsc -p tsconfig.build.json --watch",
     "start": "node --env-file-if-exists=.env dist/main.js",
     "lint": "tsc --noEmit",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:cache": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --testMatch '**/test/*.redis.ts'"
   },
   "dependencies": {
     "@nestjs/common": "12.2.0",

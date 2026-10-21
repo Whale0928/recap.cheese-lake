@@ -17,6 +17,10 @@ tasks:
     desc: 인증 단위 및 HTTP 통합 테스트
     cmds:
       - pnpm test
+  test:cache:
+    desc: 전용 Redis를 이용한 활동 캐시 통합 테스트
+    cmds:
+      - pnpm test:cache
   serve:
     desc: 빌드된 API 기동
     deps: [build]

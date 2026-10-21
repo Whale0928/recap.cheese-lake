@@ -96,7 +96,7 @@ Kubernetes 배포 선언은 별도 deploy 저장소의 `base/recap-api.yaml`·`r
 - `GET /api/recap`: Lab summary·channels·trend·patterns를 병렬 조회한다. 일부 실패는 해당 항목에만 표시한다.
 - 호출 대상 ID는 유효한 서버 세션에서만 가져온다. 두 경로에 사용자 ID 입력은 없으며 허용하지 않은 쿼리는 400이다.
 - 선택 가능한 쿼리는 `from`, `to`(YYYY-MM-DD, KST, 양 끝 날짜 포함)와 리캡의 `interval=day|week|month`뿐이다. 기본은 오늘을 포함한 최근 30일, 최대 366일이다. Lab에는 분 경계의 `[from, to)`로 변환해 전달한다.
-- 같은 사용자·기간·API의 정상 응답은 프로세스 내부에 30초 캐시하고 동시 요청을 합친다. 키별 분당 호출 한도를 공유하므로 인스턴스가 늘면 외부 공유 캐시를 검토한다.
+- 같은 사용자·기간·API의 정상 응답은 5분 캐시한다. Redis 설정 시 API Pod끼리 결과를 공유하며, 동일 프로세스의 동시 요청은 합친다.
 - 응답의 대상 ID·기간·숫자·시간을 검증하고 선언한 필드만 반환한다. Lab 오류 본문·API Key는 응답이나 로그에 기록하지 않는다.
 
 내 정보 활동 달력은 인증된 본인 전용 `GET /api/me/activity/trend?from=YYYY-MM-DD&to=YYYY-MM-DD`로 일별 채팅 수를 조회한다. 기간은 최대 366일이며, 사용자 ID와 추이 단위는 입력받지 않는다. 기존 사용자별 캐시와 중복 요청 병합을 적용하고 자동 재시도는 하지 않는다.
@@ -114,3 +114,26 @@ Kubernetes 배포 선언은 별도 deploy 저장소의 `base/recap-api.yaml`·`r
 내 정보의 활동 요약은 `GET /api/me/activity/summary?period=all`로 전체 수집 기간을 조회한다. 잔디의 일별 조회 기간은 최근 365일로 유지한다.
 
 `GET /api/session`은 실제 로컬 로그인 접근 조건을 충족할 때만 `localLoginAvailable: true`를 포함한다. UI는 이 응답으로 개발 로그인 버튼의 노출 여부를 결정하며, 운영 응답에는 이 항목을 포함하지 않는다.
+
+## 활동 Redis 캐시
+
+`RECAP_CACHE_REDIS_HOST`, `RECAP_CACHE_REDIS_PORT`(기본 6379), `RECAP_CACHE_REDIS_PASSWORD`는 활동 조회 캐시 전용 설정이다. 로그인 세션의 `RECAP_REDIS_*`와 별도 연결이며 세션 저장소는 바꾸지 않는다. 운영에서 캐시 host를 설정하면 비밀번호도 필수다. 브라우저에는 연결 정보나 비밀번호를 전달하지 않는다.
+
+배포 환경은 기존 `lab-redis:6379`를 공유하도록 준비한다. 비밀번호는 기존 `cheese-lake-secrets`의 `REDIS_PASSWORD`를 `RECAP_CACHE_REDIS_PASSWORD`로 주입하며, 새 평문 시크릿이나 1Password 필드를 만들지 않는다. 현재 단일 Redis endpoint를 사용하고 Redis Cluster·Sentinel 전환은 포함하지 않는다.
+
+- 키 형식은 `recap:cache:{activity:v1}:entry:<SHA-256>`이다. 원문 사용자 ID 대신 upstream·종류·인증된 사용자·기간·추이 단위를 해시한다. 스키마가 호환되지 않게 바뀌면 이름 공간의 버전도 변경한다.
+- 정상 응답만 Redis에 300초 저장하고, 읽어도 만료 시각을 연장하지 않는다. Redis에서 읽은 데이터도 본인 ID·기간·응답 계약을 다시 검증한다. 손상된 값은 무시하고 재조회한다. 현재 stale-while-revalidate는 적용하지 않는다.
+- 공유 Redis에는 응답당 JSON UTF-8 256KiB, 전역 128개를 상한으로 둔다. 캐시 본문은 최대 32MiB이며 Redis의 키·인덱스·할당 오버헤드는 별도다. 초과 크기의 결과는 정상 반환하되 캐시하지 않는다.
+- 짧은 Lua 연산이 값·만료 인덱스·개수 제한을 원자적으로 갱신한다. 상한에 도달하면 Recap 활동 캐시 중 만료가 가장 가까운 항목을 제거한다. Lab 키와 세션 키를 제거하거나 전체 DB를 비우지 않는다. 저장 명령의 실행 기한도 확인해 Redis 지연 후 늦은 저장을 막는다.
+- Redis 명령 대기는 250ms로 제한하고, 장애 후 1초간 접근을 쉬면서 같은 상한의 5분 메모리 캐시로 대체한다. 메모리에도 결과가 없으면 기존 upstream 조회 경로로 진행한다. 정상 캐시 실패로 로그인이나 `/readyz`를 실패시키지 않는다.
+- upstream 실패 응답은 정상 캐시에 저장하지 않는다. 429의 `Retry-After` 대기는 기존처럼 프로세스 내에서만 유지하며 자동 재시도하지 않는다. 여러 Pod 사이의 cold miss 합치기와 분산 동시 호출 제한은 별도 작업이다.
+
+`recap:` 접두사는 키 충돌을 막지만 메모리·CPU·장애를 격리하지 않는다. Lab Redis는 락·리스·레이트리밋을 함께 처리하고 `noeviction`이므로 이 정책은 유지한다. 공유 후 메모리와 지연을 관찰하고, 상한을 늘리기 전에는 Lab 영향부터 검토한다.
+
+전용 테스트 Redis에서 다음 검증을 실행한다. 운영 Redis를 테스트 대상으로 사용하지 않는다.
+
+```sh
+RECAP_TEST_REDIS_URL=redis://127.0.0.1:6379 task api:test:cache
+```
+
+CI는 Redis 7.4.2 서비스에서 같은 통합 테스트를 실행한다. Pod 간 공유, 300초 TTL, 조회 시 TTL 유지, 동시 쓰기 상한, 사용자 격리, 손상 응답, Redis 지연 시 대체 동작과 늦은 저장 거부를 확인한다.

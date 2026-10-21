@@ -12,6 +12,11 @@ concurrency:
 jobs:
   api:
     runs-on: ubuntu-latest
+    services:
+      activity-cache:
+        image: redis:7.4.2-alpine
+        ports: ["6379:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
     defaults:
       run:
         working-directory: api
@@ -28,6 +33,10 @@ jobs:
         run: pnpm lint
       - name: 테스트
         run: pnpm test
+      - name: Redis 캐시 통합 테스트
+        run: pnpm test:cache
+        env:
+          RECAP_TEST_REDIS_URL: redis://127.0.0.1:6379
       - name: 빌드
         run: pnpm build
 

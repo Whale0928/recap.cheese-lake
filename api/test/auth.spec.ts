@@ -375,6 +375,20 @@ describe("CHZZK OAuth HTTP flow", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("reuses successful activity for five minutes without extending its lifetime", async () => {
+    const agent = await signedIn();
+    const query = { from: "2026-10-01", to: "2026-10-21" };
+    const start = Date.now();
+    const now = jest.spyOn(Date, "now").mockReturnValue(start);
+    await agent.get("/api/me/activity/summary").query(query).expect(200);
+    now.mockReturnValue(start + 299_999);
+    await agent.get("/api/me/activity/summary").query(query).expect(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    now.mockReturnValue(start + 300_001);
+    await agent.get("/api/me/activity/summary").query(query).expect(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("deduplicates concurrent activity requests for the same subject and period", async () => {
     const agent = await signedIn();
     await Promise.all([agent.get("/api/recap").expect(200), agent.get("/api/recap").expect(200)]);
