@@ -3,6 +3,12 @@ const object = (v: unknown): v is Record<string, unknown> => typeof v === "objec
 const count = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
 const id = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f]{32}$/.test(v);
 const time = (v: unknown): v is string => typeof v === "string" && Number.isFinite(Date.parse(v));
+const imageUrl = (v: unknown): v is string | null => {
+  if (v === null) return true;
+  if (typeof v !== "string") return false;
+  try { const url = new URL(v); return url.protocol === "https:" && !url.username && !url.password; }
+  catch { return false; }
+};
 function invalid(): never { throw new Error("Invalid Lab response"); }
 export function activityData<K extends ActivityKind>(kind: K, value: unknown, subject: string, period: ActivityPeriod): ActivityData[K] {
   if (!object(value) || !object(value.scope)) return invalid();
@@ -17,8 +23,8 @@ export function activityData<K extends ActivityKind>(kind: K, value: unknown, su
     case "channels":
       if (!count(value.totalChatCount) || !Array.isArray(value.channels)) return invalid();
       result = { scope, totalChatCount: value.totalChatCount, channels: value.channels.map(c => {
-        if (!object(c) || !id(c.channelId) || !count(c.chatCount) || !count(c.activeDays) || typeof c.share !== "number" || !Number.isFinite(c.share) || c.share < 0 || c.share > 1) return invalid();
-        return { channelId: c.channelId, chatCount: c.chatCount, activeDays: c.activeDays, share: c.share };
+        if (!object(c) || !id(c.channelId) || (c.channelName !== null && typeof c.channelName !== "string") || typeof c.channelUrl !== "string" || c.channelUrl !== `https://chzzk.naver.com/${c.channelId}` || !imageUrl(c.channelImageUrl) || !count(c.chatCount) || !count(c.activeDays) || typeof c.share !== "number" || !Number.isFinite(c.share) || c.share < 0 || c.share > 1) return invalid();
+        return { channelId: c.channelId, channelName: typeof c.channelName === "string" ? c.channelName.trim() || null : null, channelUrl: c.channelUrl, channelImageUrl: c.channelImageUrl, chatCount: c.chatCount, activeDays: c.activeDays, share: c.share };
       }) }; break;
     case "trend":
       if (value.interval !== period.interval || !Array.isArray(value.points)) return invalid();

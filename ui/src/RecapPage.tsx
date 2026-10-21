@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type SyntheticEvent } fro
 import type { RecapResponse } from "./activity.types";
 import { dateTime, number, PeriodLabel, ResultNotice, SummaryValues, useActivity } from "./ActivityView";
 import { ActivityPatternChart } from "./ActivityPatternChart";
+import { ActivityChannels } from "./ActivityChannels";
 export function RecapPage() {
   const currentMonth = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 7);
   const [mode, setMode] = useState<"all" | "month">("all");
@@ -53,10 +54,7 @@ export function RecapPage() {
     {data ? <>
       {data.period.from === "1970-01-01T00:00:00.000Z" ? <p className="activity-meta">전체 · 한국 시간 · 확인된 채팅 기준</p> : <PeriodLabel {...data.period} />}
       <section className="me-section" aria-labelledby="summary-heading"><div className="me-section-heading"><h2 id="summary-heading">활동 요약</h2></div><SummaryValues result={data.summary} /></section>
-      <section className="me-section" aria-labelledby="channels-heading"><h2 id="channels-heading">방송별 활동</h2>
-        {data.channels.status === "ready" ? <><p className="activity-meta">총 채팅 {number(data.channels.data.totalChatCount)}개 · {number(data.channels.data.channels.length)}개 방송</p>
-          {data.channels.data.channels.length ? <div className="activity-table-wrap" tabIndex={0} role="region" aria-label="방송별 활동 표"><table><thead><tr><th>방송 채널</th><th>채팅</th><th>활동일</th><th>비율</th></tr></thead><tbody>{data.channels.data.channels.map(c => <tr key={c.channelId}><td><a className="activity-channel" href={`https://chzzk.naver.com/${c.channelId}`} target="_blank" rel="noopener noreferrer">{c.channelId}</a></td><td>{number(c.chatCount)}</td><td>{number(c.activeDays)}</td><td>{(c.share * 100).toLocaleString("ko-KR", { maximumFractionDigits: 2 })}%</td></tr>)}</tbody></table></div> : <p className="activity-notice">활동 기록 없음</p>}</> : <ResultNotice result={data.channels} />}
-      </section>
+      <ActivityChannels result={data.channels} />
       <section className="me-section" aria-labelledby="patterns-heading"><h2 id="patterns-heading">요일·시간대별 활동</h2>
         {data.patterns.status === "ready" ? <ActivityPatternChart data={data.patterns.data} periodControls={periodControls} weekday={weekday} onWeekdayChange={setWeekday} /> : <ResultNotice result={data.patterns} />}
       </section>

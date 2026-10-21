@@ -61,7 +61,7 @@ describe("CHZZK OAuth HTTP flow", () => {
         const scope = { channelId: labWrongSubject ? "b".repeat(32) : subject, channelIds: [], from: url.searchParams.get("from"), to: url.searchParams.get("to"), timeZone: "Asia/Seoul", dataScope: "collected" };
         const counts = { chatCount: 1234, activeDays: 3, channelCount: 1 };
         if (kind === "summary") return Response.json({ scope, ...counts });
-        if (kind === "channels") return Response.json({ scope, totalChatCount: 1234, channels: [{ channelId: "c".repeat(32), chatCount: 1234, activeDays: 3, share: 1 }] });
+        if (kind === "channels") return Response.json({ scope, totalChatCount: 1234, channels: [{ channelId: "c".repeat(32), channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${"c".repeat(32)}`, channelImageUrl: "https://nng-phinf.pstatic.net/channel.png", chatCount: 1234, activeDays: 3, share: 1 }] });
         if (kind === "trend") return Response.json({ scope, interval: url.searchParams.get("interval"), points: [{ from: scope.from, to: scope.to, ...counts }] });
         if (kind === "patterns") return Response.json({ scope, patterns: [{ weekday: 1, hour: 23, chatCount: 1234 }] });
       }
@@ -292,6 +292,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     const agent = await signedIn();
     const r = await agent.get("/api/recap").query({ from: "2026-10-01", to: "2026-10-21", interval: "week" }).set("X-Channel-Id", "b".repeat(32)).expect(200);
     expect([r.body.summary.status, r.body.channels.status, r.body.trend.status, r.body.patterns.status]).toEqual(["ready", "ready", "ready", "ready"]);
+    expect(r.body.channels.data.channels[0]).toEqual({ channelId: "c".repeat(32), channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${"c".repeat(32)}`, channelImageUrl: "https://nng-phinf.pstatic.net/channel.png", chatCount: 1234, activeDays: 3, share: 1 });
     expect(fetchMock).toHaveBeenCalledTimes(4);
     for (const [input, options] of fetchMock.mock.calls) {
       const url = new URL(String(input));

@@ -14,7 +14,12 @@
 .activity-table-wrap table { width: 100%; border-collapse: collapse; font-size: .8125rem; font-variant-numeric: tabular-nums; }
 .activity-table-wrap th, .activity-table-wrap td { padding: .875rem .75rem; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
 .activity-table-wrap th { font-weight: 500; color: var(--muted-foreground); }
-.activity-channel { text-decoration: underline; text-underline-offset: .2rem; }
+.activity-channel { display: flex; align-items: center; gap: .75rem; width: fit-content; max-width: 22rem; min-width: 9rem; color: var(--foreground); text-decoration: none; white-space: normal; }
+.activity-channel:hover .activity-channel-name { text-decoration: underline; text-underline-offset: .2rem; }
+.activity-channel:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; border-radius: var(--radius-sm); }
+.activity-channel-avatar { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; overflow: hidden; border-radius: 50%; background: var(--muted); color: var(--muted-foreground); font-size: .875rem; }
+.activity-channel-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.activity-channel-name { min-width: 0; overflow-wrap: anywhere; line-height: 1.5; }
 .activity-filters :focus-visible, .activity-table-wrap:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
 @media (max-width: 560px) {
   .activity-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }

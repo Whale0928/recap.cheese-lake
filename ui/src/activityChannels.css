@@ -1,0 +1,31 @@
+.channel-activity-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+.channel-view-switch { display: flex; gap: .125rem; padding: .2rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--muted); }
+.channel-view-switch button { display: flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.5rem; padding: .45rem .75rem; border: 1px solid transparent; border-radius: calc(var(--radius-md) - 3px); background: transparent; color: var(--muted-foreground); font: inherit; font-size: .75rem; cursor: pointer; }
+.channel-view-switch button[aria-pressed="true"] { border-color: var(--border); background: var(--card); color: var(--foreground); box-shadow: 0 1px 2px color-mix(in oklab, var(--foreground) 5%, transparent); }
+.channel-view-switch button:hover { color: var(--foreground); }
+.channel-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .875rem; margin: 1.25rem 0 0; padding: 0; list-style: none; }
+.channel-card { min-width: 0; padding: 1.25rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); }
+.channel-card .activity-channel { min-width: 0; max-width: 100%; gap: .7rem; font-size: .875rem; font-weight: 550; }
+.channel-card .activity-channel-avatar { flex-basis: 44px; width: 44px; height: 44px; }
+.channel-card-stats { display: grid; grid-template-columns: 1fr auto; gap: 1rem .75rem; margin: 1.5rem 0 1rem; font-variant-numeric: tabular-nums; }
+.channel-card-stats dt { margin-bottom: .3rem; color: var(--muted-foreground); font-size: .6875rem; }
+.channel-card-stats dd { margin: 0; color: var(--foreground); font-size: .8125rem; }
+.channel-card-stats dd span { margin-left: .2rem; color: var(--muted-foreground); font-size: .6875rem; }
+.channel-card-chat { grid-column: 1 / -1; }
+.channel-card-chat dd { font-size: clamp(1.65rem, 3vw, 2rem); font-weight: 650; letter-spacing: -.04em; line-height: 1.2; overflow-wrap: anywhere; }
+.channel-card-share { height: 3px; overflow: hidden; border-radius: 3px; background: var(--border); }
+.channel-card-share > span { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.channel-fold-toggle { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; margin-top: 1.25rem; padding: 1rem 0 .25rem; border: 0; border-top: 1px solid var(--border); background: transparent; color: var(--muted-foreground); font: inherit; font-size: .75rem; text-align: left; cursor: pointer; }
+.channel-fold-toggle > span { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.channel-fold-toggle > span:last-child { flex-shrink: 0; color: var(--foreground); }
+.channel-fold-count { color: var(--foreground); }
+.channel-fold-toggle:hover > span:first-child { color: var(--foreground); }
+@media (max-width: 860px) { .channel-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+  .channel-cards { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+  .channel-card { padding: 1rem; }
+  .channel-card-stats { grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; margin-top: 1.25rem; }
+  .channel-card-chat { grid-column: auto; }
+  .channel-card-chat dd { font-size: 1.65rem; }
+  .channel-view-switch button { min-height: 2.75rem; padding-inline: .6rem; }
+}
