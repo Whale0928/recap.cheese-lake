@@ -3,7 +3,8 @@
 .me-back { color: var(--muted-foreground); font-size: .8125rem; }
 .me-back:hover { color: var(--foreground); text-decoration: underline; }
 .me-heading h1 { margin: 1.25rem 0 .5rem; font-size: clamp(2rem, 4vw, 2.75rem); letter-spacing: -.045em; line-height: 1.2; }
-.me-heading > .btn { flex-shrink: 0; min-height: 2.75rem; }
+.me-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.me-actions .btn { flex-shrink: 0; min-height: 2.75rem; }
 .me-section { margin-top: 1.5rem; padding: 2rem; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); }
 .me-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .me-source { margin: 0 0 .35rem; font-size: .75rem; color: var(--muted-foreground); }
@@ -21,7 +22,6 @@
 .me-lab-placeholder { margin-top: 1.5rem; min-height: 10rem; background: var(--secondary); border-radius: var(--radius-md); }
 .me-main a:focus-visible, .me-main button:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
 @media (max-width: 560px) {
-  .me-header .site-nav > .btn { display: inline-flex; min-height: 2.75rem; }
   .me-main { width: calc(100% - 2rem); padding: 2rem 0 4rem; }
   .me-heading { align-items: flex-start; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
   .me-section { padding: 1.25rem; }

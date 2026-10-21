@@ -66,49 +66,10 @@ function SiteFooter() {
   );
 }
 
-function AuthButtons({
-  authState,
-  compact = false,
-  showLogout = false,
-  logoutPending,
-  onLogout
-}: {
-  authState: AuthState;
-  compact?: boolean;
-  showLogout?: boolean;
-  logoutPending: boolean;
-  onLogout: () => void;
-}) {
+function AuthButtons({ authState, compact = false }: { authState: AuthState; compact?: boolean }) {
   const size = compact ? "btn-sm" : "btn-lg";
-
-  if (authState === "loading") {
-    return <button className={`btn btn-default ${size}`} type="button" disabled>로그인 확인 중</button>;
-  }
-
-  if (authState === "guest") {
-    return (
-      <a className={`btn btn-default ${size}`} href="/auth/login">
-        내 리캡 보기 <span aria-hidden="true">→</span>
-      </a>
-    );
-  }
-
-  const recapButton = (
-    <a className={`btn btn-default ${size}`} href="/recap/">
-      내 리캡 보기
-    </a>
-  );
-
-  if (!showLogout) return recapButton;
-
-  return (
-    <div className="authenticated-actions">
-      {recapButton}
-      <button className={`btn btn-outline ${size}`} type="button" onClick={onLogout} disabled={logoutPending}>
-        {logoutPending ? "로그아웃 중" : "로그아웃"}
-      </button>
-    </div>
-  );
+  if (authState === "loading") return <button className={`btn btn-default ${size}`} type="button" disabled>내 리캡 보기</button>;
+  return <a className={`btn btn-default ${size}`} href={authState === "authenticated" ? "/recap/" : "/auth/login"}>내 리캡 보기</a>;
 }
 
 function ActivityTexture() {
@@ -162,11 +123,6 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (path !== "/" && path !== "/me") {
-      setAuthState("guest");
-      return;
-    }
-
     const controller = new AbortController();
     fetch("/api/session", {
       headers: { Accept: "application/json" },
@@ -200,73 +156,40 @@ function App() {
 
   const authenticated = authState === "authenticated";
 
-  if (path === "/me") {
-    return (
-      <>
-        <a className="skip-link" href="#main">본문으로 건너뛰기</a>
-        <header className="site-header me-header">
+  const siteHeader = (
+    <>
+      <a className="skip-link" href="#main">본문으로 건너뛰기</a>
+      <header className="site-header-layer">
+        <div className="site-header">
           <Wordmark />
           <nav className="site-nav" aria-label="주요 메뉴">
-            <a href="/">홈</a>
+            <AuthButtons authState={authState} compact />
+            {authenticated && <a className="btn btn-outline btn-sm profile-button" href="/me/" aria-current={path === "/me" ? "page" : undefined}>내 정보 보기</a>}
             {authenticated && <button className="btn btn-outline btn-sm" type="button" disabled={logoutPending} onClick={logout}>{logoutPending ? "로그아웃 중" : "로그아웃"}</button>}
             <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
           </nav>
-        </header>
-        {authError && <p className="me-main" role="alert">{authError}</p>}
-        <MePage key={authState} />
-        <SiteFooter />
-      </>
-    );
+        </div>
+      </header>
+      {authError && <p className="auth-alert" role="alert">{authError}</p>}
+    </>
+  );
+
+  if (path === "/me") {
+    return <>{siteHeader}<MePage key={authState} /><SiteFooter /></>;
   }
 
-  if (path === "/privacy") {
-    return (
-      <>
-        <a className="skip-link" href="#main">본문으로 건너뛰기</a>
-        <header className="site-header">
-          <Wordmark />
-          <nav className="site-nav" aria-label="주요 메뉴">
-            <a href="/">홈</a>
-            <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
-          </nav>
-        </header>
-        <LegalDocument markdown={privacyPolicy} />
-        <SiteFooter />
-      </>
-    );
+  if (path === "/privacy" || path === "/terms") {
+    return <>{siteHeader}<LegalDocument markdown={path === "/privacy" ? privacyPolicy : termsOfService} /><SiteFooter /></>;
   }
 
-  if (path === "/terms") {
-    return (
-      <>
-        <a className="skip-link" href="#main">본문으로 건너뛰기</a>
-        <header className="site-header">
-          <Wordmark />
-          <nav className="site-nav" aria-label="주요 메뉴">
-            <a href="/">홈</a>
-            <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
-          </nav>
-        </header>
-        <LegalDocument markdown={termsOfService} />
-        <SiteFooter />
-      </>
-    );
+  if (path === "/recap") {
+    return <>{siteHeader}<main id="main" className="recap-main" /></>;
   }
 
   return (
     <>
-      <a className="skip-link" href="#main">본문으로 건너뛰기</a>
-
+      {siteHeader}
       <SideBanners />
-
-      <header className="site-header">
-        <Wordmark />
-        <nav className="site-nav" aria-label="주요 메뉴">
-          <AuthButtons authState={authState} compact showLogout logoutPending={logoutPending} onLogout={logout} />
-          <a className="btn btn-outline btn-sm profile-button" href="/me/">내 정보 보기</a>
-          <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
-        </nav>
-      </header>
 
       <main id="main">
         <section className="hero">
@@ -278,10 +201,9 @@ function App() {
               치지직 채팅 활동을 한 번에 봅니다.
             </p>
             <div className="hero-actions">
-              <AuthButtons authState={authState} logoutPending={logoutPending} onLogout={logout} />
+              <AuthButtons authState={authState} />
             </div>
             <p className="hero-footnote" aria-live="polite">
-              {authError && <><span className="auth-error" role="alert">{authError}</span><br /></>}
               {authenticated && <><strong>로그인 완료.</strong> 본인 확인에 쓴 접근 토큰은 폐기했습니다.<br /></>}
               * 치지직 공개 채팅을 바탕으로 만든 채팅 리캡입니다. 시청 기록은 포함하지 않습니다.
             </p>
@@ -351,7 +273,7 @@ function App() {
         <section className="closing">
           <p className="section-kicker">CHAT RECAP</p>
           <h2>{authenticated ? <>본인 확인을<br />마쳤습니다.</> : <>채팅 기록을<br />한 번에 봅니다.</>}</h2>
-          <AuthButtons authState={authState} logoutPending={logoutPending} onLogout={logout} />
+          <AuthButtons authState={authState} />
         </section>
       </main>
 

@@ -35,7 +35,9 @@ export function MePage() {
     <main id="main" className="me-main">
       <div className="me-heading">
         <div><a className="me-back" href="/">홈으로</a><h1>내 정보</h1></div>
-        <button className="btn btn-outline btn-sm" disabled={pending} onClick={() => setAttempt(a => a + 1)}>새로고침</button>
+        <div className="me-actions">
+          <button className="btn btn-outline btn-sm" disabled={pending} onClick={() => setAttempt(a => a + 1)}>새로고침</button>
+        </div>
       </div>
 
       <section className="me-section" aria-labelledby="chzzk-heading" aria-busy={pending}>
@@ -49,7 +51,7 @@ export function MePage() {
           <div><h3>{nickname ?? (pending ? "불러오는 중" : "로그인 필요")}</h3></div>
         </div>
         <div className="me-notice" aria-live="polite">
-          {state.status === "guest" && <><a className="btn btn-default" href="/auth/login">치지직으로 로그인</a></>}
+          {state.status === "guest" && <><a className="btn btn-default" href="/auth/login">내 리캡 보기</a></>}
           {state.status === "error" && <p role="alert">프로필 조회 실패</p>}
           {profile?.chzzk.status === "unavailable" && <p role="alert">{profile.chzzk.message}</p>}
         </div>
