@@ -87,3 +87,28 @@ Node Pod CIDR을 지정한다. 외부 요청의 X-Forwarded-For로 접근을 허
 `GET /healthz`는 프로세스, `GET /readyz`는 세션 저장소 준비 상태를 확인하며 세션을 만들지 않는다.
 Kubernetes 배포 선언은 별도 deploy 저장소의 `base/recap-api.yaml`·`recap-redis.yaml`·`recap-secret.yaml`에 있다.
 운영 Redis는 AOF(`appendfsync always`)와 전용 PVC로 세션 및 로그아웃 무효화 기록을 복구한다. 세션·쿠키는 로컬 스토리지에 저장하지 않는다. 로그아웃 무효화 기록은 해당 로그인에서 발급할 수 있는 모든 세션이 만료되는 시점까지 유지한다. 기존 12시간 세션은 새 만료 정보가 없어 한 번 다시 로그인해야 한다. 로컬 Redis 미설정 시에는 메모리 저장소이므로 API 재시작 시 로그인 상태가 사라진다.
+
+## Lab 개인 활동 조회
+
+`RECAP_LAB_BASE_URL`과 `RECAP_LAB_API_KEY`를 서버 환경에 설정한다. 로컬 기본 주소는 `http://127.0.0.1:8081`, 클러스터 주소는 `http://serve-internal:8081`이다. 키는 계정에서 발급한 `clk_` 형식이며 브라우저 환경변수나 응답에는 포함하지 않는다. 키가 없으면 로그인은 유지하고 활동 영역만 연결 준비 상태로 표시한다.
+
+- `GET /api/me/activity/summary`: Lab summary만 조회한다.
+- `GET /api/recap`: Lab summary·channels·trend·patterns를 병렬 조회한다. 일부 실패는 해당 항목에만 표시한다.
+- 호출 대상 ID는 유효한 서버 세션에서만 가져온다. 두 경로에 사용자 ID 입력은 없으며 허용하지 않은 쿼리는 400이다.
+- 선택 가능한 쿼리는 `from`, `to`(YYYY-MM-DD, KST, 양 끝 날짜 포함)와 리캡의 `interval=day|week|month`뿐이다. 기본은 오늘을 포함한 최근 30일, 최대 366일이다. Lab에는 분 경계의 `[from, to)`로 변환해 전달한다.
+- 같은 사용자·기간·API의 정상 응답은 프로세스 내부에 30초 캐시하고 동시 요청을 합친다. 키별 분당 호출 한도를 공유하므로 인스턴스가 늘면 외부 공유 캐시를 검토한다.
+- 응답의 대상 ID·기간·숫자·시간을 검증하고 선언한 필드만 반환한다. Lab 오류 본문·API Key는 응답이나 로그에 기록하지 않는다.
+
+내 정보 활동 달력은 인증된 본인 전용 `GET /api/me/activity/trend?from=YYYY-MM-DD&to=YYYY-MM-DD`로 일별 채팅 수를 조회한다. 기간은 최대 366일이며, 사용자 ID와 추이 단위는 입력받지 않는다. 기존 사용자별 캐시와 중복 요청 병합을 적용하고 자동 재시도는 하지 않는다.
+
+리캡 화면은 `GET /api/recap?period=all` 또는 `?month=YYYY-MM`을 사용한다. 전체는 확인된 모든 과거 기록부터 오늘까지, 월별은 한국 시간 달력 월로 조회하며 현재 월은 오늘까지 조회한다. 두 방식 모두 추이는 일별로 고정한다. 기존 from/to/interval 조회 계약은 유지한다.
+
+## 로컬 개발 로그인
+
+`NODE_ENV=development`와 `RECAP_LOCAL_AUTH_ENABLED=true`를 함께 설정한 로컬 서버에서만 `http://localhost:8180/_dev/login`을 직접 열 수 있다. 일반 화면에는 링크를 노출하지 않는다. 채널 ID는 환경변수에 저장하지 않고 이 화면에서 입력한다. 치지직 공식 채널 조회로 ID와 닉네임을 확인한 뒤 OAuth를 거치지 않고 기존 쿠키 세션을 발급한다. 이후 활동 API는 기존처럼 세션의 ID만 사용한다.
+
+루프백 TCP 접속과 로컬 호스트·Origin만 허용한다. 운영·테스트 환경 또는 활성화 옵션이 꺼진 경우 개발 화면과 POST 경로를 등록하지 않는다. JWT나 외부 OAuth 토큰은 생성하지 않는다.
+
+개발용 세션에는 발급 경로를 기록하며, 개발 로그인 옵션을 끄거나 운영 환경에서 해당 세션을 읽으면 인증을 무효화한다. 이 표시는 세션 교체 후에도 유지한다.
+
+내 정보의 활동 요약은 `GET /api/me/activity/summary?period=all`로 전체 수집 기간을 조회한다. 잔디의 일별 조회 기간은 최근 365일로 유지한다.

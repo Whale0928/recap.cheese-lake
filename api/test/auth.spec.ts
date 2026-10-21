@@ -1,3 +1,4 @@
+import { LabConfig } from "../src/activity/lab.config.js";
 import { SessionStore } from "../src/runtime/session.store.js";
 import type { SessionData } from "express-session";
 import { jest } from "@jest/globals";
@@ -34,6 +35,10 @@ describe("CHZZK OAuth HTTP flow", () => {
   let revokeFailure: boolean;
   let channelFailure: boolean;
   let noImage: boolean;
+  let labFailure: string | undefined;
+  let labRateLimited: boolean;
+  let labWrongSubject: boolean;
+  let authenticatedUser: typeof user;
 
   beforeEach(async () => {
     exchangeFailure = undefined;
@@ -41,8 +46,25 @@ describe("CHZZK OAuth HTTP flow", () => {
     revokeFailure = false;
     channelFailure = false;
     noImage = false;
+    labFailure = undefined;
+    labRateLimited = false;
+    labWrongSubject = false;
+    authenticatedUser = user;
     fetchMock = jest.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
-      const path = new URL(String(input)).pathname;
+      const url = new URL(String(input));
+      const path = url.pathname;
+      if (url.hostname === "lab.test") {
+        const kind = path.split("/").at(-1);
+        if (labRateLimited) return new Response("secret-lab-upstream", { status: 429, headers: { "Retry-After": "3" } });
+        if (kind === labFailure) return new Response("secret-lab-upstream", { status: 503 });
+        const subject = path.split("/")[4];
+        const scope = { channelId: labWrongSubject ? "b".repeat(32) : subject, channelIds: [], from: url.searchParams.get("from"), to: url.searchParams.get("to"), timeZone: "Asia/Seoul", dataScope: "collected" };
+        const counts = { chatCount: 1234, activeDays: 3, channelCount: 1 };
+        if (kind === "summary") return Response.json({ scope, ...counts });
+        if (kind === "channels") return Response.json({ scope, totalChatCount: 1234, channels: [{ channelId: "c".repeat(32), chatCount: 1234, activeDays: 3, share: 1 }] });
+        if (kind === "trend") return Response.json({ scope, interval: url.searchParams.get("interval"), points: [{ from: scope.from, to: scope.to, ...counts }] });
+        if (kind === "patterns") return Response.json({ scope, patterns: [{ weekday: 1, hour: 23, chatCount: 1234 }] });
+      }
       if (path === "/auth/v1/token") {
         if (exchangeFailure === "network") throw new Error("secret-upstream-error");
         if (exchangeFailure === "http") return new Response("secret-upstream-error", { status: 401 });
@@ -51,7 +73,7 @@ describe("CHZZK OAuth HTTP flow", () => {
         return Response.json({ code: 200, content: { accessToken: "secret-access-token", refreshToken: "secret-refresh-token", tokenType: "Bearer", expiresIn: "86400" } });
       }
       if (path === "/open/v1/users/me") {
-        return Response.json({ code: 200, content: profileFailure ? { ...user, channelId: "" } : user });
+        return Response.json({ code: 200, content: profileFailure ? { ...user, channelId: "" } : authenticatedUser });
       }
       if (path === "/open/v1/channels") {
         return Response.json({ code: 200, content: { data: channelFailure ? [{ ...user, channelId: "b".repeat(32) }] : [{ ...user, channelImageUrl: noImage ? null : "https://nng-phinf.pstatic.net/test.png", followerCount: 0, verifiedMark: false }] } });
@@ -62,7 +84,8 @@ describe("CHZZK OAuth HTTP flow", () => {
       throw new Error(`Unexpected test request: ${path}`);
     });
     const module = await Test.createTestingModule({ imports: [AppModule] })
-      .overrideProvider(AuthConfig).useValue(config).compile();
+      .overrideProvider(AuthConfig).useValue(config)
+      .overrideProvider(LabConfig).useValue({ baseUrl: "http://lab.test", apiKey: "clk_" + "a".repeat(64) }).compile();
     app = module.createNestApplication<NestExpressApplication>({ logger: false });
     await configureApp(app);
     await app.init();
@@ -249,6 +272,148 @@ describe("CHZZK OAuth HTTP flow", () => {
     const cookie = (replacements[0].headers["set-cookie"] as unknown as string[])[0].split(";")[0];
     const response = await request(app.getHttpServer()).get("/api/session").set("Cookie", cookie).expect(200);
     expect(response.body.loggedIn).toBe(true);
+  });
+
+  async function signedIn() {
+    const { agent, state } = await beginLogin();
+    await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    fetchMock.mockClear();
+    return agent;
+  }
+
+  it("does not call Lab for unauthenticated activity requests", async () => {
+    await request(app.getHttpServer()).get("/api/me/activity/summary").expect(401);
+    await request(app.getHttpServer()).get("/api/me/activity/trend").expect(401);
+    await request(app.getHttpServer()).get("/api/recap").expect(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("uses only the authenticated subject and a server-side API Key for all four activity calls", async () => {
+    const agent = await signedIn();
+    const r = await agent.get("/api/recap").query({ from: "2026-10-01", to: "2026-10-21", interval: "week" }).set("X-Channel-Id", "b".repeat(32)).expect(200);
+    expect([r.body.summary.status, r.body.channels.status, r.body.trend.status, r.body.patterns.status]).toEqual(["ready", "ready", "ready", "ready"]);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    for (const [input, options] of fetchMock.mock.calls) {
+      const url = new URL(String(input));
+      expect(url.pathname).toMatch(new RegExp(`^/internal/v1/channels/${user.channelId}/activities/(summary|channels|trend|patterns)$`));
+      expect(url.searchParams.get("from")).toBe("2026-09-30T15:00:00.000Z");
+      expect(url.searchParams.get("to")).toBe("2026-10-21T15:00:00.000Z");
+      expect(options!.headers).toEqual(expect.objectContaining({ Authorization: "Bearer clk_" + "a".repeat(64) }));
+      expect(options!.redirect).toBe("error");
+    }
+    expect(r.headers["cache-control"]).toBe("no-store");
+    expect(JSON.stringify(r.body)).not.toMatch(/clk_|secret-|apiKey/);
+  });
+
+  it.each(["channelId", "userId", "channelIds", "url"])("rejects caller-supplied subject or upstream overrides: %s", async (field) => {
+    const agent = await signedIn();
+    await agent.get("/api/recap").query({ [field]: "../../another-user" }).expect(400);
+    await agent.get("/api/me/activity/summary").query({ [field]: "b".repeat(32) }).expect(400);
+    await agent.get("/api/me/activity/trend").query({ [field]: "b".repeat(32) }).expect(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([{ from: "2026-02-30" }, { to: "2026-10-21T00:00:00Z" }, { from: "2026-10-22", to: "2026-10-21" }, { from: "2024-01-01", to: "2026-01-01" }, { interval: "year" }])("rejects invalid dates and intervals before calling Lab: %j", async (query) => {
+    const agent = await signedIn();
+    await agent.get("/api/recap").query(query).expect(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns only daily activity for the authenticated user's yearly calendar and reuses requests", async () => {
+    const agent = await signedIn();
+    const query = { from: "2025-10-22", to: "2026-10-21" };
+    const r = await agent.get("/api/me/activity/trend").query(query).expect(200);
+    expect(r.body.trend.status).toBe("ready");
+    expect(r.body.trend.data.interval).toBe("day");
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(url.pathname).toBe(`/internal/v1/channels/${user.channelId}/activities/trend`);
+    expect(url.searchParams.get("interval")).toBe("day");
+    await agent.get("/api/me/activity/trend").query(query).expect(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await agent.get("/api/me/activity/trend").query({ interval: "month" }).expect(400);
+  });
+
+  it("supports all collected history and calendar months with daily buckets", async () => {
+    const agent = await signedIn();
+    const all = await agent.get("/api/recap").query({ period: "all" }).expect(200);
+    expect(all.body.period.from).toBe("1970-01-01T00:00:00.000Z");
+    expect(all.body.trend.data.interval).toBe("day");
+    const february = await agent.get("/api/recap").query({ month: "2024-02" }).expect(200);
+    expect(february.body.period).toEqual({ from: "2024-01-31T15:00:00.000Z", to: "2024-02-29T15:00:00.000Z", interval: "day" });
+    for (const query of [{ period: "all", userId: "b".repeat(32) }, { month: "2024-13" }, { month: "2099-01" }, { month: "2024-02", interval: "week" }, { period: "unknown" }]) {
+      await agent.get("/api/recap").query(query).expect(400);
+    }
+  });
+
+  it("returns all-history summary for my info and reuses it for all-history recap", async () => {
+    const agent = await signedIn();
+    const summary = await agent.get("/api/me/activity/summary").query({ period: "all" }).expect(200);
+    expect(summary.body.period.from).toBe("1970-01-01T00:00:00.000Z");
+    expect(summary.body.summary.data.scope.from).toBe(summary.body.period.from);
+    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("from")).toBe(summary.body.period.from);
+    await agent.get("/api/recap").query({ period: "all" }).expect(200);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    await agent.get("/api/me/activity/summary").query({ period: "all", channelId: "b".repeat(32) }).expect(400);
+  });
+
+  it("fetches only summary for my info and reuses it without mixing user caches", async () => {
+    const first = await signedIn();
+    const summary = await first.get("/api/me/activity/summary").expect(200);
+    expect(summary.body.summary.status).toBe("ready");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await first.get("/api/recap").expect(200);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    authenticatedUser = { channelId: "b".repeat(32), channelName: "다른 사용자" };
+    const second = await signedIn();
+    const other = await second.get("/api/me/activity/summary").expect(200);
+    expect(other.body.summary.data.scope.channelId).toBe(authenticatedUser.channelId);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await first.post("/auth/logout").expect(200);
+    fetchMock.mockClear();
+    await first.get("/api/recap").expect(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("deduplicates concurrent activity requests for the same subject and period", async () => {
+    const agent = await signedIn();
+    await Promise.all([agent.get("/api/recap").expect(200), agent.get("/api/recap").expect(200)]);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("shows an unconfigured integration without calling Lab", async () => {
+    const agent = await signedIn();
+    jest.replaceProperty(app.get(LabConfig), "apiKey", undefined);
+    const r = await agent.get("/api/me/activity/summary").expect(200);
+    expect(r.body.summary).toEqual({ status: "unavailable", reason: "not_configured" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps successful sections when one Lab endpoint is unavailable", async () => {
+    const agent = await signedIn();
+    labFailure = "trend";
+    const r = await agent.get("/api/recap").expect(200);
+    expect(r.body.trend).toEqual({ status: "unavailable", reason: "upstream" });
+    expect(r.body.summary.status).toBe("ready");
+    expect(r.body.channels.status).toBe("ready");
+    expect(r.body.patterns.status).toBe("ready");
+    expect(JSON.stringify(r.body)).not.toContain("secret-");
+  });
+
+  it("does not forward a mismatched subject from Lab", async () => {
+    const agent = await signedIn();
+    labWrongSubject = true;
+    const r = await agent.get("/api/me/activity/summary").expect(200);
+    expect(r.body.summary).toEqual({ status: "unavailable", reason: "upstream" });
+    expect(r.body.summary).not.toHaveProperty("data");
+  });
+
+  it("preserves rate-limit feedback and does not immediately repeat rejected calls", async () => {
+    const agent = await signedIn();
+    labRateLimited = true;
+    const r = await agent.get("/api/me/activity/summary").expect(200);
+    expect(r.body.summary).toEqual({ status: "unavailable", reason: "rate_limited", retryAfterSeconds: 3 });
+    await agent.get("/api/me/activity/summary").expect(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("does not share another browser's login result", async () => {

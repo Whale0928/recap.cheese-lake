@@ -1,3 +1,4 @@
+import { AuthSession } from "./auth.session.js";
 import { SessionStore } from "../runtime/session.store.js";
 import { BadRequestException, Controller, Get, Header, HttpCode, Post, Query, Req, Res, UnauthorizedException } from "@nestjs/common";
 import { randomBytes, timingSafeEqual } from "node:crypto";
@@ -16,6 +17,7 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly chzzk: ChzzkClient,
     private readonly sessions: SessionStore,
+    private readonly loginSession: AuthSession,
   ) {}
 
   @Get("auth/login")
@@ -49,14 +51,7 @@ export class AuthController {
       throw new BadRequestException("Missing OAuth authorization code");
     }
     const user = await this.auth.authenticate(query.code, state);
-    await this.regenerate(req);
-    req.session.user = user;
-    req.session.sessionGroup = randomBytes(32).toString("hex");
-    req.session.authenticatedAt = Date.now();
-    req.session.rotatedAt = req.session.authenticatedAt;
-    req.session.expiresAt = req.session.authenticatedAt + this.config.sessionTtlMs;
-    req.session.cookie.maxAge = this.config.sessionTtlMs;
-    await this.save(req);
+    await this.loginSession.login(req, user);
     res.redirect(this.config.successUrl);
   }
 

@@ -1,3 +1,4 @@
+import { RecapPage } from "./RecapPage";
 import { useEffect, useMemo, useState } from "react";
 import privacyPolicy from "../legal/개인정보 처리방침.md?raw";
 import termsOfService from "../legal/이용약관.md?raw";
@@ -175,7 +176,7 @@ function App() {
   );
 
   if (path === "/me") {
-    return <>{siteHeader}<MePage key={authState} /><SiteFooter /></>;
+    return <>{siteHeader}<MePage key={authState === "guest" ? "guest" : "session"} /><SiteFooter /></>;
   }
 
   if (path === "/privacy" || path === "/terms") {
@@ -183,7 +184,7 @@ function App() {
   }
 
   if (path === "/recap") {
-    return <>{siteHeader}<main id="main" className="recap-main" /></>;
+    return <>{siteHeader}<RecapPage key={authState === "guest" ? "guest" : "session"} /><SiteFooter /></>;
   }
 
   return (

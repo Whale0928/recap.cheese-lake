@@ -5,7 +5,7 @@ import { AppModule } from "./app.module.js";
 import { configureApp } from "./app.js";
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.register());
   await configureApp(app);
   app.enableShutdownHooks();
   const port = Number(process.env.PORT ?? 8180);

@@ -19,7 +19,6 @@
 .me-notice { padding: 1rem 1.25rem; margin-bottom: 1.5rem; background: var(--secondary); border-radius: var(--radius-md); }
 .me-notice p { margin: 0; }
 .me-notice .btn { min-height: 2.75rem; }
-.me-lab-placeholder { margin-top: 1.5rem; min-height: 10rem; background: var(--secondary); border-radius: var(--radius-md); }
 .me-main a:focus-visible, .me-main button:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
 @media (max-width: 560px) {
   .me-main { width: calc(100% - 2rem); padding: 2rem 0 4rem; }

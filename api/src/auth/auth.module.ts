@@ -1,3 +1,4 @@
+import { AuthSession } from "./auth.session.js";
 import { SessionLifecycle } from "../runtime/session.lifecycle.js";
 import { SessionStore } from "../runtime/session.store.js";
 import { Module } from "@nestjs/common";
@@ -8,7 +9,7 @@ import { ChzzkClient } from "./chzzk.client.js";
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthConfig, AuthService, ChzzkClient, SessionStore, SessionLifecycle],
-  exports: [AuthConfig, ChzzkClient, SessionStore, SessionLifecycle],
+  providers: [AuthSession, AuthConfig, AuthService, ChzzkClient, SessionStore, SessionLifecycle],
+  exports: [AuthSession, AuthConfig, ChzzkClient, SessionStore, SessionLifecycle],
 })
 export class AuthModule {}

@@ -1,3 +1,4 @@
+import { localAuthEnabled } from "../local/local.auth.config.js";
 import { Injectable } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { AuthConfig } from "../auth/auth.config.js";
@@ -8,7 +9,7 @@ export class SessionLifecycle {
   constructor(private readonly config: AuthConfig, private readonly sessions: SessionStore) {}
 
   async maintain(req: Request, res: Response): Promise<void> {
-    const { user, authenticatedAt, rotatedAt, expiresAt, sessionGroup } = req.session;
+    const { user, authSource, authenticatedAt, rotatedAt, expiresAt, sessionGroup } = req.session;
     if (!user) return;
     // 교체된 ID가 진행 중이던 요청의 save로 되살아나더라도 다시 인증하지 않는다.
     if (await this.sessions.isRevoked(`session:${req.sessionID}`)) {
@@ -17,7 +18,7 @@ export class SessionLifecycle {
     }
     const now = Date.now();
     const absoluteExpiry = (authenticatedAt ?? 0) + this.config.sessionAbsoluteTtlMs;
-    if (!sessionGroup || await this.sessions.isRevoked(sessionGroup) || authenticatedAt === undefined || rotatedAt === undefined || expiresAt === undefined || expiresAt <= now || absoluteExpiry <= now) {
+    if (req.session.authSource === "local" && !localAuthEnabled() || !sessionGroup || await this.sessions.isRevoked(sessionGroup) || authenticatedAt === undefined || rotatedAt === undefined || expiresAt === undefined || expiresAt <= now || absoluteExpiry <= now) {
       await new Promise<void>((resolve, reject) => req.session.regenerate((error: unknown) => error ? reject(error) : resolve()));
       res.clearCookie("recap_session", { httpOnly: true, secure: this.config.secureCookie, sameSite: "lax", path: "/" });
       return;
@@ -29,6 +30,7 @@ export class SessionLifecycle {
       await this.sessions.revoke(`session:${req.sessionID}`, absoluteExpiry);
       await new Promise<void>((resolve, reject) => req.session.regenerate((error: unknown) => error ? reject(error) : resolve()));
       req.session.user = user;
+      req.session.authSource = authSource;
       req.session.sessionGroup = sessionGroup;
       req.session.authenticatedAt = authenticatedAt;
       req.session.rotatedAt = now;
