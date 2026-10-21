@@ -1,7 +1,10 @@
-# API와 UI의 TypeScript 검사 및 API 인증 테스트를 실행한다.
+# 개인 Git 계정과 서명, API 및 UI 검사를 실행한다.
 pre-commit:
   parallel: true
   commands:
+    git-identity:
+      files: git ls-files
+      run: node scripts/check-git-identity.mjs pre-commit
     api-types:
       glob: "api/**/*.{ts,json,yaml}"
       run: task api:lint
@@ -10,5 +13,9 @@ pre-commit:
       run: task ui:lint
 pre-push:
   commands:
+    git-identity:
+      files: git ls-files
+      use_stdin: true
+      run: node scripts/check-git-identity.mjs pre-push
     api-test:
       run: task api:test
