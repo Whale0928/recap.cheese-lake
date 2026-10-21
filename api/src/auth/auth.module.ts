@@ -7,6 +7,6 @@ import { ChzzkClient } from "./chzzk.client.js";
 @Module({
   controllers: [AuthController],
   providers: [AuthConfig, AuthService, ChzzkClient],
-  exports: [AuthConfig],
+  exports: [AuthConfig, ChzzkClient],
 })
 export class AuthModule {}

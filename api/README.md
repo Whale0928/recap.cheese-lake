@@ -39,6 +39,7 @@ API 포트는 `PORT`, 정적 UI 위치는 `RECAP_UI_DIR`로 설정한다.
 |---|---|
 | `GET /auth/login` | state를 발급하고 치지직 로그인 화면으로 이동한다. |
 | `GET /auth/callback` | state 검증, 토큰 교환, 사용자 조회·토큰 폐기 후 세션을 발급한다. |
+| `GET /api/me` | 로그인한 본인의 치지직 프로필 5개 항목을 Client 인증으로 조회한다. 비로그인은 401이다. |
 | `GET /api/session` | 로그인 여부와 채널 ID·이름·만료 시각을 반환한다. |
 | `POST /auth/logout` | Recap 서버 세션을 제거한다. |
 
@@ -65,3 +66,7 @@ Jest·Supertest로 실제 Nest HTTP 처리를 검증하며, 치지직 HTTP 응�
 보는 화면 미리보기 전용 이미지이며, Nest 인증 서버로 교체되지 않는다.
 
 결정 기록은 [adr](adr)에 있다.
+
+## 내 정보 화면
+
+`/me/`는 치지직 프로필과 Lab 활동 영역을 구분한다. Lab은 레이아웃만 있으며 호출하지 않는다. `GET /api/me`는 세션의 본인 ID만 조회하며 요청의 다른 사용자 ID를 사용하지 않는다. 치지직 조회 실패는 `chzzk.status=unavailable`로 반환하고, 로그인 때 확인한 기본 식별 정보는 유지한다. 사용자 토큰을 다시 보관하지 않으며 Client Secret은 서버에서만 사용한다.

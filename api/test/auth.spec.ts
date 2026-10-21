@@ -25,11 +25,15 @@ describe("CHZZK OAuth HTTP flow", () => {
   let exchangeFailure: "http" | "api" | "network" | "malformed" | undefined;
   let profileFailure: boolean;
   let revokeFailure: boolean;
+  let channelFailure: boolean;
+  let noImage: boolean;
 
   beforeEach(async () => {
     exchangeFailure = undefined;
     profileFailure = false;
     revokeFailure = false;
+    channelFailure = false;
+    noImage = false;
     fetchMock = jest.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const path = new URL(String(input)).pathname;
       if (path === "/auth/v1/token") {
@@ -41,6 +45,9 @@ describe("CHZZK OAuth HTTP flow", () => {
       }
       if (path === "/open/v1/users/me") {
         return Response.json({ code: 200, content: profileFailure ? { ...user, channelId: "" } : user });
+      }
+      if (path === "/open/v1/channels") {
+        return Response.json({ code: 200, content: { data: channelFailure ? [{ ...user, channelId: "b".repeat(32) }] : [{ ...user, channelImageUrl: noImage ? null : "https://nng-phinf.pstatic.net/test.png", followerCount: 0, verifiedMark: false }] } });
       }
       if (path === "/auth/v1/token/revoke") {
         return Response.json({ code: revokeFailure ? 503 : 200, content: null });
@@ -101,6 +108,55 @@ describe("CHZZK OAuth HTTP flow", () => {
     expect(session.headers["cache-control"]).toBe("no-store");
     expect(JSON.stringify(session.body)).not.toMatch(/secret-|accessToken|refreshToken|lastLogin|clientSecret/);
     expect(JSON.stringify(callback.headers)).not.toContain("secret-access-token");
+  });
+
+  it("requires login before querying profile data", async () => {
+    await request(app.getHttpServer()).get("/api/me").expect(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("queries only the signed-in identity using server-side Client authentication", async () => {
+    const { agent, state } = await beginLogin();
+    await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    const response = await agent.get("/api/me").query({ channelId: "b".repeat(32) }).expect(200);
+    expect(response.body).toEqual({ identity: user, fetchedAt: expect.any(String), chzzk: { status: "ready", data: { ...user, channelImageUrl: "https://nng-phinf.pstatic.net/test.png", followerCount: 0, verifiedMark: false } } });
+    const [url, options] = fetchMock.mock.calls.at(-1)!;
+    expect(new URL(String(url)).searchParams.get("channelIds")).toBe(user.channelId);
+    expect(options!.headers).toEqual(expect.objectContaining({ "Client-Id": config.clientId, "Client-Secret": config.clientSecret }));
+    expect(options!.headers).not.toHaveProperty("Authorization");
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(JSON.stringify(response.body)).not.toMatch(/secret-|accessToken|refreshToken|clientSecret/);
+    await request(app.getHttpServer()).get("/api/me").expect(401);
+  });
+
+  it("keeps the verified identity when channel data does not match", async () => {
+    const { agent, state } = await beginLogin();
+    await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    channelFailure = true;
+    const response = await agent.get("/api/me").expect(200);
+    expect(response.body.identity).toEqual(user);
+    expect(response.body.chzzk.status).toBe("unavailable");
+    expect(response.body.chzzk).not.toHaveProperty("data");
+  });
+
+  it("accepts an unregistered image and zero followers without treating them as failure", async () => {
+    const { agent, state } = await beginLogin();
+    await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    noImage = true;
+    const response = await agent.get("/api/me").expect(200);
+    expect(response.body.chzzk.data.channelImageUrl).toBeNull();
+    expect(response.body.chzzk.data.followerCount).toBe(0);
+    expect(response.body.chzzk.data.verifiedMark).toBe(false);
+  });
+
+  it("rejects expired sessions without calling the channel API", async () => {
+    const { agent, state } = await beginLogin();
+    await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    const clock = jest.spyOn(Date, "now").mockReturnValue(Date.now() + config.sessionTtlMs);
+    fetchMock.mockClear();
+    await agent.get("/api/me").expect(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+    clock.mockRestore();
   });
 
   it("does not share another browser's login result", async () => {

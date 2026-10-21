@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import privacyPolicy from "../legal/개인정보 처리방침.md?raw";
 import termsOfService from "../legal/이용약관.md?raw";
 import { LegalDocument } from "./LegalDocument";
+import { MePage } from "./MePage";
 import { SideBanners } from "./SideBanners";
 
 type Theme = "light" | "dark";
@@ -161,7 +162,7 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (path !== "/") {
+    if (path !== "/" && path !== "/me") {
       setAuthState("guest");
       return;
     }
@@ -198,6 +199,25 @@ function App() {
   };
 
   const authenticated = authState === "authenticated";
+
+  if (path === "/me") {
+    return (
+      <>
+        <a className="skip-link" href="#main">본문으로 건너뛰기</a>
+        <header className="site-header me-header">
+          <Wordmark />
+          <nav className="site-nav" aria-label="주요 메뉴">
+            <a href="/">홈</a>
+            {authenticated && <button className="btn btn-outline btn-sm" type="button" disabled={logoutPending} onClick={logout}>{logoutPending ? "로그아웃 중" : "로그아웃"}</button>}
+            <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
+          </nav>
+        </header>
+        {authError && <p className="me-main" role="alert">{authError}</p>}
+        <MePage key={authState} />
+        <SiteFooter />
+      </>
+    );
+  }
 
   if (path === "/privacy") {
     return (

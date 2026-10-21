@@ -1,5 +1,6 @@
 import { BadGatewayException, Injectable } from "@nestjs/common";
 import { AuthConfig } from "./auth.config.js";
+import type { ChannelProfile } from "../me/me.types.js";
 import type { ChzzkUser } from "./auth.types.js";
 
 const API_BASE = "https://openapi.chzzk.naver.com";
@@ -48,6 +49,19 @@ export class ChzzkClient {
       throw new BadGatewayException("Invalid CHZZK user response");
     }
     return { channelId: user.channelId, channelName: user.channelName };
+  }
+
+  async getChannel(channelId: string): Promise<ChannelProfile> {
+    const content = await this.request(`/open/v1/channels?${new URLSearchParams({ channelIds: channelId })}`, {
+      headers: { "Client-Id": this.config.clientId, "Client-Secret": this.config.clientSecret },
+    });
+    const channel: unknown = isObject(content) && Array.isArray(content.data) ? content.data.find((c: unknown) => isObject(c) && c.channelId === channelId) : undefined;
+    if (!isObject(channel) || typeof channel.channelName !== "string" || !channel.channelName.trim() ||
+      !Number.isSafeInteger(channel.followerCount) || Number(channel.followerCount) < 0 || typeof channel.verifiedMark !== "boolean" ||
+      (channel.channelImageUrl !== null && typeof channel.channelImageUrl !== "string")) throw new BadGatewayException("Invalid CHZZK channel response");
+    const image = channel.channelImageUrl ? new URL(String(channel.channelImageUrl)) : null;
+    if (image && image.protocol !== "https:") throw new BadGatewayException("Invalid CHZZK profile image URL");
+    return { channelId, channelName: channel.channelName, channelImageUrl: image?.href ?? null, followerCount: Number(channel.followerCount), verifiedMark: channel.verifiedMark };
   }
 
   async revoke(accessToken: string): Promise<void> {
