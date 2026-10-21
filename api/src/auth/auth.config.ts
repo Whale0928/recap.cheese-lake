@@ -1,3 +1,4 @@
+import { cidrMatcher, corsOrigins } from "../runtime/network.config.js";
 import { Injectable } from "@nestjs/common";
 
 @Injectable()
@@ -8,6 +9,11 @@ export class AuthConfig {
   readonly sessionKey: string;
   readonly successUrl: string;
   readonly secureCookie: boolean;
+  readonly redisHost: string | undefined;
+  readonly redisPort: number;
+  readonly redisPassword: string | undefined;
+  readonly allowedPeer: (address: string | undefined) => boolean;
+  readonly allowedOrigins: string[];
   readonly stateTtlMs = 10 * 60 * 1000;
   readonly sessionTtlMs = 12 * 60 * 60 * 1000;
 
@@ -32,9 +38,17 @@ export class AuthConfig {
       }
     }
     this.secureCookie = new URL(this.redirectUri).protocol === "https:";
-    // 기본 MemoryStore는 로컬 검증용이며 운영에서는 공유 저장소가 필요하다.
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("Production requires a shared session store; the local MemoryStore is disabled");
+    this.redisHost = process.env.RECAP_REDIS_HOST;
+    this.redisPort = Number(process.env.RECAP_REDIS_PORT ?? 6379);
+    this.redisPassword = process.env.RECAP_REDIS_PASSWORD;
+    if (!Number.isInteger(this.redisPort) || this.redisPort < 1 || this.redisPort > 65535) throw new Error("Invalid RECAP_REDIS_PORT");
+    this.allowedPeer = cidrMatcher(process.env.RECAP_ALLOWED_CIDRS ?? "127.0.0.1/32,::1/128");
+    this.allowedOrigins = corsOrigins(process.env.RECAP_CORS_ORIGINS ?? `${new URL(this.successUrl).origin},http://localhost:5273,http://127.0.0.1:5273`);
+    if (process.env.NODE_ENV === "production" && (!this.redisHost || !this.redisPassword)) {
+      throw new Error("Production requires a shared session store with authentication");
+    }
+    if (process.env.NODE_ENV === "production" && (!this.secureCookie || new URL(this.successUrl).protocol !== "https:")) {
+      throw new Error("Production requires HTTPS auth URLs");
     }
   }
 }

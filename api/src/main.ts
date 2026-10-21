@@ -6,7 +6,7 @@ import { configureApp } from "./app.js";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  configureApp(app);
+  await configureApp(app);
   app.enableShutdownHooks();
   const port = Number(process.env.PORT ?? 8180);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be between 1 and 65535");

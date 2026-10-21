@@ -71,3 +71,10 @@ docker run --rm -p 18180:8080 docker-registry.dead-whale.org/recap-ui:0.0.2
 ## 같이보기 배너
 
 랜딩 양쪽 배너는 [치지직 공식 공지](https://game.naver.com/lounge/chzzk/board/detail/8298140)를 수동 반영한다. `assets/images/kindaichi_notice.png`는 해당 공지의 원본 이미지이며, 배너에서는 상단 작품 이미지 부분만 CSS로 표시한다. 권리 표기는 원본에 포함되어 있다. 기간은 2026.10.21 확인 기준이며, 공지가 바뀌면 `src/SideBanners.tsx`도 함께 갱신한다.
+
+## API 연결 배포 이미지
+
+`docker build --build-arg RECAP_API_PROXY=true -t recap-ui:local ui`로 API 프록시 템플릿을 포함한다.
+`RECAP_API_UPSTREAM=http://recap-api:8180`을 주입하면 `/auth/`·`/api/`를 내부 API로 전달한다.
+기본 빌드는 계속 nginx 전용 미리보기다. API 프록시 빌드에서는 접속 IP와 OAuth code가
+nginx 요청 로그에 남지 않도록 access log를 끄고 인증 경로의 오류 로그도 제외한다.

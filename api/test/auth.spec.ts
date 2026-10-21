@@ -5,6 +5,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 import { AppModule } from "../src/app.module.js";
 import { configureApp } from "../src/app.js";
+import { cidrMatcher } from "../src/runtime/network.config.js";
 import { AuthConfig } from "../src/auth/auth.config.js";
 
 const user = { channelId: "a".repeat(32), channelName: "테스트 사용자" };
@@ -15,6 +16,8 @@ const config = {
   successUrl: "http://localhost:8180/",
   sessionKey: "test-session-key-with-at-least-32-bytes",
   secureCookie: false,
+  allowedPeer: cidrMatcher("127.0.0.1/32,::1/128"),
+  allowedOrigins: ["http://localhost:8180", "http://localhost:5273"],
   stateTtlMs: 600_000,
   sessionTtlMs: 43_200_000,
 };
@@ -57,7 +60,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(AuthConfig).useValue(config).compile();
     app = module.createNestApplication<NestExpressApplication>({ logger: false });
-    configureApp(app);
+    await configureApp(app);
     await app.init();
   });
 
@@ -254,9 +257,23 @@ describe("CHZZK OAuth HTTP flow", () => {
   it("rejects cross-origin logout", async () => {
     const { agent, state } = await beginLogin();
     await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
-    await agent.post("/auth/logout").set("Origin", "https://another.example").expect(401);
+    await agent.post("/auth/logout").set("Origin", "https://another.example").expect(403);
     const response = await agent.get("/api/session").expect(200);
     expect(response.body.loggedIn).toBe(true);
+  });
+
+  it("allows credentialed preflight only for configured origins", async () => {
+    const response = await request(app.getHttpServer()).options("/api/me").set("Origin", config.successUrl.slice(0, -1)).set("Access-Control-Request-Method", "GET").expect(204);
+    expect(response.headers["access-control-allow-origin"]).toBe("http://localhost:8180");
+    expect(response.headers["access-control-allow-credentials"]).toBe("true");
+    const denied = await request(app.getHttpServer()).options("/api/me").set("Origin", "https://untrusted.example").set("Access-Control-Request-Method", "GET").expect(403);
+    expect(denied.headers).not.toHaveProperty("access-control-allow-origin");
+  });
+
+  it("exposes probes without creating a session", async () => {
+    const response = await request(app.getHttpServer()).get("/healthz").expect(200, "ok");
+    expect(response.headers).not.toHaveProperty("set-cookie");
+    await request(app.getHttpServer()).get("/readyz").expect(200, "ok");
   });
 
   it("removes the prototype's unrelated API endpoints", async () => {

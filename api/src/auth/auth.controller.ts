@@ -33,7 +33,7 @@ export class AuthController {
   async callback(@Req() req: Request, @Res() res: Response, @Query() query: Record<string, unknown>): Promise<void> {
     const expected = req.session.oauthState;
     delete req.session.oauthState;
-    const freshState = this.auth.consumeState(expected);
+    const freshState = await this.auth.consumeState(expected);
     // 외부 API 호출 전에 저장하여 재시도에서 같은 state를 사용하지 못하게 한다.
     await this.save(req);
     const state = query.state;

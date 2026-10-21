@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { MeResponse } from "../../api/src/me/me.types";
+import type { MeResponse } from "./MePage.types";
 import "./me.css";
 
 type State = { status: "loading" | "guest" | "error" } | { status: "ready"; profile: MeResponse };

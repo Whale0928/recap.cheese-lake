@@ -1,0 +1,60 @@
+server {
+    listen 8080;
+    server_name _;
+    access_log off;
+    # 외부 Gateway의 호스트·포트를 유지하도록 상대 경로로 이동한다.
+    absolute_redirect off;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    location /auth/ {
+        access_log off;
+        error_log /dev/null;
+        proxy_pass ${RECAP_API_UPSTREAM};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Cookie $http_cookie;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+    }
+
+    location /api/ {
+        proxy_pass ${RECAP_API_UPSTREAM};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Cookie $http_cookie;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+    }
+
+    location = /robots.txt {
+        default_type text/plain;
+        return 200 "User-agent: *\nDisallow: /auth/\nDisallow: /api/\n";
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location /assets/ {
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location ~ \.html$ {
+        try_files $uri =404;
+        add_header Cache-Control "no-store";
+    }
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 1024;
+}
