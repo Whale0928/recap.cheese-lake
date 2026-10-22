@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { DataSource } from "typeorm";
 import { jest } from "@jest/globals";
 import { BadGatewayException } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
@@ -21,6 +22,7 @@ describe("local development login", () => {
     process.env.RECAP_LOCAL_AUTH_ENABLED = enabled;
     getChannel = jest.fn<ChzzkClient["getChannel"]>().mockResolvedValue(channel);
     const module = await Test.createTestingModule({ imports: [AppModule.register()] })
+      .overrideProvider(DataSource).useValue(null)
       .overrideProvider(AuthConfig).useValue(config)
       .overrideProvider(ChzzkClient).useValue({ getChannel })
       .overrideProvider(LabConfig).useValue({ baseUrl: "http://lab.test" }).compile();

@@ -8,12 +8,13 @@
   },
   "scripts": {
     "dev": "node --watch --env-file-if-exists=../module.secrets/project/cheese-lake/recap/local/.env --env-file-if-exists=.env dist/main.js",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/build-migrations.mjs --if-present",
     "build:watch": "tsc -p tsconfig.build.json --watch",
     "start": "node --env-file-if-exists=.env dist/main.js",
     "lint": "tsc --noEmit",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
-    "test:cache": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --testMatch '**/test/*.redis.ts'"
+    "test:cache": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --testMatch '**/test/*.redis.ts'",
+    "migration:build": "node scripts/build-migrations.mjs"
   },
   "dependencies": {
     "@nestjs/common": "12.2.0",
@@ -21,9 +22,11 @@
     "@nestjs/platform-express": "12.2.0",
     "connect-redis": "10.0.0",
     "express-session": "1.19.0",
+    "pg": "8.23.1",
     "redis": "6.3.0",
     "reflect-metadata": "0.2.2",
-    "rxjs": "7.8.2"
+    "rxjs": "7.8.2",
+    "typeorm": "1.1.2"
   },
   "devDependencies": {
     "@jest/globals": "30.5.2",

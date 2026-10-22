@@ -137,3 +137,22 @@ RECAP_TEST_REDIS_URL=redis://127.0.0.1:6379 task api:test:cache
 ```
 
 CI는 Redis 7.4.2 서비스에서 같은 통합 테스트를 실행한다. Pod 간 공유, 300초 TTL, 조회 시 TTL 유지, 동시 쓰기 상한, 사용자 격리, 손상 응답, Redis 지연 시 대체 동작과 늦은 저장 거부를 확인한다.
+
+## PostgreSQL 연결
+
+`RECAP_DATABASE_URL`에 PostgreSQL 접속 URL을 설정하면 API 기동 시 TypeORM이 `recap` 스키마의 미적용 마이그레이션을 실행한다. `production`에서는 필수이며, DB 연결이나 마이그레이션 실패 시 서버를 시작하지 않는다. `synchronize`는 사용하지 않는다. 연결 풀은 Pod당 최대 5개다.
+
+배포에서는 기존 `cheese-lake-secrets.CHEESE_POSTGRES_DSN`을 참조한다. 1Password `cheese-lake` 볼트의 `development-postgres` 항목을 재사용하며 접속 정보를 별도로 복제하지 않는다. Lab의 `public` 스키마와 Recap의 `recap` 스키마는 같은 DB에 있다.
+
+마이그레이션 원본은 `module.secrets/project/cheese-lake/recap/db/migrations/`의 TypeScript 파일이다. `pnpm build`는 원본이 있으면 타입 검사 후 JavaScript로 컴파일한다. private 서브모듈이 없는 일반 코드 CI에서도 API 빌드는 가능하지만, DB를 사용하는 실행에는 컴파일된 마이그레이션이 반드시 있어야 한다. 이미지 빌드는 `task api:image`로 실행하며 마이그레이션 폴더만 별도 빌드 컨텍스트로 전달한다. `.env`나 서브모듈 전체를 이미지에 복사하지 않는다.
+
+여러 Pod의 동시 기동은 PostgreSQL advisory lock으로 직렬화하며 락 대기는 5초로 제한한다. 적용 이력은 `recap.migrations`에 저장한다. 되돌리기는 업무 테이블만 삭제하며 이력 테이블이 있는 `recap` 스키마는 유지한다. 계정 매칭은 로그인 성공 시 채널 ID와 닉네임을 upsert한다.
+
+
+## 활동 로그
+
+`ActivityLogService.track()`이 활동 단위의 시작·종료 시각, 처리 시간과 결과를 한 번 기록한다. 종류는 `ActivityType.PROFILE_VIEW`(`/api/me`)와 `ActivityType.RECAP_VIEW`(`/api/recap`)다. 요약·잔디의 보조 요청은 기록하지 않는다. 리캡의 내부 호출·캐시 조회·재시도 횟수는 로그 행 수에 영향을 주지 않는다.
+
+리캡은 네 항목 모두 정상일 때 성공, 일부만 정상이면 부분 성공, 모두 조회하지 못하면 실패다. 여러 항목에 문제가 있으면 summary → channels → trend → patterns 순서로 첫 실패 단계와 정의된 오류 코드를 기록한다. 처리 중 예외가 발생하면 원래 예외를 유지하고 실패를 기록한다. 응답 본문·원문 오류·토큰은 저장하지 않는다. 로그 저장은 요청 종료 시 기다리되, 저장 실패가 원래 응답이나 예외를 바꾸지는 않는다.
+
+기존 세션으로 접근해도 계정 참조를 만든 뒤 로그를 저장한다. 기동 시와 이후 매시간 90일이 지난 활동 로그를 삭제한다. 계정·활동 로그 저장과 정리 실패는 민감한 값 없이 서버에 경고를 남긴다. 이 처리는 수신한 활동 요청 단위이므로 사용자가 리캡을 다시 조회하면 별도 활동으로 기록된다.

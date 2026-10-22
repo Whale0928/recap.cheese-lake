@@ -3,6 +3,7 @@ import { SessionStore } from "../src/runtime/session.store.js";
 import type { SessionData } from "express-session";
 import { jest } from "@jest/globals";
 import "reflect-metadata";
+import { DataSource } from "typeorm";
 import { Test } from "@nestjs/testing";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
@@ -29,6 +30,7 @@ const config = {
 
 describe("CHZZK OAuth HTTP flow", () => {
   let app: NestExpressApplication;
+  let database: DataSource;
   let fetchMock: jest.SpiedFunction<typeof fetch>;
   let exchangeFailure: "http" | "api" | "network" | "malformed" | undefined;
   let profileFailure: boolean;
@@ -83,7 +85,10 @@ describe("CHZZK OAuth HTTP flow", () => {
       }
       throw new Error(`Unexpected test request: ${path}`);
     });
+    database = new DataSource({ type: "postgres" });
+    jest.spyOn(database, "query").mockResolvedValue([]);
     const module = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(DataSource).useValue(database)
       .overrideProvider(AuthConfig).useValue(config)
       .overrideProvider(LabConfig).useValue({ baseUrl: "http://lab.test", apiKey: "clk_" + "a".repeat(64) }).compile();
     app = module.createNestApplication<NestExpressApplication>({ logger: false });
@@ -412,6 +417,48 @@ describe("CHZZK OAuth HTTP flow", () => {
     expect(r.body.channels.status).toBe("ready");
     expect(r.body.patterns.status).toBe("ready");
     expect(JSON.stringify(r.body)).not.toContain("secret-");
+  });
+
+  it("records one recap activity for four upstream requests and ignores auxiliary queries", async () => {
+    const agent = await signedIn();
+    const calls = jest.mocked(database.query).mock.calls;
+    await agent.get("/api/me/activity/summary").expect(200);
+    await agent.get("/api/me/activity/trend").expect(200);
+    expect(calls.filter(([sql]) => sql.includes("INSERT INTO recap.activity_logs"))).toHaveLength(0);
+    await agent.get("/api/recap").expect(200);
+    const logs = calls.filter(([sql]) => sql.includes("INSERT INTO recap.activity_logs"));
+    expect(logs).toHaveLength(1);
+    expect(logs[0]![1]).toEqual([user.channelId, "recap_view", expect.any(Date), expect.any(Date), expect.any(Number), "success", 200, null, null]);
+    expect(calls.some(([sql]) => sql.includes("channel_name = EXCLUDED.channel_name"))).toBe(true);
+  });
+
+  it("records partial recap failure without raw upstream data", async () => {
+    const agent = await signedIn();
+    labFailure = "trend";
+    await agent.get("/api/recap").expect(200);
+    const logs = jest.mocked(database.query).mock.calls.filter(([sql]) => sql.includes("INSERT INTO recap.activity_logs"));
+    expect(logs).toHaveLength(1);
+    expect(logs[0]![1]?.slice(5)).toEqual(["partial_success", 200, "trend", "ACTIVITY_UPSTREAM"]);
+    expect(JSON.stringify(logs)).not.toContain("secret-");
+  });
+
+  it("records total recap failure when all four sections are unavailable", async () => {
+    const agent = await signedIn();
+    labRateLimited = true;
+    await agent.get("/api/recap").expect(200);
+    const logs = jest.mocked(database.query).mock.calls.filter(([sql]) => sql.includes("INSERT INTO recap.activity_logs"));
+    expect(logs).toHaveLength(1);
+    expect(logs[0]![1]?.slice(5)).toEqual(["failure", 200, "summary", "ACTIVITY_RATE_LIMITED"]);
+  });
+
+  it("records handled profile failure once and rejects anonymous access without a log", async () => {
+    await request(app.getHttpServer()).get("/api/me").expect(401);
+    const agent = await signedIn();
+    channelFailure = true;
+    await agent.get("/api/me").expect(200);
+    const logs = jest.mocked(database.query).mock.calls.filter(([sql]) => sql.includes("INSERT INTO recap.activity_logs"));
+    expect(logs).toHaveLength(1);
+    expect(logs[0]![1]?.slice(5)).toEqual(["failure", 200, "profile", "PROFILE_UNAVAILABLE"]);
   });
 
   it("does not forward a mismatched subject from Lab", async () => {

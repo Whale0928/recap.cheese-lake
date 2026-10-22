@@ -2,6 +2,7 @@
 api/node_modules/
 api/dist/
 api/coverage/
+api/.migration-build/
 
 # 로컬 설정 · 시크릿
 # orca-setup.sh 의 SECRET_FILES 와 동기화할 것

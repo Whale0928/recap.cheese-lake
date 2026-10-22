@@ -46,4 +46,4 @@ tasks:
   image:
     desc: API 이미지 로컬 빌드
     cmds:
-      - docker build -t recap-api:local .
+      - docker build --build-context recap_migrations=../module.secrets/project/cheese-lake/recap/db/migrations -t recap-api:local .

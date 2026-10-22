@@ -4,8 +4,9 @@ import { ActivityModule } from "./activity/activity.module.js";
 import { Module, type DynamicModule } from "@nestjs/common";
 import { AuthModule } from "./auth/auth.module.js";
 import { MeController } from "./me/me.controller.js";
+import { DatabaseModule } from "./database/database.module.js";
 
-@Module({ imports: [AuthModule, ActivityModule], controllers: [MeController] })
+@Module({ imports: [DatabaseModule, AuthModule, ActivityModule], controllers: [MeController] })
 export class AppModule {
   static register(): DynamicModule { return { module: AppModule, imports: localAuthEnabled() ? [LocalAuthModule] : [] }; }
 }
