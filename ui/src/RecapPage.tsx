@@ -3,6 +3,7 @@ import type { RecapResponse } from "./activity.types";
 import { dateTime, number, PeriodLabel, ResultNotice, SummaryValues, useActivity } from "./ActivityView";
 import { ActivityPatternChart } from "./ActivityPatternChart";
 import { ActivityChannels } from "./ActivityChannels";
+import { HomeChannelCard } from "./HomeChannelCard";
 export function RecapPage() {
   const currentMonth = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 7);
   const [mode, setMode] = useState<"all" | "month">("all");
@@ -47,16 +48,17 @@ export function RecapPage() {
     </div>;
   return <main id="main" className="me-main recap-data" aria-busy={state.status === "loading" || state.status === "ready" && state.refreshing}>
     <div className="me-heading"><div><a className="me-back" href="/">홈으로</a><h1>내 리캡</h1></div></div>
-    {periodControls}
+    <section className="recap-period" aria-labelledby="period-heading"><h2 id="period-heading">조회 기간</h2>{periodControls}</section>
     <div className="activity-refresh-status" role="status" aria-live="polite">
       {state.status === "ready" && (state.refreshing ? "갱신 중" : state.refreshFailed ? <><span>갱신 실패</span><button type="button" onClick={() => setAttempt(n => n + 1)}>다시 조회</button></> : null)}
     </div>
     {data ? <>
       {data.period.from === "1970-01-01T00:00:00.000Z" ? <p className="activity-meta">전체 · 한국 시간 · 확인된 채팅 기준</p> : <PeriodLabel {...data.period} />}
+      <HomeChannelCard result={data.channels} />
       <section className="me-section" aria-labelledby="summary-heading"><div className="me-section-heading"><h2 id="summary-heading">활동 요약</h2></div><SummaryValues result={data.summary} /></section>
       <ActivityChannels result={data.channels} />
       <section className="me-section" aria-labelledby="patterns-heading"><h2 id="patterns-heading">요일·시간대별 활동</h2>
-        {data.patterns.status === "ready" ? <ActivityPatternChart data={data.patterns.data} periodControls={periodControls} weekday={weekday} onWeekdayChange={setWeekday} /> : <ResultNotice result={data.patterns} />}
+        {data.patterns.status === "ready" ? <ActivityPatternChart data={data.patterns.data} weekday={weekday} onWeekdayChange={setWeekday} /> : <ResultNotice result={data.patterns} />}
       </section>
       <p className="activity-meta">활동 정보 확인 · {dateTime(data.fetchedAt)}</p>
     </> : <div className="me-section" role="status">{state.status === "loading" ? "불러오는 중" : state.status === "guest" ? <a className="btn btn-default" href="/auth/login">내 리캡 보기</a> : <><p>활동 정보 조회 실패</p><button className="btn btn-outline" onClick={() => setAttempt(n => n + 1)}>다시 조회</button></>}</div>}

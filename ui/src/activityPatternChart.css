@@ -10,11 +10,3 @@
 .activity-chart-line { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
 .activity-weekday-tabs .btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
 .activity-chart-hour { font-size: 10px; }
-
-.activity-chart-toolbar { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem 2.5rem; }
-.activity-chart-toolbar > .activity-filters { min-width: 0; }
-.activity-chart-toolbar .activity-weekday-tabs { margin-left: auto; }
-@media (max-width: 860px) {
-  .activity-chart-toolbar { flex-direction: column; align-items: stretch; }
-  .activity-chart-toolbar .activity-weekday-tabs { margin-left: 0; }
-}

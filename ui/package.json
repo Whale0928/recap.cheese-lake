@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "tsc -b --pretty false",
-    "test": "tsc -b --pretty false",
+    "test": "node --test test/*.spec.ts && tsc -b --pretty false",
     "preview": "vite preview"
   },
   "dependencies": {
