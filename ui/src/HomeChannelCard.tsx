@@ -1,12 +1,13 @@
 import { useState } from "react";
 import type { ActivityChannels, ActivityResult } from "./activity.types";
+import { relationshipHref, rememberRelationshipChannel } from "./relationship.data";
 
 function ChannelCard({ channel }: { channel: ActivityChannels["channels"][number] }) {
   const [failedImage, setFailedImage] = useState<string | null>(null);
   const name = channel.channelName || "이름 없는 채널";
   const share = (channel.share * 100).toLocaleString("ko-KR", { maximumFractionDigits: 2 });
 
-  return <a className="home-channel-card" href={channel.channelUrl} target="_blank" rel="noopener noreferrer">
+  return <a className="home-channel-card" href={relationshipHref(channel.channelId)} onClick={() => rememberRelationshipChannel(channel)}>
     <span className="home-channel-image" aria-hidden="true">
       {channel.channelImageUrl && failedImage !== channel.channelImageUrl
         ? <img src={channel.channelImageUrl} alt="" width={112} height={112} referrerPolicy="no-referrer" onError={() => setFailedImage(channel.channelImageUrl)} />

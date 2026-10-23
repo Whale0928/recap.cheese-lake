@@ -25,9 +25,17 @@ export function ActivityCalendar() {
   if (state.data.trend.status !== "ready") return <ResultNotice result={state.data.trend} />;
   return <CalendarGrid trend={state.data.trend.data} period={period} selected={selected} onSelect={setSelected} />;
 }
-function CalendarGrid({ trend, period, selected, onSelect }: { trend: ActivityTrend; period: { from: string; to: string }; selected: string; onSelect: (date: string) => void }) {
+export function CalendarGrid({ trend, period, selected, onSelect }: { trend: Pick<ActivityTrend, "points">; period: { from: string; to: string }; selected: string; onSelect: (date: string) => void }) {
   const scroll = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (scroll.current) scroll.current.scrollLeft = scroll.current.scrollWidth; }, []);
+  useEffect(() => {
+    const element = scroll.current;
+    if (!element) return;
+    const alignRecent = () => { element.scrollLeft = element.scrollWidth; };
+    alignRecent();
+    const observer = new ResizeObserver(alignRecent);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   const counts = new Map(trend.points.map(p => [dateInput(p.from), p.chatCount]));
   const max = Math.max(1, ...counts.values());
   const levelFor = (count: number) => count === 0 ? 0 : Math.min(4, Math.ceil(count / max * 4));

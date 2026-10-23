@@ -60,8 +60,13 @@ describe("CHZZK OAuth HTTP flow", () => {
         if (labRateLimited) return new Response("secret-lab-upstream", { status: 429, headers: { "Retry-After": "3" } });
         if (kind === labFailure) return new Response("secret-lab-upstream", { status: 503 });
         const subject = path.split("/")[4];
-        const scope = { channelId: labWrongSubject ? "b".repeat(32) : subject, channelIds: [], from: url.searchParams.get("from"), to: url.searchParams.get("to"), timeZone: "Asia/Seoul", dataScope: "collected" };
+        const scope = { channelId: labWrongSubject ? "b".repeat(32) : subject, channelIds: url.searchParams.getAll("channelIds"), from: url.searchParams.get("from"), to: url.searchParams.get("to"), timeZone: "Asia/Seoul", dataScope: "collected" };
         const counts = { chatCount: 1234, activeDays: 3, channelCount: 1 };
+        if (path.includes("/relationships/")) {
+          const target = labWrongSubject ? "b".repeat(32) : path.split("/").at(-1)!;
+          return Response.json({ channel: { channelId: target, channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${target}`, channelImageUrl: null }, relationship: { firstActiveDate: "2026-10-20", lastActiveDate: "2026-10-22", chatCount: 1234, activeDays: 3, longestConsecutiveActiveDays: 2, mostActiveDay: { date: "2026-10-20", chatCount: 700 }, mostActiveMonth: { month: "2026-10", chatCount: 1234 }, share: .617, totalUserChatCount: 2000 } });
+        }
+        if (kind === "activities") return Response.json({ scope, totalChatCount: 1234, channels: [{ channelId: "c".repeat(32), channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${"c".repeat(32)}`, channelImageUrl: "https://nng-phinf.pstatic.net/channel.png", chatCount: 1234, activeDays: 3, share: 1 }], trend: { interval: url.searchParams.get("interval"), points: [{ from: scope.from, to: scope.to, ...counts }] }, patterns: [{ weekday: 1, hour: 23, chatCount: 1234 }] });
         if (kind === "summary") return Response.json({ scope, ...counts });
         if (kind === "channels") return Response.json({ scope, totalChatCount: 1234, channels: [{ channelId: "c".repeat(32), channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${"c".repeat(32)}`, channelImageUrl: "https://nng-phinf.pstatic.net/channel.png", chatCount: 1234, activeDays: 3, share: 1 }] });
         if (kind === "trend") return Response.json({ scope, interval: url.searchParams.get("interval"), points: [{ from: scope.from, to: scope.to, ...counts }] });
@@ -290,18 +295,19 @@ describe("CHZZK OAuth HTTP flow", () => {
     await request(app.getHttpServer()).get("/api/me/activity/summary").expect(401);
     await request(app.getHttpServer()).get("/api/me/activity/trend").expect(401);
     await request(app.getHttpServer()).get("/api/recap").expect(401);
+    await request(app.getHttpServer()).get(`/api/me/channels/${"c".repeat(32)}/record`).expect(401);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("uses only the authenticated subject and a server-side API Key for all four activity calls", async () => {
+  it("uses only the authenticated subject and a server-side API Key for summary and one bundled activity call", async () => {
     const agent = await signedIn();
     const r = await agent.get("/api/recap").query({ from: "2026-10-01", to: "2026-10-21", interval: "week" }).set("X-Channel-Id", "b".repeat(32)).expect(200);
     expect([r.body.summary.status, r.body.channels.status, r.body.trend.status, r.body.patterns.status]).toEqual(["ready", "ready", "ready", "ready"]);
     expect(r.body.channels.data.channels[0]).toEqual({ channelId: "c".repeat(32), channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${"c".repeat(32)}`, channelImageUrl: "https://nng-phinf.pstatic.net/channel.png", chatCount: 1234, activeDays: 3, share: 1 });
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     for (const [input, options] of fetchMock.mock.calls) {
       const url = new URL(String(input));
-      expect(url.pathname).toMatch(new RegExp(`^/internal/v1/channels/${user.channelId}/activities/(summary|channels|trend|patterns)$`));
+      expect(url.pathname).toMatch(new RegExp(`^/internal/v1/channels/${user.channelId}/activities(?:/summary)?$`));
       expect(url.searchParams.get("from")).toBe("2026-09-30T15:00:00.000Z");
       expect(url.searchParams.get("to")).toBe("2026-10-21T15:00:00.000Z");
       expect(options!.headers).toEqual(expect.objectContaining({ Authorization: "Bearer clk_" + "a".repeat(64) }));
@@ -358,7 +364,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     expect(summary.body.summary.data.scope.from).toBe(summary.body.period.from);
     expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("from")).toBe(summary.body.period.from);
     await agent.get("/api/recap").query({ period: "all" }).expect(200);
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     await agent.get("/api/me/activity/summary").query({ period: "all", channelId: "b".repeat(32) }).expect(400);
   });
 
@@ -368,7 +374,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     expect(summary.body.summary.status).toBe("ready");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await first.get("/api/recap").expect(200);
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     authenticatedUser = { channelId: "b".repeat(32), channelName: "다른 사용자" };
     const second = await signedIn();
     const other = await second.get("/api/me/activity/summary").expect(200);
@@ -397,7 +403,60 @@ describe("CHZZK OAuth HTTP flow", () => {
   it("deduplicates concurrent activity requests for the same subject and period", async () => {
     const agent = await signedIn();
     await Promise.all([agent.get("/api/recap").expect(200), agent.get("/api/recap").expect(200)]);
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("loads a channel record using the session subject and caches each target independently", async () => {
+    const agent = await signedIn();
+    const target = "c".repeat(32);
+    const path = `/api/me/channels/${target}/record`;
+    const response = await agent.get(path).set("X-Channel-Id", "b".repeat(32)).expect(200);
+    expect(response.body.record.status).toBe("ready");
+    expect(response.body.record.data.channel.channelId).toBe(target);
+    expect(response.body.daily.data.scope.channelIds).toEqual([target]);
+    expect(response.body.monthly.data.interval).toBe("month");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    for (const [input] of fetchMock.mock.calls) {
+      const url = new URL(String(input));
+      expect(url.pathname).toContain(`/channels/${user.channelId}/`);
+      if (url.pathname.includes("/relationships/")) expect(url.search).toBe("");
+      else expect(url.searchParams.getAll("channelIds")).toEqual([target]);
+    }
+    await agent.get(path).expect(200);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    await agent.get(`/api/me/channels/${"d".repeat(32)}/record`).expect(200);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    authenticatedUser = { channelId: "b".repeat(32), channelName: "다른 사용자" };
+    const other = await signedIn();
+    await other.get(path).expect(200);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(JSON.stringify(response.body)).not.toMatch(/clk_|secret-/);
+  });
+
+  it("rejects invalid target IDs and subject overrides before fetching a channel record", async () => {
+    const agent = await signedIn();
+    await agent.get("/api/me/channels/invalid/record").expect(400);
+    for (const field of ["channelId", "userId", "channelIds", "from", "url"]) {
+      await agent.get(`/api/me/channels/${"c".repeat(32)}/record`).query({ [field]: "b".repeat(32) }).expect(400);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects mismatched target metadata and backs off rate limited channel records", async () => {
+    const agent = await signedIn();
+    const path = `/api/me/channels/${"c".repeat(32)}/record`;
+    labWrongSubject = true;
+    const wrong = await agent.get(path).expect(200);
+    expect(wrong.body.record).toEqual({ status: "unavailable", reason: "upstream" });
+    expect(wrong.body.daily.status).toBe("unavailable");
+    labWrongSubject = false;
+    labRateLimited = true;
+    fetchMock.mockClear();
+    const limited = await agent.get(path).expect(200);
+    expect(limited.body.record).toEqual({ status: "unavailable", reason: "rate_limited", retryAfterSeconds: 3 });
+    await agent.get(path).expect(200);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("shows an unconfigured integration without calling Lab", async () => {
@@ -410,16 +469,16 @@ describe("CHZZK OAuth HTTP flow", () => {
 
   it("keeps successful sections when one Lab endpoint is unavailable", async () => {
     const agent = await signedIn();
-    labFailure = "trend";
+    labFailure = "activities";
     const r = await agent.get("/api/recap").expect(200);
     expect(r.body.trend).toEqual({ status: "unavailable", reason: "upstream" });
     expect(r.body.summary.status).toBe("ready");
-    expect(r.body.channels.status).toBe("ready");
-    expect(r.body.patterns.status).toBe("ready");
+    expect(r.body.channels.status).toBe("unavailable");
+    expect(r.body.patterns.status).toBe("unavailable");
     expect(JSON.stringify(r.body)).not.toContain("secret-");
   });
 
-  it("records one recap activity for four upstream requests and ignores auxiliary queries", async () => {
+  it("records one recap activity for two upstream requests and ignores auxiliary queries", async () => {
     const agent = await signedIn();
     const calls = jest.mocked(database.query).mock.calls;
     await agent.get("/api/me/activity/summary").expect(200);
@@ -434,11 +493,11 @@ describe("CHZZK OAuth HTTP flow", () => {
 
   it("records partial recap failure without raw upstream data", async () => {
     const agent = await signedIn();
-    labFailure = "trend";
+    labFailure = "activities";
     await agent.get("/api/recap").expect(200);
     const logs = jest.mocked(database.query).mock.calls.filter(([sql]) => sql.includes("INSERT INTO recap.activity_logs"));
     expect(logs).toHaveLength(1);
-    expect(logs[0]![1]?.slice(5)).toEqual(["partial_success", 200, "trend", "ACTIVITY_UPSTREAM"]);
+    expect(logs[0]![1]?.slice(5)).toEqual(["partial_success", 200, "channels", "ACTIVITY_UPSTREAM"]);
     expect(JSON.stringify(logs)).not.toContain("secret-");
   });
 

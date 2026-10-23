@@ -12,6 +12,8 @@ export default defineConfig({
         privacy: "privacy/index.html",
         terms: "terms/index.html",
         recap: "recap/index.html",
+        relationship: "recap/channel/index.html",
+        relationshipPrototypes: "prototypes/relationship/index.html",
         me: "me/index.html"
       }
     }

@@ -1,4 +1,5 @@
 import { RecapPage } from "./RecapPage";
+import { RelationshipPage } from "./RelationshipPage";
 import { useEffect, useMemo, useState } from "react";
 import privacyPolicy from "../legal/개인정보 처리방침.md?raw";
 import termsOfService from "../legal/이용약관.md?raw";
@@ -189,6 +190,10 @@ function App() {
 
   if (path === "/recap") {
     return <>{siteHeader}<RecapPage key={authState === "guest" ? "guest" : "session"} /><SiteFooter /></>;
+  }
+
+  if (path === "/recap/channel") {
+    return <>{siteHeader}<RelationshipPage authenticated={authenticated} pending={authState === "loading"} /><SiteFooter /></>;
   }
 
   return (

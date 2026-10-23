@@ -10,8 +10,8 @@ export const ACTIVITY_CACHE_MAX_BYTES = 256 * 1024;
 export const ACTIVITY_CACHE_PREFIX = "recap:cache:{activity:v1}:";
 export const ACTIVITY_CACHE_INDEX = `${ACTIVITY_CACHE_PREFIX}index`;
 
-export function activityCacheKey(kind: ActivityKind, subject: string, period: ActivityPeriod, upstream: string): string {
-  const hash = createHash("sha256").update(JSON.stringify([upstream, kind, subject, period.from, period.to, kind === "trend" ? period.interval : null])).digest("hex");
+export function activityCacheKey(kind: ActivityKind, subject: string, period: ActivityPeriod, upstream: string, channelIds: string[] = []): string {
+  const hash = createHash("sha256").update(JSON.stringify([upstream, kind, subject, kind === "relationship" ? null : period.from, kind === "relationship" ? null : period.to, kind === "trend" || kind === "activities" ? period.interval : null, [...channelIds].sort()])).digest("hex");
   return `${ACTIVITY_CACHE_PREFIX}entry:${hash}`;
 }
 

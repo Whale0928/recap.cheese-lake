@@ -44,7 +44,7 @@ export function ChannelDistribution({ channels, view, limit }: { channels: Activ
   const choose = (key: string) => { setSelected(key); setHovered(null); };
   const reset = () => {
     setSelected(null); setHovered(null);
-    plot.current?.parentElement?.querySelector<HTMLButtonElement>(".channel-chart-key")?.focus({ preventScroll: true });
+    plot.current?.parentElement?.querySelector<HTMLButtonElement>(".channel-chart-select")?.focus({ preventScroll: true });
   };
   const keyboard = (event: KeyboardEvent<SVGElement>, key: string) => {
     if (event.key === "Enter" || event.key === " ") { event.preventDefault(); choose(key); }
@@ -85,10 +85,11 @@ export function ChannelDistribution({ channels, view, limit }: { channels: Activ
     </div>
     <div className="channel-chart-sidebar">
       <div className="channel-chart-legend" role="group" aria-label="차트 채널 선택">
-        {segments.map((segment, index) => <button key={segment.key} type="button" className="channel-chart-key" data-active={active?.key === segment.key} aria-pressed={(selected ?? segments[0]?.key) === segment.key} aria-controls={detailId} onClick={() => choose(segment.key)} onPointerEnter={event => { if (event.pointerType === "mouse") setHovered(segment.key); }} onFocus={() => setHovered(segment.key)}>
+        {segments.map((segment, index) => <div key={segment.key} className="channel-chart-key" data-active={active?.key === segment.key} onPointerEnter={event => { if (event.pointerType === "mouse") setHovered(segment.key); }} onFocus={() => setHovered(segment.key)}>
           <svg className="channel-key-surface" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><rect width="100" height="100" fill={paint(index)} /></svg>
-          <SegmentAvatar segment={segment} /><span>{segment.name}{segment.other && <small> {number(segment.channels.length)}개 방송</small>}</span><strong>{percent(segment.share)}</strong>
-        </button>)}
+          {segment.other ? <button type="button" className="channel-chart-identity" onClick={() => choose(segment.key)} aria-controls={detailId}><SegmentAvatar segment={segment} /><span>기타 <small>{number(segment.channels.length)}개 방송</small></span></button> : <ChannelLink channel={segment.channels[0]} />}
+          <button type="button" className="channel-chart-select" aria-label={`${segment.name} 비율 선택`} aria-pressed={(selected ?? segments[0]?.key) === segment.key} aria-controls={detailId} onClick={() => choose(segment.key)}>{percent(segment.share)}</button>
+        </div>)}
       </div>
       {active?.other && <div className="channel-other-popover" role="region" aria-label="기타 방송 상세">
         <div className="channel-other-heading"><div><strong>기타 {number(active.channels.length)}개 방송</strong><span>채팅 {number(active.chatCount)}개 · {percent(active.share)}</span></div><button type="button" aria-label="기타 목록 닫기" onClick={reset}>닫기</button></div>
