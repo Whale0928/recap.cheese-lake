@@ -3,8 +3,9 @@
 .channel-donut { position: relative; container-type: inline-size; max-width: 23rem; margin: 0 auto; }
 .channel-donut > svg { display: block; width: 100%; }
 .channel-donut-segment { cursor: pointer; }
+.channel-donut > svg:focus, .channel-donut-segment:focus { outline: none; }
 .channel-donut-segment[data-active="true"] { stroke-width: 46; }
-.channel-donut-segment:focus-visible { outline: none; stroke-width: 50; stroke-opacity: .75; }
+.channel-donut-segment:focus-visible { stroke: var(--ring); stroke-width: 50; stroke-opacity: 1; }
 .channel-donut-center { position: absolute; inset: 26%; display: grid; place-items: center; pointer-events: none; }
 .channel-segment-info { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .45rem; min-width: 0; max-width: 100%; text-align: center; color: var(--foreground); }
 .channel-segment-info .activity-channel-avatar { width: 3.5rem; height: 3.5rem; flex: 0 0 auto; font-size: 1.5rem; }

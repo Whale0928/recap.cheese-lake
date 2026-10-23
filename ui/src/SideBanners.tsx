@@ -1,32 +1,21 @@
-const noticeUrl = 'https://game.naver.com/lounge/chzzk/board/detail/8298140';
+import { promotionSlots, type Promotion } from "./promotion.config";
+import "./sideBanners.css";
+
+const dateLabel = (value: string) => new Date(value).toLocaleDateString("en-GB", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit" }).split("/").reverse().join(".");
+
+function PromotionPanel({ promotion }: { promotion: Promotion }) {
+  return <a className="promotion-panel" href={promotion.href} target="_blank" rel="noopener noreferrer" aria-label={`${promotion.title} ${promotion.linkLabel} (새 창)`}>
+    <span className="promotion-source">{promotion.source}</span>
+    {promotion.image && <div className="promotion-art" aria-hidden="true"><img src={promotion.image.src} alt="" width={promotion.image.width} height={promotion.image.height} loading="lazy" decoding="async" /></div>}
+    <div className="promotion-copy"><h2>{promotion.title}</h2>{promotion.description && <p>{promotion.description}</p>}</div>
+    {promotion.schedule && <div className="promotion-schedule"><span>{promotion.schedule.label}</span><p><time dateTime={promotion.schedule.startsAt}>{dateLabel(promotion.schedule.startsAt)}</time> ~ <time dateTime={promotion.schedule.endsAt}>{dateLabel(promotion.schedule.endsAt)}</time></p>{promotion.schedule.note && <span>{promotion.schedule.note}</span>}</div>}
+    <span className="promotion-link-label">{promotion.linkLabel}</span>
+  </a>;
+}
 
 export function SideBanners() {
-  return (
-    <>
-      {(['left', 'right'] as const).map((side) => (
-        <aside
-          key={side}
-          className={`side-banner side-banner-${side}`}
-          aria-label={`${side === 'left' ? '왼쪽' : '오른쪽'} 치지직 같이보기 안내`}
-        >
-          <a className="notice-banner" href={noticeUrl} target="_blank" rel="noopener noreferrer" aria-label="소년탐정 김전일 2기 같이보기 공식 공지 (새 창)">
-            <span className="notice-source">치지직 같이보기</span>
-            <div className="notice-art" aria-hidden="true">
-              <img src="/images/kindaichi_notice.png" alt="" width="1500" height="5223" />
-            </div>
-            <div className="notice-copy">
-              <h2>소년탐정 김전일 <span>2기</span></h2>
-              <p>이번엔 치지직에서<br />같이 추리해 볼까요.</p>
-            </div>
-            <div className="notice-schedule">
-              <span>같이보기 기간</span>
-              <p><time dateTime="2026-10-16T19:00:00+09:00">10.16</time> ~ <time dateTime="2026-11-07T19:00:00+09:00">11.07</time></p>
-              <span>시작일·종료일 모두 19시 기준</span>
-            </div>
-            <span className="notice-link">공식 공지 보기</span>
-          </a>
-        </aside>
-      ))}
-    </>
-  );
+  return <>{(["left", "right"] as const).map(side => {
+    const slot = promotionSlots[side];
+    return slot ? <aside key={side} className={`side-banner side-banner-${side}`} data-layout={slot.layout} data-promotion={slot.promotion.id} aria-label={`${side === "left" ? "왼쪽" : "오른쪽"} 홍보 패널`}><PromotionPanel promotion={slot.promotion} /></aside> : null;
+  })}</>;
 }

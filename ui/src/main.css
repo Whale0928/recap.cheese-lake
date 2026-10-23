@@ -33,6 +33,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 .site-nav { display: flex; align-items: center; gap: 1rem; font-size: .8125rem; }
+.site-nav > .btn, .site-nav > .theme-button { height: 2.75rem; min-height: 2.75rem; }
+.site-nav > .theme-button { width: 2.75rem; min-width: 2.75rem; }
+.site-nav > .nav-icon-button { width: 2.75rem; height: 2.75rem; min-width: 2.75rem; padding: 0; }
+.nav-icon-button svg { flex-shrink: 0; }
 .site-nav > a:not(.btn) { color: var(--muted-foreground); }
 .site-nav > a:not(.btn):hover { color: var(--foreground); }
 .theme-button {
@@ -43,49 +47,13 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .theme-button:hover { background: var(--accent); color: var(--accent-foreground); }
 .theme-button:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 45%, transparent); }
 
-.side-banner { display: none; }
+.site-nav > .header-recap-button { position: relative; color: var(--primary); border-color: color-mix(in oklab, var(--primary) 65%, var(--border)); background: color-mix(in oklab, var(--primary) 3%, var(--background)); }
+.header-recap-button::before { content: ""; position: absolute; inset: -1px; border: 1px solid var(--primary); border-radius: inherit; box-shadow: 0 0 6px color-mix(in oklab, var(--primary) 75%, transparent), 0 0 18px color-mix(in oklab, var(--primary) 38%, transparent), inset 0 0 6px color-mix(in oklab, var(--primary) 18%, transparent); opacity: .3; pointer-events: none; animation: recap-neon-breathe 3.8s ease-in-out infinite; }
+.site-nav > .header-recap-button:hover { background: color-mix(in oklab, var(--primary) 8%, var(--background)); }
+.header-recap-button:disabled::before { animation: none; opacity: .2; }
+@keyframes recap-neon-breathe { 0%, 100% { opacity: .3; } 50% { opacity: .95; } }
+@media (prefers-reduced-motion: reduce) { .header-recap-button::before { animation: none; opacity: .45; } }
 
-/* 본문 폭과 양옆 간격이 확보되는 화면에서만 배너를 표시한다. */
-@media (min-width: 124rem) {
-  .side-banner {
-    position: fixed; top: 50%; transform: translateY(-50%);
-    display: flex; width: 16rem; height: 52.5rem;
-    max-height: calc(100svh - 8rem);
-    border: 1px solid var(--border); border-radius: var(--radius-lg);
-    background: var(--card); color: var(--muted-foreground);
-    font-size: .8125rem;
-  }
-  .side-banner-left { left: calc(50% - 60rem); }
-  .side-banner-right { right: calc(50% - 60rem); }
-}
-
-.notice-banner {
-  display: flex; flex-direction: column; justify-content: center; gap: 1.75rem;
-  width: 100%; min-height: 0; padding: 1.5rem;
-  border-radius: inherit; color: var(--muted-foreground);
-}
-.notice-source { font-size: .75rem; }
-.notice-art { aspect-ratio: 1500 / 1150; overflow: hidden; border-radius: var(--radius-sm); }
-.notice-art img { display: block; width: 100%; height: auto; filter: saturate(.55); }
-.notice-copy h2 { margin: 0; color: var(--foreground); font-size: 1.375rem; line-height: 1.45; letter-spacing: -.035em; font-weight: 650; }
-.notice-copy h2 span { display: block; }
-.notice-copy p { margin: .75rem 0 0; line-height: 1.8; }
-.notice-schedule { padding-top: 1.25rem; border-top: 1px solid var(--border); font-size: .6875rem; line-height: 1.7; }
-.notice-schedule p { margin: .4rem 0; color: var(--foreground); font-size: .9375rem; font-variant-numeric: tabular-nums; }
-.notice-link { align-self: flex-start; padding-bottom: .2rem; border-bottom: 1px solid var(--border); font-size: .75rem; }
-.notice-banner:hover .notice-link { color: var(--foreground); border-color: currentColor; }
-.notice-banner:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
-@media (max-height: 45rem) {
-  .notice-banner { gap: 1rem; }
-  .notice-art { display: none; }
-}
-@media (max-height: 32rem) {
-  .notice-banner { gap: .75rem; padding: 1rem 1.5rem; }
-  .notice-copy h2 { font-size: 1.125rem; }
-  .notice-copy h2 span { display: inline; }
-  .notice-copy p { display: none; }
-  .notice-schedule { padding-top: .75rem; }
-}
 
 .hero {
   width: min(100% - 2.5rem, 72rem); min-height: calc(100svh - 5rem); margin: 0 auto;

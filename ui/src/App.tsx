@@ -1,6 +1,6 @@
 import { RecapPage } from "./RecapPage";
 import { RelationshipPage } from "./RelationshipPage";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import privacyPolicy from "../legal/개인정보 처리방침.md?raw";
 import termsOfService from "../legal/이용약관.md?raw";
 import { LegalDocument } from "./LegalDocument";
@@ -71,8 +71,9 @@ function SiteFooter() {
 
 function AuthButtons({ authState, compact = false }: { authState: AuthState; compact?: boolean }) {
   const size = compact ? "btn-sm" : "btn-lg";
-  if (authState === "loading") return <button className={`btn btn-default ${size}`} type="button" disabled>내 리캡 보기</button>;
-  return <a className={`btn btn-default ${size}`} href={authState === "authenticated" ? "/recap/" : "/auth/login"}>내 리캡 보기</a>;
+  const appearance = compact ? "btn-outline header-recap-button" : "btn-default";
+  if (authState === "loading") return <button className={`btn ${appearance} ${size}`} type="button" disabled>내 리캡 보기</button>;
+  return <a className={`btn ${appearance} ${size}`} href={authState === "authenticated" ? "/recap/" : "/auth/login"}>내 리캡 보기</a>;
 }
 
 function ActivityTexture() {
@@ -170,8 +171,12 @@ function App() {
           <nav className="site-nav" aria-label="주요 메뉴">
             <AuthButtons authState={authState} compact />
             {authState === "guest" && localLoginAvailable && <a className="btn btn-outline btn-sm" href="/_dev/login">채널 ID로 로그인</a>}
-            {authenticated && <a className="btn btn-outline btn-sm profile-button" href="/me/" aria-current={path === "/me" ? "page" : undefined}>내 정보 보기</a>}
-            {authenticated && <button className="btn btn-outline btn-sm" type="button" disabled={logoutPending} onClick={logout}>{logoutPending ? "로그아웃 중" : "로그아웃"}</button>}
+            {authenticated && <a className="btn btn-outline btn-sm nav-icon-button profile-button" href="/me/" aria-label="내 정보 보기" title="내 정보 보기" aria-current={path === "/me" ? "page" : undefined}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg>
+            </a>}
+            {authenticated && <button className="btn btn-outline btn-sm nav-icon-button" type="button" disabled={logoutPending} onClick={logout} aria-label={logoutPending ? "로그아웃 중" : "로그아웃"} title={logoutPending ? "로그아웃 중" : "로그아웃"} aria-busy={logoutPending}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M10 4H5v16h5M10 12h11m-4-4 4 4-4 4" /></svg>
+            </button>}
             <ThemeButton theme={theme} onToggle={() => setTheme(theme === "dark" ? "light" : "dark")} />
           </nav>
         </div>
@@ -180,27 +185,17 @@ function App() {
     </>
   );
 
+  let page: ReactNode;
   if (path === "/me") {
-    return <>{siteHeader}<MePage key={authState === "guest" ? "guest" : "session"} /><SiteFooter /></>;
-  }
-
-  if (path === "/privacy" || path === "/terms") {
-    return <>{siteHeader}<LegalDocument markdown={path === "/privacy" ? privacyPolicy : termsOfService} /><SiteFooter /></>;
-  }
-
-  if (path === "/recap") {
-    return <>{siteHeader}<RecapPage key={authState === "guest" ? "guest" : "session"} /><SiteFooter /></>;
-  }
-
-  if (path === "/recap/channel") {
-    return <>{siteHeader}<RelationshipPage authenticated={authenticated} pending={authState === "loading"} /><SiteFooter /></>;
-  }
-
-  return (
-    <>
-      {siteHeader}
-      <SideBanners />
-
+    page = <MePage key={authState === "guest" ? "guest" : "session"} />;
+  } else if (path === "/privacy" || path === "/terms") {
+    page = <LegalDocument markdown={path === "/privacy" ? privacyPolicy : termsOfService} />;
+  } else if (path === "/recap") {
+    page = <RecapPage key={authState === "guest" ? "guest" : "session"} />;
+  } else if (path === "/recap/channel") {
+    page = <RelationshipPage authenticated={authenticated} pending={authState === "loading"} />;
+  } else {
+    page = (
       <main id="main">
         <section className="hero">
           <div className="hero-copy">
@@ -285,10 +280,10 @@ function App() {
           <AuthButtons authState={authState} />
         </section>
       </main>
+    );
+  }
 
-      <SiteFooter />
-    </>
-  );
+  return <>{siteHeader}<SideBanners />{page}<SiteFooter /></>;
 }
 
 export { App };

@@ -1,0 +1,60 @@
+:root {
+  --promotion-page-width: 72rem;
+  --promotion-panel-width: 16rem;
+  --promotion-panel-gap: 8rem;
+  --promotion-panel-height: 52.5rem;
+  --promotion-header-height: 5rem;
+}
+
+.side-banner { display: none; }
+
+/* 본문 72rem + 패널 2×16rem + 간격 2×8rem + 바깥 여백 2×2rem = 124rem. */
+@media (min-width: 124rem) {
+  .side-banner {
+    position: fixed;
+    top: calc(var(--promotion-header-height) + (100svh - var(--promotion-header-height)) / 2);
+    transform: translateY(-50%);
+    z-index: 10;
+    display: block;
+    width: var(--promotion-panel-width);
+    height: var(--promotion-panel-height);
+    max-height: min(var(--promotion-panel-height), calc(100svh - 8rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    color: var(--muted-foreground);
+    font-size: .8125rem;
+  }
+  .side-banner-left { left: calc(50% - var(--promotion-page-width) / 2 - var(--promotion-panel-gap) - var(--promotion-panel-width)); }
+  .side-banner-right { right: calc(50% - var(--promotion-page-width) / 2 - var(--promotion-panel-gap) - var(--promotion-panel-width)); }
+}
+
+.promotion-panel { display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; width: 100%; min-height: 100%; padding: 1.25rem; border-radius: inherit; color: var(--muted-foreground); }
+.promotion-source { font-size: .75rem; }
+.promotion-art { aspect-ratio: 1500 / 1150; overflow: hidden; border-radius: var(--radius-sm); }
+.promotion-art img { display: block; width: 100%; height: auto; filter: saturate(.55); }
+.promotion-copy h2 { margin: 0; color: var(--foreground); font-size: 1.375rem; line-height: 1.45; letter-spacing: -.035em; font-weight: 650; }
+.promotion-copy p { margin: .75rem 0 0; line-height: 1.8; white-space: pre-line; }
+.promotion-schedule { padding-top: 1.25rem; border-top: 1px solid var(--border); font-size: .6875rem; line-height: 1.7; }
+.promotion-schedule p { margin: .4rem 0; color: var(--foreground); font-size: .9375rem; font-variant-numeric: tabular-nums; }
+.promotion-link-label { align-self: flex-start; padding-bottom: .2rem; border-bottom: 1px solid var(--border); font-size: .75rem; }
+.promotion-panel:hover .promotion-link-label { color: var(--foreground); border-color: currentColor; }
+.promotion-panel:focus-visible { outline: 2px solid var(--ring); outline-offset: -4px; }
+/* 같은 홍보물을 여백 밀도와 이미지 배치만 바꿔 비교한다. */
+.side-banner[data-layout="poster"] .promotion-panel { gap: 1.5rem; padding: 1.75rem; text-align: center; }
+.side-banner[data-layout="poster"] .promotion-art { order: -1; width: calc(100% + 3.5rem); margin: -1.75rem -1.75rem 0; border-radius: 0; }
+.side-banner[data-layout="poster"] .promotion-copy h2 { font-size: 1.5rem; }
+.side-banner[data-layout="poster"] .promotion-link-label { align-self: stretch; padding: .625rem .5rem; border: 1px solid var(--border); border-radius: var(--radius-md); }
+@media (max-height: 45rem) {
+  .promotion-panel, .side-banner[data-layout="poster"] .promotion-panel { gap: 1rem; }
+  .promotion-art { display: none; }
+}
+@media (max-height: 32rem) {
+  .promotion-panel, .side-banner[data-layout="poster"] .promotion-panel { gap: .75rem; padding: 1rem 1.5rem; }
+  .promotion-copy h2, .side-banner[data-layout="poster"] .promotion-copy h2 { font-size: 1.125rem; }
+  .promotion-copy p { display: none; }
+  .promotion-schedule { padding-top: .75rem; }
+}
