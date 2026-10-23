@@ -10,4 +10,7 @@ export interface ActivityData { summary: ActivitySummary; channels: ActivityChan
 export type ActivityResult<T> = { status: "ready"; data: T } | { status: "unavailable"; reason: "not_configured" | "rate_limited" | "upstream"; retryAfterSeconds?: number };
 export interface ActivityPeriod { from: string; to: string; interval: Interval }
 export interface SummaryResponse { period: ActivityPeriod; fetchedAt: string; summary: ActivityResult<ActivitySummary> }
-export interface RecapResponse extends SummaryResponse { channels: ActivityResult<ActivityChannels>; trend: ActivityResult<ActivityTrend>; patterns: ActivityResult<ActivityPatterns> }
+export interface ProfileRefresh { key: string; retryAt: number }
+export type ChannelProfile = Pick<ActivityChannels["channels"][number], "channelId" | "channelName" | "channelUrl" | "channelImageUrl">;
+export interface ProfileResponse { profiles: ActivityResult<ChannelProfile[]>; profileRefresh?: ProfileRefresh }
+export interface RecapResponse extends SummaryResponse { channels: ActivityResult<ActivityChannels>; trend: ActivityResult<ActivityTrend>; patterns: ActivityResult<ActivityPatterns>; profileRefresh?: ProfileRefresh }

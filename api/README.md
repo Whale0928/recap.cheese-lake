@@ -93,10 +93,13 @@ Kubernetes 배포 선언은 별도 deploy 저장소의 `base/recap-api.yaml`·`r
 `RECAP_LAB_BASE_URL`과 `RECAP_LAB_API_KEY`를 서버 환경에 설정한다. 로컬 기본 주소는 `http://127.0.0.1:8081`, 클러스터 주소는 `http://serve-internal:8081`이다. 키는 계정에서 발급한 `clk_` 형식이며 브라우저 환경변수나 응답에는 포함하지 않는다. 키가 없으면 로그인은 유지하고 활동 영역만 연결 준비 상태로 표시한다.
 
 - `GET /api/me/activity/summary`: Lab summary만 조회한다.
-- `GET /api/recap`: Lab summary·channels·trend·patterns를 병렬 조회한다. 일부 실패는 해당 항목에만 표시한다.
+- `GET /api/recap`: Lab summary와 activities(방송별·추이·패턴 묶음)를 병렬 조회한다. 일부 실패는 해당 항목에만 표시한다.
 - 호출 대상 ID는 유효한 서버 세션에서만 가져온다. 두 경로에 사용자 ID 입력은 없으며 허용하지 않은 쿼리는 400이다.
 - 선택 가능한 쿼리는 `from`, `to`(YYYY-MM-DD, KST, 양 끝 날짜 포함)와 리캡의 `interval=day|week|month`뿐이다. 기본은 오늘을 포함한 최근 30일, 최대 366일이다. Lab에는 분 경계의 `[from, to)`로 변환해 전달한다.
 - 같은 사용자·기간·API의 정상 응답은 5분 캐시한다. Redis 설정 시 API Pod끼리 결과를 공유하며, 동일 프로세스의 동시 요청은 합친다.
+- 이미지가 null인 정상 응답에는 캐시 만료를 연장하지 않는 재검증 일정을 기록한다. 2·4·8초 대기 후 최대 3회이며, 이미지가 보충되면 일반 5분 캐시로 돌아간다. null을 오류나 pending으로 단정하지 않는다.
+- 이미지 보충은 `GET /api/me/activity/profiles`와 `GET /api/me/channels/:broadcastId/profile`로 수행한다. 두 경로는 기존 Lab API와 같은 캐시를 공유하고 프로필 필드만 반환하며, 사용자 활동 로그를 추가하지 않는다. Lab의 전용 메타데이터 API가 없으므로 캐시 재검증 시 기존 activities 또는 relationship 집계는 다시 실행될 수 있다.
+- 브라우저는 재확인 횟수·다음 시각·15분 제한 시각만 불투명한 캐시 키별로 sessionStorage에 최대 128개 보관한다. 활동 값·인증정보는 저장하지 않는다. 새로고침으로 한도를 초기화하지 않으며 429 대기 시간을 지키고 화면 이동·로그아웃 시 취소한다. 확인 후에도 null이면 대체 이미지를 유지하고 자동 확인을 종료한다.
 - 응답의 대상 ID·기간·숫자·시간을 검증하고 선언한 필드만 반환한다. Lab 오류 본문·API Key는 응답이나 로그에 기록하지 않는다.
 
 내 정보 활동 달력은 인증된 본인 전용 `GET /api/me/activity/trend?from=YYYY-MM-DD&to=YYYY-MM-DD`로 일별 채팅 수를 조회한다. 기간은 최대 366일이며, 사용자 ID와 추이 단위는 입력받지 않는다. 기존 사용자별 캐시와 중복 요청 병합을 적용하고 자동 재시도는 하지 않는다.

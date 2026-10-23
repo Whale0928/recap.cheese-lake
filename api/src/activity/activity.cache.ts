@@ -104,19 +104,20 @@ export class ActivityCache implements OnModuleInit, OnModuleDestroy {
     return this.decode(cached.value);
   }
 
-  async put(key: string, data: unknown): Promise<void> {
+  async put(key: string, data: unknown, ttlMs = ACTIVITY_CACHE_TTL_MS): Promise<void> {
     this.checkKey(key);
+    if (!Number.isSafeInteger(ttlMs) || ttlMs < 1 || ttlMs > ACTIVITY_CACHE_TTL_MS) throw new Error("Invalid activity cache TTL");
     const value = JSON.stringify(data);
     if (value === undefined || Buffer.byteLength(value) > ACTIVITY_CACHE_MAX_BYTES) return;
     const now = Date.now();
     for (const [existing, cached] of this.memory) if (cached.expiresAt <= now) this.memory.delete(existing);
     if (!this.memory.has(key) && this.memory.size >= ACTIVITY_CACHE_MAX_ENTRIES) this.memory.delete(this.memory.keys().next().value!);
-    this.memory.set(key, { expiresAt: now + ACTIVITY_CACHE_TTL_MS, value });
+    this.memory.set(key, { expiresAt: now + ttlMs, value });
     if (!this.client?.isReady || Date.now() < this.retryAt) return;
     try {
       await this.bounded(this.client.withAbortSignal(AbortSignal.timeout(250)).eval(putScript, {
         keys: [key, ACTIVITY_CACHE_INDEX],
-        arguments: [value, String(ACTIVITY_CACHE_TTL_MS), String(ACTIVITY_CACHE_MAX_ENTRIES), `${ACTIVITY_CACHE_PREFIX}entry:`, String(Date.now() + 250)],
+        arguments: [value, String(ttlMs), String(ACTIVITY_CACHE_MAX_ENTRIES), `${ACTIVITY_CACHE_PREFIX}entry:`, String(Date.now() + 250)],
       }));
     } catch { this.warnUnavailable(); }
   }

@@ -7,10 +7,11 @@ export interface ActivityChannels { scope: ActivityScope; totalChatCount: number
 export interface ActivityTrend { scope: ActivityScope; interval: Interval; points: ({ from: string; to: string } & ActivityCounts)[] }
 export interface ActivityPatterns { scope: ActivityScope; patterns: { weekday: number; hour: number; chatCount: number }[] }
 export interface ActivityData { summary: ActivitySummary; channels: ActivityChannels; trend: ActivityTrend; patterns: ActivityPatterns; activities: ActivityBundle; relationship: ChannelRelationship }
-export type ActivityResult<T> = { status: "ready"; data: T } | { status: "unavailable"; reason: "not_configured" | "rate_limited" | "upstream"; retryAfterSeconds?: number };
+export interface ProfileRefresh { key: string; retryAt: number }
+export type ActivityResult<T> = { status: "ready"; data: T; profileRefresh?: ProfileRefresh } | { status: "unavailable"; reason: "not_configured" | "rate_limited" | "upstream"; retryAfterSeconds?: number };
 export interface ActivityPeriod { from: string; to: string; interval: Interval }
 export interface SummaryResponse { period: ActivityPeriod; fetchedAt: string; summary: ActivityResult<ActivitySummary> }
-export interface RecapResponse extends SummaryResponse { channels: ActivityResult<ActivityChannels>; trend: ActivityResult<ActivityTrend>; patterns: ActivityResult<ActivityPatterns> }
+export interface RecapResponse extends SummaryResponse { channels: ActivityResult<ActivityChannels>; trend: ActivityResult<ActivityTrend>; patterns: ActivityResult<ActivityPatterns>; profileRefresh?: ProfileRefresh }
 
 export interface ActivityBundle {
   scope: ActivityScope;
@@ -35,4 +36,5 @@ export interface ChannelRecordResponse {
   record: ActivityResult<ChannelRelationship>;
   daily: ActivityResult<ActivityTrend>;
   monthly: ActivityResult<ActivityTrend>;
+  profileRefresh?: ProfileRefresh;
 }

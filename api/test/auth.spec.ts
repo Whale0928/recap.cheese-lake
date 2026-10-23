@@ -11,6 +11,7 @@ import { AppModule } from "../src/app.module.js";
 import { configureApp } from "../src/app.js";
 import { cidrMatcher } from "../src/runtime/network.config.js";
 import { AuthConfig } from "../src/auth/auth.config.js";
+import { ActivityLogService } from "../src/database/activity-log.service.js";
 
 const user = { channelId: "a".repeat(32), channelName: "테스트 사용자" };
 const config = {
@@ -40,6 +41,7 @@ describe("CHZZK OAuth HTTP flow", () => {
   let labFailure: string | undefined;
   let labRateLimited: boolean;
   let labWrongSubject: boolean;
+  let labMissingImage: boolean;
   let authenticatedUser: typeof user;
 
   beforeEach(async () => {
@@ -51,6 +53,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     labFailure = undefined;
     labRateLimited = false;
     labWrongSubject = false;
+    labMissingImage = false;
     authenticatedUser = user;
     fetchMock = jest.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = new URL(String(input));
@@ -66,9 +69,9 @@ describe("CHZZK OAuth HTTP flow", () => {
           const target = labWrongSubject ? "b".repeat(32) : path.split("/").at(-1)!;
           return Response.json({ channel: { channelId: target, channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${target}`, channelImageUrl: null }, relationship: { firstActiveDate: "2026-10-20", lastActiveDate: "2026-10-22", chatCount: 1234, activeDays: 3, longestConsecutiveActiveDays: 2, mostActiveDay: { date: "2026-10-20", chatCount: 700 }, mostActiveMonth: { month: "2026-10", chatCount: 1234 }, share: .617, totalUserChatCount: 2000 } });
         }
-        if (kind === "activities") return Response.json({ scope, totalChatCount: 1234, channels: [{ channelId: "c".repeat(32), channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${"c".repeat(32)}`, channelImageUrl: "https://nng-phinf.pstatic.net/channel.png", chatCount: 1234, activeDays: 3, share: 1 }], trend: { interval: url.searchParams.get("interval"), points: [{ from: scope.from, to: scope.to, ...counts }] }, patterns: [{ weekday: 1, hour: 23, chatCount: 1234 }] });
+        if (kind === "activities") return Response.json({ scope, totalChatCount: 1234, channels: [{ channelId: "c".repeat(32), channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${"c".repeat(32)}`, channelImageUrl: labMissingImage ? null : "https://nng-phinf.pstatic.net/channel.png", chatCount: 1234, activeDays: 3, share: 1 }], trend: { interval: url.searchParams.get("interval"), points: [{ from: scope.from, to: scope.to, ...counts }] }, patterns: [{ weekday: 1, hour: 23, chatCount: 1234 }] });
         if (kind === "summary") return Response.json({ scope, ...counts });
-        if (kind === "channels") return Response.json({ scope, totalChatCount: 1234, channels: [{ channelId: "c".repeat(32), channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${"c".repeat(32)}`, channelImageUrl: "https://nng-phinf.pstatic.net/channel.png", chatCount: 1234, activeDays: 3, share: 1 }] });
+        if (kind === "channels") return Response.json({ scope, totalChatCount: 1234, channels: [{ channelId: "c".repeat(32), channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${"c".repeat(32)}`, channelImageUrl: labMissingImage ? null : "https://nng-phinf.pstatic.net/channel.png", chatCount: 1234, activeDays: 3, share: 1 }] });
         if (kind === "trend") return Response.json({ scope, interval: url.searchParams.get("interval"), points: [{ from: scope.from, to: scope.to, ...counts }] });
         if (kind === "patterns") return Response.json({ scope, patterns: [{ weekday: 1, hour: 23, chatCount: 1234 }] });
       }
@@ -303,7 +306,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     const agent = await signedIn();
     const r = await agent.get("/api/recap").query({ from: "2026-10-01", to: "2026-10-21", interval: "week" }).set("X-Channel-Id", "b".repeat(32)).expect(200);
     expect([r.body.summary.status, r.body.channels.status, r.body.trend.status, r.body.patterns.status]).toEqual(["ready", "ready", "ready", "ready"]);
-    expect(r.body.channels.data.channels[0]).toEqual({ channelId: "c".repeat(32), channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${"c".repeat(32)}`, channelImageUrl: "https://nng-phinf.pstatic.net/channel.png", chatCount: 1234, activeDays: 3, share: 1 });
+    expect(r.body.channels.data.channels[0]).toEqual({ channelId: "c".repeat(32), channelName: "테스트 방송", channelUrl: `https://chzzk.naver.com/${"c".repeat(32)}`, channelImageUrl: labMissingImage ? null : "https://nng-phinf.pstatic.net/channel.png", chatCount: 1234, activeDays: 3, share: 1 });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     for (const [input, options] of fetchMock.mock.calls) {
       const url = new URL(String(input));
@@ -404,6 +407,46 @@ describe("CHZZK OAuth HTTP flow", () => {
     const agent = await signedIn();
     await Promise.all([agent.get("/api/recap").expect(200), agent.get("/api/recap").expect(200)]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshes profile metadata without logging another recap view or reloading summary", async () => {
+    const agent = await signedIn();
+    const track = jest.spyOn(app.get(ActivityLogService), "track");
+    const start = Date.now();
+    const now = jest.spyOn(Date, "now").mockReturnValue(start);
+    labMissingImage = true;
+    const first = await agent.get("/api/recap").query({ period: "all" }).expect(200);
+    expect(first.body.profileRefresh.retryAt).toBe(start + 2000);
+    expect(first.body.profileRefresh.key).toMatch(/^[a-f0-9]{64}$/);
+    const cached = await agent.get("/api/me/activity/profiles").query({ period: "all" }).expect(200);
+    expect(cached.body.profiles.data[0].channelImageUrl).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    labMissingImage = false;
+    now.mockReturnValue(start + 2000);
+    const fresh = await agent.get("/api/me/activity/profiles").query({ period: "all" }).set("X-Channel-Id", "d".repeat(32)).expect(200);
+    expect(fresh.body.profiles.data[0].channelImageUrl).toBe("https://nng-phinf.pstatic.net/channel.png");
+    expect(fresh.body.profiles.data[0]).not.toHaveProperty("chatCount");
+    expect(fresh.body).not.toHaveProperty("profileRefresh");
+    expect(fresh.headers["cache-control"]).toBe("no-store");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(new URL(String(fetchMock.mock.calls[2][0])).pathname).toBe(`/internal/v1/channels/${user.channelId}/activities`);
+    await agent.get("/api/me/activity/profiles").query({ period: "all", channelId: "d".repeat(32) }).expect(400);
+    await agent.post("/auth/logout").expect(200);
+    await agent.get("/api/me/activity/profiles").expect(401);
+  });
+
+  it("reuses channel record metadata without refetching its daily and monthly trends", async () => {
+    const agent = await signedIn();
+    const target = "c".repeat(32);
+    await agent.get(`/api/me/channels/${target}/record`).expect(200);
+    const profile = await agent.get(`/api/me/channels/${target}/profile`).expect(200);
+    expect(profile.body.profiles.data).toHaveLength(1);
+    expect(profile.body.profiles.data[0].channelId).toBe(target);
+    expect(profile.body.profiles.data[0]).not.toHaveProperty("relationship");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    await agent.get(`/api/me/channels/${target}/profile`).query({ channelId: "d".repeat(32) }).expect(400);
+    await agent.get("/api/me/channels/invalid/profile").expect(400);
   });
 
   it("loads a channel record using the session subject and caches each target independently", async () => {

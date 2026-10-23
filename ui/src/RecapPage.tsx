@@ -4,6 +4,7 @@ import { dateTime, number, PeriodLabel, ResultNotice, SummaryValues, useActivity
 import { ActivityPatternChart } from "./ActivityPatternChart";
 import { ActivityChannels } from "./ActivityChannels";
 import { HomeChannelCard } from "./HomeChannelCard";
+import { useChannelProfiles } from "./useChannelProfiles";
 export function RecapPage() {
   const currentMonth = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 7);
   const [mode, setMode] = useState<"all" | "month">("all");
@@ -13,6 +14,7 @@ export function RecapPage() {
   const search = mode === "all" ? "period=all" : new URLSearchParams({ month }).toString();
   const url = `/api/recap?${search}`;
   const state = useActivity<RecapResponse>(url, attempt);
+  const profileChannels = useChannelProfiles(state.status === "ready" && state.data.channels.status === "ready" ? state.data.channels.data.channels : [], state.status === "ready" && state.source === url && !state.refreshing ? state.data.profileRefresh : undefined, `/api/me/activity/profiles?${search}`);
   const spacer = useRef<HTMLDivElement>(null);
   const anchor = useRef<{ element: Element; top: number } | null>(null);
   const preservePosition = (event: SyntheticEvent<HTMLElement>) => {
@@ -39,6 +41,7 @@ export function RecapPage() {
     if (state.status === "guest" || state.status === "error" || state.status === "ready" && !state.refreshing && (state.source === url || state.refreshFailed)) anchor.current = null;
   }, [state, url]);
   const data = state.status === "ready" ? state.data : null;
+  const channelResult = data?.channels.status === "ready" ? { ...data.channels, data: { ...data.channels.data, channels: profileChannels } } : data?.channels;
   const periodControls = <div className="activity-filters">
       <div className="activity-period-tabs" role="group" aria-label="조회 기간">
         <button type="button" className={`btn ${mode === "all" ? "btn-default" : "btn-outline"}`} aria-pressed={mode === "all"} onClick={event => { preservePosition(event); setMode("all"); }}>전체</button>
@@ -52,11 +55,11 @@ export function RecapPage() {
     <div className="activity-refresh-status" role="status" aria-live="polite">
       {state.status === "ready" && (state.refreshing ? "갱신 중" : state.refreshFailed ? <><span>갱신 실패</span><button type="button" onClick={() => setAttempt(n => n + 1)}>다시 조회</button></> : null)}
     </div>
-    {data ? <>
+    {data && channelResult ? <>
       {data.period.from === "1970-01-01T00:00:00.000Z" ? <p className="activity-meta">전체 · 한국 시간 · 확인된 채팅 기준</p> : <PeriodLabel {...data.period} />}
-      <HomeChannelCard result={data.channels} />
+      <HomeChannelCard result={channelResult} />
       <section className="me-section" aria-labelledby="summary-heading"><div className="me-section-heading"><h2 id="summary-heading">활동 요약</h2></div><SummaryValues result={data.summary} /></section>
-      <ActivityChannels result={data.channels} />
+      <ActivityChannels result={channelResult} />
       <section className="me-section" aria-labelledby="patterns-heading"><h2 id="patterns-heading">요일·시간대별 활동</h2>
         {data.patterns.status === "ready" ? <ActivityPatternChart data={data.patterns.data} weekday={weekday} onWeekdayChange={setWeekday} /> : <ResultNotice result={data.patterns} />}
       </section>

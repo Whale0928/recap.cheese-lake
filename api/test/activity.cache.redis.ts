@@ -48,6 +48,25 @@ it("shares validated results across separate clients with a 300-second Redis TTL
   expect(fetch).toHaveBeenCalledTimes(1);
 });
 
+it("shares the profile retry budget across clients without extending the original expiry", async () => {
+  const first = new LabClient(config, await store());
+  const second = new LabClient(config, await store());
+  const start = Date.now();
+  const now = jest.spyOn(Date, "now").mockReturnValue(start);
+  const value = { scope, totalChatCount: 12, channels: [{ channelId: "b".repeat(32), channelName: "방송", channelUrl: `https://chzzk.naver.com/${"b".repeat(32)}`, channelImageUrl: null, chatCount: 12, activeDays: 2, share: 1 }], trend: { interval: "day", points: [] }, patterns: [] };
+  const fetch = jest.spyOn(globalThis, "fetch").mockImplementation(async () => Response.json(value));
+  await first.get("activities", subject, period);
+  for (const offset of [2000, 6000, 14000]) {
+    now.mockReturnValue(start + offset);
+    await first.get("activities", subject, period);
+    await second.get("activities", subject, period);
+  }
+  expect(fetch).toHaveBeenCalledTimes(4);
+  const cacheKey = activityCacheKey("activities", subject, period, config.baseUrl);
+  expect(await redis.pTTL(cacheKey)).toBeLessThanOrEqual(286_000);
+  expect(JSON.parse((await redis.get(cacheKey))!).__profileRetry.attempts).toBe(3);
+});
+
 it("caps concurrent writes globally without touching another namespace", async () => {
   const first = await store(); const second = await store();
   const foreign = "other:cache:test:namespace";

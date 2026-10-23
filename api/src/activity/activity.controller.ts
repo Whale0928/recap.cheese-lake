@@ -41,7 +41,8 @@ export class ActivityController {
       const channels = activities.status === "ready" ? { status: "ready" as const, data: { scope: activities.data.scope, totalChatCount: activities.data.totalChatCount, channels: activities.data.channels } } : activities;
       const trend = activities.status === "ready" ? { status: "ready" as const, data: { scope: activities.data.scope, ...activities.data.trend } } : activities;
       const patterns = activities.status === "ready" ? { status: "ready" as const, data: { scope: activities.data.scope, patterns: activities.data.patterns } } : activities;
-      return { period, fetchedAt: new Date().toISOString(), summary, channels, trend, patterns };
+      return { period, fetchedAt: new Date().toISOString(), summary, channels, trend, patterns,
+        ...(activities.status === "ready" && activities.profileRefresh ? { profileRefresh: activities.profileRefresh } : {}) };
     }, value => this.outcome(value));
   }
 
@@ -59,7 +60,26 @@ export class ActivityController {
       this.lab.get("trend", subject, recent, [broadcastId]),
       this.lab.get("trend", subject, { ...all, interval: "month" }, [broadcastId]),
     ]);
-    return { fetchedAt: new Date().toISOString(), calendarPeriod: { from, to }, record, daily, monthly };
+    return { fetchedAt: new Date().toISOString(), calendarPeriod: { from, to }, record, daily, monthly,
+      ...(record.status === "ready" && record.profileRefresh ? { profileRefresh: record.profileRefresh } : {}) };
+  }
+
+  // 화면의 이미지 보충은 별도 사용자 활동으로 집계하지 않는다. 로그인 주체는 세션만 사용한다.
+  @Get("me/activity/profiles")
+  @Header("Cache-Control", "no-store")
+  async profiles(@Req() req: Request, @Query() query: Record<string, unknown>) {
+    const result = await this.lab.get("activities", req.session.user!.channelId, recapPeriod(query));
+    return { profiles: result.status === "ready" ? { status: "ready" as const, data: result.data.channels.map(({ channelId, channelName, channelUrl, channelImageUrl }) => ({ channelId, channelName, channelUrl, channelImageUrl })) } : result,
+      ...(result.status === "ready" && result.profileRefresh ? { profileRefresh: result.profileRefresh } : {}) };
+  }
+
+  @Get("me/channels/:broadcastId/profile")
+  @Header("Cache-Control", "no-store")
+  async profile(@Req() req: Request, @Param("broadcastId") broadcastId: string, @Query() query: Record<string, unknown>) {
+    if (!/^[0-9a-f]{32}$/.test(broadcastId) || Object.keys(query).length) throw new BadRequestException("Invalid channel profile request");
+    const result = await this.lab.get("relationship", req.session.user!.channelId, recapPeriod({ period: "all" }), [broadcastId]);
+    return { profiles: result.status === "ready" ? { status: "ready" as const, data: [result.data.channel] } : result,
+      ...(result.status === "ready" && result.profileRefresh ? { profileRefresh: result.profileRefresh } : {}) };
   }
 
   private outcome(value: RecapResponse): ActivityOutcome {

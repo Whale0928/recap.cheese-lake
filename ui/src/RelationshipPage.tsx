@@ -3,10 +3,11 @@ import { ChannelAvatar } from "./ChannelLink";
 import { CalendarGrid } from "./ActivityCalendar";
 import { dateInput, dateTime, number, ResultNotice, useActivity } from "./ActivityView";
 import type { RelationshipResponse } from "./relationship.data";
-import type { ActivityResult, ActivityTrend } from "./activity.types";
+import type { ActivityResult, ActivityTrend, ProfileRefresh } from "./activity.types";
+import { useChannelProfiles } from "./useChannelProfiles";
 import "./relationship.css";
 
-interface ChannelRecordResponse { fetchedAt: string; calendarPeriod: { from: string; to: string }; record: ActivityResult<RelationshipResponse>; daily: ActivityResult<ActivityTrend>; monthly: ActivityResult<ActivityTrend> }
+interface ChannelRecordResponse { fetchedAt: string; calendarPeriod: { from: string; to: string }; record: ActivityResult<RelationshipResponse>; daily: ActivityResult<ActivityTrend>; monthly: ActivityResult<ActivityTrend>; profileRefresh?: ProfileRefresh }
 
 const dateLabel = (date: string | null) => date ? date.replaceAll("-", ".") : "기록 없음";
 
@@ -28,7 +29,8 @@ function MonthlyRecord({ trend }: { trend: ActivityTrend }) {
 }
 
 function RelationshipDetails({ response }: { response: ChannelRecordResponse & { record: { status: "ready"; data: RelationshipResponse } } }) {
-  const { channel, relationship: r } = response.record.data;
+  const { channel: originalChannel, relationship: r } = response.record.data;
+  const [channel = originalChannel] = useChannelProfiles([originalChannel], response.profileRefresh, `/api/me/channels/${originalChannel.channelId}/profile`);
   const today = dateInput(response.fetchedAt);
   const period = response.calendarPeriod;
   const [tab, setTab] = useState<"moments" | "monthly">("moments");
