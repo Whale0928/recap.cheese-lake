@@ -27,6 +27,20 @@ test("대표 URL과 사이트맵은 공개 홈페이지를 가리킨다", async 
   }
 });
 
+test("공유 대표 이미지는 빌드에 포함된 1200×630 PNG를 가리킨다", async () => {
+  const html = await readBuilt("index.html");
+  const imageUrl = "https://recap.cheese-lake.com/og.png?v=recap1";
+  assert.ok(html.includes(`<meta property="og:image" content="${imageUrl}"`));
+  assert.ok(html.includes(`<meta name="twitter:image" content="${imageUrl}"`));
+  assert.match(html, /name="twitter:card" content="summary_large_image"/);
+  assert.match(html, /property="og:image:width" content="1200"/);
+  assert.match(html, /property="og:image:height" content="630"/);
+  const image = await readFile(new URL("../dist/og.png", import.meta.url));
+  assert.deepEqual([...image.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.equal(image.readUInt32BE(16), 1200);
+  assert.equal(image.readUInt32BE(20), 630);
+});
+
 test("개인 화면에는 정적 개인 기록을 생성하지 않고 noindex를 유지한다", async () => {
   for (const path of ["recap/index.html", "recap/channel/index.html", "me/index.html"]) {
     const html = await readBuilt(path);

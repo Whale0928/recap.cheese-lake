@@ -48,7 +48,7 @@ function ThemeButton({ theme, onToggle }: { theme: Theme; onToggle: () => void }
 function Wordmark({ footer = false }: { footer?: boolean }) {
   return (
     <a className={`wordmark${footer ? " footer-wordmark" : ""}`} href="/" aria-label="recap 홈">
-      <span className="wordmark-mark" aria-hidden="true">r</span>
+      <img className="wordmark-mark" src="/icon.svg?v=recap1" width="28" height="28" alt="" aria-hidden="true" />
       <span>recap</span>
     </a>
   );

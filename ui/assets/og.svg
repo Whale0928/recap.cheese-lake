@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">치지직 채팅 리캡</title>
+  <desc id="description">내 채팅 기록을 한눈에. recap</desc>
+  <rect width="1200" height="630" fill="#101b17"/>
+  <path d="M72 78h48" stroke="#00FFA3" stroke-width="6" stroke-linecap="round"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+    <text x="140" y="88" fill="#edf4ef" font-size="28" font-weight="700">recap</text>
+    <text x="72" y="259" fill="#edf4ef" font-size="72" font-weight="750" letter-spacing="-3">치지직</text>
+    <text x="72" y="352" fill="#00FFA3" font-size="80" font-weight="750" letter-spacing="-3">채팅 리캡</text>
+    <text x="76" y="417" fill="#bccdc4" font-size="28">내 채팅 기록을 한눈에.</text>
+    <text x="76" y="553" fill="#bccdc4" font-size="20">recap.cheese-lake.com</text>
+  </g>
+  <svg x="830" y="195" width="264" height="264" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="16" fill="#000000"/>
+    <path d="M10 15q7.33-8 14.67 0t14.66 0T54 15" fill="none" stroke="#00FFA3" stroke-width="6" stroke-linecap="round"/>
+    <path d="M16 27h32a5 5 0 0 1 5 5v13a5 5 0 0 1-5 5H29l-10 6v-6h-3a5 5 0 0 1-5-5V32a5 5 0 0 1 5-5Z" fill="none" stroke="#60a5fa" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M23 42v-5m9 5V32m9 10v-8" fill="none" stroke="#60a5fa" stroke-width="4" stroke-linecap="round"/>
+  </svg>
+</svg>
