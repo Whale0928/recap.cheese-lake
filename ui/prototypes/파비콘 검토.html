@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>리캡 파비콘 검토</title>
+  <link rel="icon" type="image/svg+xml" href="./리캡 아이콘.svg">
+  <link rel="stylesheet" href="/styles/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 48px 28px; background: var(--background); color: var(--foreground); font-family: var(--font-sans); }
+    main { max-width: 1040px; margin: auto; }
+    header { display: flex; gap: 24px; align-items: center; margin-bottom: 40px; }
+    header img { width: 88px; height: 88px; }
+    h1 { font-size: 30px; letter-spacing: -1px; margin: 0 0 10px; }
+    p { color: var(--muted-foreground); font-size: 14px; line-height: 1.7; margin: 0; }
+    h2 { font-size: 15px; margin: 0 0 24px; }
+    section { border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 20px; }
+    .sizes { display: flex; align-items: end; gap: 32px; flex-wrap: wrap; }
+    figure { margin: 0; min-width: 48px; text-align: center; }
+    figure img { display: block; margin: auto; }
+    figcaption { font: 12px var(--font-mono); color: var(--muted-foreground); margin-top: 18px; }
+    .backgrounds { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .surface { border-radius: 12px; padding: 28px; min-height: 150px; }
+    .surface.light { background: #f5f5f5; color: #202420; }
+    .surface.dark { background: #171b1a; color: #edf4ef; }
+    .surface h2 { font-size: 12px; font-weight: 500; opacity: .65; }
+    .tabs { margin-top: 28px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 16px; font-size: 13px; }
+    .tabs img { width: 16px; height: 16px; }
+    .comparison { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+    .comparison figure { display: flex; align-items: center; gap: 16px; text-align: left; }
+    .comparison figcaption { margin: 0; font-family: var(--font-sans); font-size: 13px; }
+    .comparison img { width: 48px; height: 48px; }
+    @media(max-width: 600px) { body { padding: 28px 16px; } section { padding: 20px; } .backgrounds { grid-template-columns: 1fr; } header { align-items: start; } h1 { font-size: 24px; } .sizes { gap: 24px; } }
+  </style>
+</head>
+<body><main>
+  <header><img src="./리캡 아이콘.svg" alt="리캡 아이콘 시안"><div><h1>리캡 파비콘</h1><p>초록 물결은 유지하고, 파란 지직선을 채팅 말풍선과 활동 막대로 바꿨습니다.<br>서비스 파비콘에 반영한 디자인입니다.</p></div></header>
+  <section><h2>실제 픽셀 크기</h2><div class="sizes" id="sizes"></div></section>
+  <div class="backgrounds">
+    <div class="surface light"><h2>밝은 배경</h2><div class="sizes" data-surface></div><div class="tabs"><img src="./리캡 아이콘.svg" alt="">치지직 리캡 · 내 채팅 기록 <span aria-hidden="true">×</span></div></div>
+    <div class="surface dark"><h2>어두운 배경</h2><div class="sizes" data-surface></div><div class="tabs"><img src="./리캡 아이콘.svg" alt="">치지직 리캡 · 내 채팅 기록 <span aria-hidden="true">×</span></div></div>
+  </div>
+  <section style="margin-top:20px"><h2>기존 아이콘과 비교</h2><div class="comparison"><figure><img src="./기존 Lab 아이콘.svg" alt="기존 Lab 파비콘"><figcaption>기존 Lab<br>물결과 지직선</figcaption></figure><span aria-hidden="true">→</span><figure><img src="./리캡 아이콘.svg" alt="리캡 파비콘 시안"><figcaption>리캡 시안<br>물결과 채팅 기록</figcaption></figure></div></section>
+  <p>SVG 시안 · 서비스 파비콘 반영 · SVG 및 크기별 PNG 저장</p>
+</main><script>
+  function samples(sizes) { return sizes.map(size => `<figure><img src="./리캡 아이콘.svg" width="${size}" height="${size}" alt="${size}px 리캡 아이콘"><figcaption>${size}px</figcaption></figure>`).join(''); }
+  document.getElementById('sizes').innerHTML = samples([16, 20, 24, 32, 48, 64, 128]);
+  document.querySelectorAll('[data-surface]').forEach(surface => surface.innerHTML = samples([16, 24, 32, 48]));
+</script></body>
+</html>
