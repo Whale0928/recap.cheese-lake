@@ -37,7 +37,7 @@ server {
 
     location = /robots.txt {
         default_type text/plain;
-        return 200 "User-agent: *\nDisallow: /auth/\nDisallow: /api/\n";
+        return 200 "User-agent: *\nDisallow: /auth/\nDisallow: /api/\nSitemap: https://recap.cheese-lake.com/sitemap.xml\n";
     }
 
     location / {

@@ -27,6 +27,7 @@ const previewRanks = [
 ];
 
 function getInitialTheme(): Theme {
+  if (typeof window === "undefined") return "light";
   try {
     const saved = window.localStorage.getItem("recap.theme");
     if (saved === "light" || saved === "dark") return saved;
@@ -115,7 +116,7 @@ function App() {
   const [localLoginAvailable, setLocalLoginAvailable] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
   const [authError, setAuthError] = useState("");
-  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  const path = typeof window === "undefined" ? "/" : window.location.pathname.replace(/\/+$/, "") || "/";
 
   useEffect(() => {
     document.documentElement.classList.remove("light", "dark");
@@ -199,8 +200,8 @@ function App() {
       <main id="main">
         <section className="hero">
           <div className="hero-copy">
-            <p className="hero-eyebrow">CHZZK CHAT RECAP</p>
-            <h1>어디서 제일 많이<br /><em>채팅했을까.</em></h1>
+            <p className="hero-eyebrow">어디서 제일 많이 채팅했을까.</p>
+            <h1>치지직<br /><em>채팅 리캡</em></h1>
             <p className="hero-description">
               자주 찾은 채널부터 많이 채팅한 시간대까지.<br className="desktop-break" />
               치지직 채팅 활동을 한 번에 봅니다.

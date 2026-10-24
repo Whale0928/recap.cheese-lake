@@ -18,6 +18,24 @@ ui/
 
 ## 보는 방법
 
+`pnpm build`는 React 홈페이지를 정적 HTML로 미리 렌더링한다. 브라우저에서는
+기존 React 진입점이 테마·세션·버튼 동작을 초기화한다. 개인 화면은 미리
+렌더링하지 않으며 `noindex`를 유지한다. `pnpm test:seo`로 빌드 결과의 공개
+본문, 대표 URL, sitemap과 개인 화면의 색인 차단을 확인한다.
+
+검색 등록은 배포 후 계정 소유자가 별도로 진행한다.
+
+- Google Search Console에서 `recap.cheese-lake.com`의 소유권을 확인하고
+  `https://recap.cheese-lake.com/sitemap.xml`을 제출한다. URL 검사에서
+  홈페이지의 렌더링 결과를 확인하고 색인 생성을 요청한다.
+- 네이버 서치어드바이저에서 같은 사이트의 소유권을 확인하고 사이트맵을
+  제출한다. 홈페이지 수집을 요청하고 수집·색인 상태를 확인한다.
+- DNS 또는 HTML 확인 파일처럼 도구가 발급한 실제 소유권 확인 값을 사용한다.
+  이 저장소에는 계정별 확인 값을 임의로 넣지 않는다.
+
+공식 안내: [Google sitemap 제출](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap),
+[네이버 웹마스터 가이드](https://searchadvisor.naver.com/guide).
+
 ```
 task ui:dev                   # http://localhost:5273
 task api:dev                  # UI를 빌드하고 http://localhost:8180에서 함께 제공
