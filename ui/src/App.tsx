@@ -5,7 +5,7 @@ import privacyPolicy from "../legal/개인정보 처리방침.md?raw";
 import termsOfService from "../legal/이용약관.md?raw";
 import { LegalDocument } from "./LegalDocument";
 import { MePage } from "./MePage";
-import { SideBanners } from "./SideBanners";
+import { BottomBanner, SideBanners } from "./Banners";
 
 type Theme = "light" | "dark";
 type AuthState = "loading" | "guest" | "authenticated";
@@ -284,7 +284,15 @@ function App() {
     );
   }
 
-  return <>{siteHeader}<SideBanners />{page}<SiteFooter /></>;
+  // 약관과 처리방침은 읽는 데 방해가 없도록 배너를 붙이지 않는다.
+  const showBanners = path !== "/privacy" && path !== "/terms";
+  return <>
+    {siteHeader}
+    {showBanners && <SideBanners theme={theme} />}
+    {page}
+    {showBanners && <BottomBanner theme={theme} />}
+    <SiteFooter />
+  </>;
 }
 
 export { App };

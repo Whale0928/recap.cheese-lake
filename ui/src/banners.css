@@ -1,0 +1,45 @@
+:root {
+  --banner-page-width: 72rem;
+  --banner-side-gap: 8rem;
+  --banner-header-height: 5rem;
+}
+
+/* 이미지에는 모서리와 테두리가 없다. 카드처럼 보이게 하는 처리는 여기서 한다. */
+.banner-slot { width: min(100% - 2.5rem, var(--banner-page-width)); margin: 0 auto; }
+.banner-link { display: block; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); }
+.banner-link picture, .banner-link img { display: block; width: 100%; }
+.banner-link img { height: auto; }
+.banner-link:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+.banner-bottom { margin-top: 4rem; margin-bottom: 2rem; }
+
+@media (max-width: 860px) {
+  /* 모바일 이미지는 360px 기준이라 넓은 화면에서 늘리면 글자가 지나치게 커진다.
+     폭을 줄인 만큼 가운데에 띄우지 않고 왼쪽 정렬인 본문 여백에 맞춘다. */
+  .banner-slot { width: min(100% - 2.5rem, 30rem); margin-left: 1.25rem; }
+}
+@media (max-width: 560px) {
+  .banner-slot { width: min(100% - 2rem, 30rem); margin-left: 1rem; }
+}
+
+.banner-side { display: none; }
+
+/* 본문 72rem + 패널 2×16rem + 간격 2×8rem + 바깥 여백 2×2rem = 124rem. */
+@media (min-width: 124rem) and (min-height: 40rem) {
+  .banner-side {
+    position: fixed;
+    top: calc(var(--banner-header-height) + (100svh - var(--banner-header-height)) / 2);
+    transform: translateY(-50%);
+    z-index: 10;
+    display: block;
+    height: min(52.5rem, 100svh - 8rem);
+    aspect-ratio: 256 / 840;
+  }
+  /* 화면이 낮아 패널이 줄어도 본문 쪽 간격은 그대로 둔다. */
+  .banner-side-left { right: calc(50% + var(--banner-page-width) / 2 + var(--banner-side-gap)); }
+  .banner-side-right { left: calc(50% + var(--banner-page-width) / 2 + var(--banner-side-gap)); }
+  .banner-side .banner-link, .banner-side picture { height: 100%; }
+  .banner-side img { height: 100%; object-fit: cover; }
+  /* 한 화면에는 한 종류의 슬롯만 보인다. 사이드가 보이면 하단은 숨긴다. */
+  .banner-bottom { display: none; }
+}
