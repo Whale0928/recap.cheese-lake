@@ -153,11 +153,12 @@ CI는 Redis 7.4.2 서비스에서 같은 통합 테스트를 실행한다. Pod �
 
 ### 공유·삭제 요청 스키마 초안
 
-신규 TypeORM 마이그레이션은 `recap.recap_shares`와 `recap.privacy_requests`를 추가한다.
-각각 공유 승인과 이용자의 기록 삭제 요청을 관리한다.
+`recap.recap_shares`(공유 승인)와 `recap.privacy_requests`(기록 삭제 요청)는 아직 마이그레이션을 만들지 않았다.
+테이블 정의 초안은 [공유 ADR](<adr/0003 수신자를 지정하는 리캡 공유.md>)과 module.secrets의 삭제 처리 ADR 0010에 있다.
 
 운영 관리 화면은 Lab에 두고 Recap 내부 관리 API로 처리한다. Recap 스키마와 마이그레이션은
-Recap이 관리하며 Lab은 테이블을 직접 수정하지 않는다. 현재는 스키마와
+Recap이 관리하며 Lab은 테이블을 직접 수정하지 않는다. 예외로 홍보 배너(`recap.banners`·`banner_placements`·`banner_images`)는
+Lab 관리 화면이 직접 쓰고 Recap은 `GET /api/banners`·`GET /api/banners/images/{hash}.webp`로 읽기만 한다. 공유·삭제 요청은 현재
 [공유 ADR 초안](<adr/0003 수신자를 지정하는 리캡 공유.md>),
 [삭제 ADR 초안](<adr/0004 기록 삭제 요청과 처리 제외.md>)만 추가한 상태다.
 공유·차단·삭제 API, 화면, 만료 정리와 Lab 연동은 아직 구현하지 않았다.
