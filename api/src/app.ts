@@ -6,7 +6,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { AuthConfig } from "./auth/auth.config.js";
 import { AccessStore } from "./privacy/access.store.js";
 
-// 공개 캐시로 내보내는 배너 경로. 로그인과 무관한 응답이라 세션을 읽거나 갱신하지 않는다.
+// 로그인과 무관한 배너·관측 통계 경로는 세션을 읽거나 갱신하지 않는다.
 // 거치면 만료 세션의 쿠키 삭제(Set-Cookie)가 공유 캐시 응답에 섞여 다른 이용자에게 전달될 수 있다.
 // Express 라우터는 대소문자를 가리지 않고 끝의 "/" 도 허용하므로, 같은 기준으로 맞춰야 우회 경로가 남지 않는다.
 // 이미지는 파일 이름 한 칸만 받는다 — 접두사로 넓게 열면 "../" 같은 경로가 세션 처리를 건너뛴다.
@@ -14,7 +14,7 @@ const PUBLIC_BANNER_IMAGE = /^\/api\/banners\/images\/[^/]+$/;
 export function isPublicCachePath(req: Pick<import("express").Request, "method" | "path">): boolean {
   if (req.method !== "GET" && req.method !== "HEAD") return false;
   const path = req.path.toLowerCase().replace(/\/$/, "");
-  return path === "/api/banners" || PUBLIC_BANNER_IMAGE.test(path);
+  return path === "/api/banners" || path === "/api/observations/daily" || PUBLIC_BANNER_IMAGE.test(path);
 }
 
 export async function configureApp(app: NestExpressApplication): Promise<void> {

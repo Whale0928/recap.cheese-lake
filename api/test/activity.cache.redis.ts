@@ -48,6 +48,17 @@ it("shares validated results across separate clients with a 300-second Redis TTL
   expect(fetch).toHaveBeenCalledTimes(1);
 });
 
+it.each([-2_000, 2_000])("stores shared results when the application clock differs by %i ms", async offset => {
+  const realNow = Date.now;
+  jest.spyOn(Date, "now").mockImplementation(() => realNow() + offset);
+  const first = await store();
+  await first.put(key(), summary);
+  expect(await redis.exists(key())).toBe(1);
+  expect(await redis.pTTL(key())).toBeGreaterThan(299_000);
+  expect(await redis.pTTL(key())).toBeLessThanOrEqual(300_000);
+  expect(await (await store()).get(key())).toEqual(summary);
+});
+
 it("shares the profile retry budget across clients without extending the original expiry", async () => {
   const first = new LabClient(config, await store());
   const second = new LabClient(config, await store());

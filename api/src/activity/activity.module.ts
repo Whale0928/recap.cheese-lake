@@ -4,5 +4,5 @@ import { Module } from "@nestjs/common";
 import { ActivityController, SessionAuthGuard } from "./activity.controller.js";
 import { LabClient } from "./lab.client.js";
 import { LabConfig } from "./lab.config.js";
-@Module({ controllers: [ActivityController], providers: [LabClient, LabConfig, ActivityCache, ActivityCacheConfig, SessionAuthGuard] })
+@Module({ controllers: [ActivityController], providers: [LabClient, LabConfig, ActivityCache, ActivityCacheConfig, SessionAuthGuard], exports: [LabConfig, ActivityCache] })
 export class ActivityModule {}

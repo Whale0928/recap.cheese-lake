@@ -7,8 +7,9 @@ import { MeController } from "./me/me.controller.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { BannerModule } from "./banners/banner.controller.js";
 import { PrivacyModule } from "./privacy/privacy.controller.js";
+import { ObservationsModule } from "./observations/observations.controller.js";
 
-@Module({ imports: [DatabaseModule, PrivacyModule, AuthModule, ActivityModule, BannerModule], controllers: [MeController] })
+@Module({ imports: [DatabaseModule, PrivacyModule, AuthModule, ActivityModule, BannerModule, ObservationsModule], controllers: [MeController] })
 export class AppModule {
   static register(): DynamicModule { return { module: AppModule, imports: localAuthEnabled() ? [LocalAuthModule] : [] }; }
 }

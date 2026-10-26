@@ -46,6 +46,8 @@ export class ActivityCache implements OnModuleInit, OnModuleDestroy {
   private readonly memory = new Map<string, { expiresAt: number; value: string }>();
   private warned = false;
   private retryAt = 0;
+  private redisClockOffsetMs: number | undefined;
+  private clockSync: Promise<void> | undefined;
 
   constructor(private readonly config: ActivityCacheConfig) {}
 
@@ -58,7 +60,10 @@ export class ActivityCache implements OnModuleInit, OnModuleDestroy {
       commandsQueueMaxLength: 64,
     });
     this.client.on("error", () => this.warnUnavailable());
-    this.client.on("ready", () => { this.warned = false; this.retryAt = 0; });
+    this.client.on("ready", () => {
+      this.warned = false; this.retryAt = 0; this.redisClockOffsetMs = undefined;
+      void this.synchronizeClock().catch(() => this.warnUnavailable());
+    });
     void this.client.connect().catch(() => this.warnUnavailable());
   }
 
@@ -78,6 +83,23 @@ export class ActivityCache implements OnModuleInit, OnModuleDestroy {
         timer = setTimeout(() => reject(new Error("Activity cache command timed out")), 250);
       })]);
     } finally { if (timer) clearTimeout(timer); }
+  }
+
+  private async synchronizeClock(): Promise<void> {
+    if (this.clockSync) return this.clockSync;
+    const work = (async () => {
+      if (!this.client?.isReady) throw new Error("Cache is not ready");
+      const started = Date.now();
+      const clock: unknown = await this.bounded(this.client.withAbortSignal(AbortSignal.timeout(250)).sendCommand(["TIME"]));
+      if (!Array.isArray(clock) || clock.length !== 2 || !clock.every(v => typeof v === "string" && /^\d+$/.test(v))) throw new Error("Invalid cache clock");
+      const serverMs = Number(clock[0]) * 1000 + Number(clock[1]) / 1000;
+      if (!Number.isSafeInteger(Math.floor(serverMs))) throw new Error("Invalid cache clock");
+      // 지연 쓰기 거부는 Redis 시계와 비교하므로 호스트 사이의 시차를 먼저 보정한다.
+      this.redisClockOffsetMs = serverMs - (started + Date.now()) / 2;
+    })();
+    this.clockSync = work;
+    try { await work; }
+    finally { this.clockSync = undefined; }
   }
 
   private checkKey(key: string): void {
@@ -115,9 +137,10 @@ export class ActivityCache implements OnModuleInit, OnModuleDestroy {
     this.memory.set(key, { expiresAt: now + ttlMs, value });
     if (!this.client?.isReady || Date.now() < this.retryAt) return;
     try {
+      if (this.redisClockOffsetMs === undefined) await this.synchronizeClock();
       await this.bounded(this.client.withAbortSignal(AbortSignal.timeout(250)).eval(putScript, {
         keys: [key, ACTIVITY_CACHE_INDEX],
-        arguments: [value, String(ttlMs), String(ACTIVITY_CACHE_MAX_ENTRIES), `${ACTIVITY_CACHE_PREFIX}entry:`, String(Date.now() + 250)],
+        arguments: [value, String(ttlMs), String(ACTIVITY_CACHE_MAX_ENTRIES), `${ACTIVITY_CACHE_PREFIX}entry:`, String(Math.floor(Date.now() + this.redisClockOffsetMs! + 250))],
       }));
     } catch { this.warnUnavailable(); }
   }
