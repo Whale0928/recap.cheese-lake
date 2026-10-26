@@ -6,6 +6,8 @@ import termsOfService from "../legal/이용약관.md?raw";
 import { LegalDocument } from "./LegalDocument";
 import { MePage } from "./MePage";
 import { BottomBanner, SideBanners } from "./Banners";
+import { ContactDialog } from "./ContactDialog";
+import { AccessBlocked, PrivacyDialog, type AccessRestriction } from "./PrivacyControls";
 
 type Theme = "light" | "dark";
 type AuthState = "loading" | "guest" | "authenticated";
@@ -13,6 +15,7 @@ type AuthState = "loading" | "guest" | "authenticated";
 type SessionResponse = {
   loggedIn?: boolean;
   localLoginAvailable?: boolean;
+  restriction?: AccessRestriction;
 };
 
 const activityPattern = [
@@ -54,7 +57,7 @@ function Wordmark({ footer = false }: { footer?: boolean }) {
   );
 }
 
-function SiteFooter() {
+function SiteFooter({ onContact, onPrivacy }: { onContact?: () => void; onPrivacy?: () => void }) {
   return (
     <footer className="site-footer">
       <Wordmark footer />
@@ -62,6 +65,8 @@ function SiteFooter() {
         <nav className="footer-links" aria-label="법적 고지">
           <a href="/privacy/">개인정보 처리방침</a>
           <a href="/terms/">이용약관</a>
+          {onPrivacy && <button type="button" onClick={onPrivacy} aria-haspopup="dialog">이용 설정</button>}
+          {onContact && <button type="button" onClick={onContact} aria-haspopup="dialog">문의하기</button>}
         </nav>
         <p>치지직 및 네이버와 제휴·후원·연계 관계가 없는 비공식 서비스입니다.</p>
         <p>© 2026 recap.cheese-lake</p>
@@ -114,8 +119,12 @@ function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [authState, setAuthState] = useState<AuthState>("loading");
   const [localLoginAvailable, setLocalLoginAvailable] = useState(false);
+  const [restriction, setRestriction] = useState<AccessRestriction | null>(null);
   const [logoutPending, setLogoutPending] = useState(false);
   const [authError, setAuthError] = useState("");
+  // 주소의 #contact 로도 열어 로그인 후 복귀나 외부 안내 링크에서 바로 문의할 수 있게 한다.
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(() => typeof window !== "undefined" && window.location.hash === "#contact");
   const path = typeof window === "undefined" ? "/" : window.location.pathname.replace(/\/+$/, "") || "/";
 
   useEffect(() => {
@@ -139,15 +148,22 @@ function App() {
         if (!response.ok) throw new Error(`세션 확인 실패: ${response.status}`);
         return response.json() as Promise<SessionResponse>;
       })
-      .then((session) => { setLocalLoginAvailable(session.localLoginAvailable === true); setAuthState(session.loggedIn ? "authenticated" : "guest"); })
+      .then((session) => { setLocalLoginAvailable(session.localLoginAvailable === true); setRestriction(session.restriction && (session.loggedIn || session.restriction.kind === "ip_blocked") ? session.restriction : null); setAuthState(session.loggedIn ? "authenticated" : "guest"); })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
         setLocalLoginAvailable(false);
+        setRestriction(null);
         setAuthState("guest");
       });
 
     return () => controller.abort();
   }, [path]);
+
+  // 법적 문서 열람은 로그인한 이용자에 한해 접속·활동 기록에 남긴다. 기록 실패는 화면에 영향을 주지 않는다.
+  useEffect(() => {
+    if (authState !== "authenticated" || (path !== "/privacy" && path !== "/terms")) return;
+    void fetch("/api/activity/page-views", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ page: path.slice(1) }) }).catch(() => undefined);
+  }, [authState, path]);
 
   const logout = () => {
     setAuthError("");
@@ -155,6 +171,7 @@ function App() {
     fetch("/auth/logout", { method: "POST", credentials: "same-origin" })
       .then((response) => {
         if (!response.ok) throw new Error(`로그아웃 실패: ${response.status}`);
+        setRestriction(null);
         setAuthState("guest");
       })
       .catch(() => setAuthError("로그아웃하지 못했습니다. 다시 시도해 주세요."))
@@ -170,9 +187,9 @@ function App() {
         <div className="site-header">
           <Wordmark />
           <nav className="site-nav" aria-label="주요 메뉴">
-            <AuthButtons authState={authState} compact />
+            {!restriction && <AuthButtons authState={authState} compact />}
             {authState === "guest" && localLoginAvailable && <a className="btn btn-outline btn-sm" href="/_dev/login">채널 ID로 로그인</a>}
-            {authenticated && <a className="btn btn-outline btn-sm nav-icon-button profile-button" href="/me/" aria-label="내 정보 보기" title="내 정보 보기" aria-current={path === "/me" ? "page" : undefined}>
+            {authenticated && !restriction && <a className="btn btn-outline btn-sm nav-icon-button profile-button" href="/me/" aria-label="내 정보 보기" title="내 정보 보기" aria-current={path === "/me" ? "page" : undefined}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg>
             </a>}
             {authenticated && <button className="btn btn-outline btn-sm nav-icon-button" type="button" disabled={logoutPending} onClick={logout} aria-label={logoutPending ? "로그아웃 중" : "로그아웃"} title={logoutPending ? "로그아웃 중" : "로그아웃"} aria-busy={logoutPending}>
@@ -187,7 +204,10 @@ function App() {
   );
 
   let page: ReactNode;
-  if (path === "/me") {
+  // 지우기·수집 거부를 요청했거나 이용이 제한된 계정은 법적 문서를 뺀 모든 화면을 차단 화면으로 대신한다.
+  if (restriction && path !== "/privacy" && path !== "/terms") {
+    page = <AccessBlocked restriction={restriction} onContact={restriction.kind === "ip_blocked" ? undefined : () => setContactOpen(true)} />;
+  } else if (path === "/me") {
     page = <MePage key={authState === "guest" ? "guest" : "session"} />;
   } else if (path === "/privacy" || path === "/terms") {
     page = <LegalDocument markdown={path === "/privacy" ? privacyPolicy : termsOfService} />;
@@ -285,13 +305,18 @@ function App() {
   }
 
   // 약관과 처리방침은 읽는 데 방해가 없도록 배너를 붙이지 않는다.
-  const showBanners = path !== "/privacy" && path !== "/terms";
+  const showBanners = !restriction && path !== "/privacy" && path !== "/terms";
   return <>
     {siteHeader}
     {showBanners && <SideBanners theme={theme} />}
     {page}
     {showBanners && <BottomBanner theme={theme} />}
-    <SiteFooter />
+    <SiteFooter onContact={restriction?.kind === "ip_blocked" ? undefined : () => setContactOpen(true)} onPrivacy={restriction ? undefined : () => setPrivacyOpen(true)} />
+    <PrivacyDialog open={privacyOpen} authState={authState} onClose={() => setPrivacyOpen(false)} />
+    <ContactDialog open={contactOpen} authState={authState} onClose={() => {
+      setContactOpen(false);
+      if (window.location.hash === "#contact") window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }} />
   </>;
 }
 

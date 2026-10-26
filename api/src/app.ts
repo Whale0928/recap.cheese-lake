@@ -4,6 +4,7 @@ import session from "express-session";
 import { resolve } from "node:path";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { AuthConfig } from "./auth/auth.config.js";
+import { AccessStore } from "./privacy/access.store.js";
 
 // 공개 캐시로 내보내는 배너 경로. 로그인과 무관한 응답이라 세션을 읽거나 갱신하지 않는다.
 // 거치면 만료 세션의 쿠키 삭제(Set-Cookie)가 공유 캐시 응답에 섞여 다른 이용자에게 전달될 수 있다.
@@ -31,6 +32,19 @@ export async function configureApp(app: NestExpressApplication): Promise<void> {
     if (!allowedPeer(req.socket.remoteAddress)) { res.status(403).json({ error: "Forbidden" }); return; }
     if (req.headers.origin && !origins.includes(req.headers.origin)) { res.status(403).json({ error: "Origin not allowed" }); return; }
     next();
+  });
+  // 차단한 접속 IP는 화면만 받고 API와 로그인은 쓸 수 없다. 세션 조회에는 차단 사실을 알려 차단 화면을 띄운다.
+  const access = app.get(AccessStore);
+  app.use((req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => {
+    // Express 라우터는 대소문자와 끝의 "/"를 가리지 않으므로 같은 기준으로 맞춰야 "/API/..." 같은 우회 경로가 남지 않는다.
+    const path = req.path.toLowerCase().replace(/\/{2,}/g, "/");
+    if (!/^\/(api|auth)(\/|$)/.test(path)) { next(); return; }
+    void access.isBlocked(req.ip).then(blocked => {
+      if (!blocked) { next(); return; }
+      res.set("Cache-Control", "no-store");
+      if (req.method === "GET" && path.replace(/\/$/, "") === "/api/session") { res.status(200).json({ loggedIn: false, restriction: { kind: "ip_blocked" } }); return; }
+      res.status(403).json({ error: "Blocked" });
+    }, next);
   });
   app.enableCors({ origin: origins, credentials: true, methods: ["GET", "POST", "OPTIONS"], allowedHeaders: ["Content-Type", "Accept"], maxAge: 600 });
   const sessionMiddleware = session({

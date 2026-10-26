@@ -8,6 +8,9 @@ import { AuthConfig } from "./auth.config.js";
 import { AuthService } from "./auth.service.js";
 import { ChzzkClient } from "./chzzk.client.js";
 import "./auth.types.js";
+import { AccessStore } from "../privacy/access.store.js";
+import { ActivityLogService } from "../database/activity-log.service.js";
+import { ActivityType } from "../database/activity-log.types.js";
 
 const COOKIE_NAME = "recap_session";
 
@@ -19,6 +22,8 @@ export class AuthController {
     private readonly chzzk: ChzzkClient,
     private readonly sessions: SessionStore,
     private readonly loginSession: AuthSession,
+    private readonly access: AccessStore,
+    private readonly logs: ActivityLogService,
   ) {}
 
   @Get("auth/login")
@@ -58,11 +63,12 @@ export class AuthController {
 
   @Get("api/session")
   @Header("Cache-Control", "no-store")
-  session(@Req() req: Request) {
+  async session(@Req() req: Request) {
     const { user, expiresAt } = req.session;
     const localLogin = localAuthAvailable(req, this.config) ? { localLoginAvailable: true } : {};
     if (!user || !expiresAt || expiresAt <= Date.now()) return { loggedIn: false, ...localLogin };
-    return { loggedIn: true, ...localLogin, session: { ...user, expiresAt: new Date(expiresAt).toISOString() } };
+    const restriction = await this.access.restriction(user.channelId);
+    return { loggedIn: true, ...localLogin, session: { ...user, expiresAt: new Date(expiresAt).toISOString() }, ...(restriction ? { restriction } : {}) };
   }
 
   @Post("auth/logout")
@@ -71,13 +77,18 @@ export class AuthController {
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     // 브라우저가 다른 사이트를 통해 세션을 종료하도록 유도되는 것을 막는다.
     if (req.headers["sec-fetch-site"] === "cross-site" ||
-      (req.headers.origin && req.headers.origin !== new URL(this.config.successUrl).origin)) {
+      (req.headers.origin && !this.config.allowedOrigins.includes(req.headers.origin))) {
       throw new UnauthorizedException("Cross-origin logout is not allowed");
     }
-    if (req.session.sessionGroup && req.session.authenticatedAt !== undefined) {
-      await this.sessions.revoke(req.session.sessionGroup, req.session.authenticatedAt + this.config.sessionAbsoluteTtlMs);
-    }
-    await new Promise<void>((resolve, reject) => req.session.destroy((error: unknown) => error ? reject(error) : resolve()));
+    const end = async () => {
+      if (req.session.sessionGroup && req.session.authenticatedAt !== undefined) {
+        await this.sessions.revoke(req.session.sessionGroup, req.session.authenticatedAt + this.config.sessionAbsoluteTtlMs);
+      }
+      await new Promise<void>((resolve, reject) => req.session.destroy((error: unknown) => error ? reject(error) : resolve()));
+    };
+    const user = req.session.user;
+    if (user && req.session.authSource !== "local") await this.logs.track({ channelId: user.channelId, activityType: ActivityType.LOGOUT }, end);
+    else await end();
     res.clearCookie(COOKIE_NAME, { httpOnly: true, sameSite: "lax", secure: this.config.secureCookie, path: "/" });
     return { loggedIn: false };
   }

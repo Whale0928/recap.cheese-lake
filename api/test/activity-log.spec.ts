@@ -22,7 +22,7 @@ it("returns the original response and writes only activity metadata once", async
   expect(query).toHaveBeenCalledTimes(1);
   const fields = query.mock.calls[0]![1]!;
   if (!Array.isArray(fields)) throw new Error("Expected positional query parameters");
-  expect(fields).toEqual([context.channelId, "recap_view", expect.any(Date), expect.any(Date), expect.any(Number), "success", 200, null, null]);
+  expect(fields).toEqual([context.channelId, "recap_view", expect.any(Date), expect.any(Date), expect.any(Number), "success", 200, null, null, "리캡 조회", expect.any(String)]);
   expect(fields[4]).toBeGreaterThanOrEqual(0);
   expect(JSON.stringify(query.mock.calls)).not.toContain("must-not-be-persisted");
   expect(JSON.stringify(query.mock.calls)).not.toContain("private chat");
@@ -31,7 +31,7 @@ it("returns the original response and writes only activity metadata once", async
 it.each([new BadRequestException("private input"), new Error("secret driver payload")])("preserves the original thrown error and stores a sanitized code", async error => {
   await expect(new ActivityLogService(database).track(context, async () => { throw error; })).rejects.toBe(error);
   const fields = jest.mocked(database.query).mock.calls[0]![1]!;
-  expect(fields.slice(5)).toEqual(["failure", error instanceof BadRequestException ? 400 : 500, "request", error instanceof BadRequestException ? "REQUEST_REJECTED" : "PROCESSING_FAILED"]);
+  expect(fields.slice(5, 9)).toEqual(["failure", error instanceof BadRequestException ? 400 : 500, "request", error instanceof BadRequestException ? "REQUEST_REJECTED" : "PROCESSING_FAILED"]);
   expect(JSON.stringify(fields)).not.toContain(error.message);
 });
 

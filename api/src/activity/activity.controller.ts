@@ -1,15 +1,19 @@
-import { BadRequestException, CanActivate, Controller, Get, Header, Injectable, Param, Query, Req, UnauthorizedException, UseGuards, type ExecutionContext } from "@nestjs/common";
+import { BadRequestException, CanActivate, ForbiddenException, Inject, Controller, Get, Header, Injectable, Param, Query, Req, UnauthorizedException, UseGuards, type ExecutionContext } from "@nestjs/common";
 import type { Request } from "express";
 import { activityPeriod, recapPeriod } from "./activity.query.js";
 import { LabClient } from "./lab.client.js";
 import type { ChannelRecordResponse, RecapResponse, SummaryResponse } from "./activity.types.js";
 import { ActivityLogService } from "../database/activity-log.service.js";
 import { ActivityType, type ActivityOutcome, type ActivityErrorCode } from "../database/activity-log.types.js";
+import { AccessStore } from "../privacy/access.store.js";
 @Injectable()
 export class SessionAuthGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  constructor(@Inject(AccessStore) private readonly access: AccessStore) {}
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request>();
     if (!req.session.user || !/^[0-9a-f]{32}$/.test(req.session.user.channelId) || !req.session.expiresAt || req.session.expiresAt <= Date.now()) throw new UnauthorizedException("Login required");
+    // 수집 거부를 요청했거나 이용이 제한된 계정은 리캡 조회를 막는다.
+    if (await this.access.restriction(req.session.user.channelId)) throw new ForbiddenException("Access restricted");
     return true;
   }
 }

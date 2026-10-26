@@ -158,7 +158,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
     const inserts = jest.mocked(database.query).mock.calls.filter(([sql]) => String(sql).includes("INSERT INTO recap.activity_logs"));
     expect(inserts).toHaveLength(1);
-    expect(inserts[0][1]).toEqual([user.channelId, "login", expect.any(Date), expect.any(Date), expect.any(Number), "success", 200, null, null]);
+    expect(inserts[0][1]).toEqual([user.channelId, "login", expect.any(Date), expect.any(Date), expect.any(Number), "success", 200, null, null, "로그인", expect.any(String)]);
     expect(JSON.stringify(inserts)).not.toMatch(/secret-|test-code/);
   });
 
@@ -539,7 +539,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     await agent.get("/api/recap").expect(200);
     const logs = calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"));
     expect(logs).toHaveLength(1);
-    expect(logs[0]![1]).toEqual([user.channelId, "recap_view", expect.any(Date), expect.any(Date), expect.any(Number), "success", 200, null, null]);
+    expect(logs[0]![1]).toEqual([user.channelId, "recap_view", expect.any(Date), expect.any(Date), expect.any(Number), "success", 200, null, null, "리캡 조회", expect.any(String)]);
     expect(calls.some(([sql]) => sql.includes("channel_name = EXCLUDED.channel_name"))).toBe(true);
   });
 
@@ -549,7 +549,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     await agent.get("/api/recap").expect(200);
     const logs = jest.mocked(database.query).mock.calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"));
     expect(logs).toHaveLength(1);
-    expect(logs[0]![1]?.slice(5)).toEqual(["partial_success", 200, "channels", "ACTIVITY_UPSTREAM"]);
+    expect(logs[0]![1]?.slice(5, 9)).toEqual(["partial_success", 200, "channels", "ACTIVITY_UPSTREAM"]);
     expect(JSON.stringify(logs)).not.toContain("secret-");
   });
 
@@ -559,7 +559,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     await agent.get("/api/recap").expect(200);
     const logs = jest.mocked(database.query).mock.calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"));
     expect(logs).toHaveLength(1);
-    expect(logs[0]![1]?.slice(5)).toEqual(["failure", 200, "summary", "ACTIVITY_RATE_LIMITED"]);
+    expect(logs[0]![1]?.slice(5, 9)).toEqual(["failure", 200, "summary", "ACTIVITY_RATE_LIMITED"]);
   });
 
   it("records handled profile failure once and rejects anonymous access without a log", async () => {
@@ -569,7 +569,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     await agent.get("/api/me").expect(200);
     const logs = jest.mocked(database.query).mock.calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"));
     expect(logs).toHaveLength(1);
-    expect(logs[0]![1]?.slice(5)).toEqual(["failure", 200, "profile", "PROFILE_UNAVAILABLE"]);
+    expect(logs[0]![1]?.slice(5, 9)).toEqual(["failure", 200, "profile", "PROFILE_UNAVAILABLE"]);
   });
 
   it("does not forward a mismatched subject from Lab", async () => {

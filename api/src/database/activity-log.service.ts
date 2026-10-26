@@ -1,7 +1,7 @@
 import { HttpException, Inject, Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
 import { performance } from "node:perf_hooks";
 import { DataSource } from "typeorm";
-import type { ActivityOutcome, ActivityType } from "./activity-log.types.js";
+import { ActivityDescriptions, type ActivityOutcome, type ActivityType } from "./activity-log.types.js";
 
 @Injectable()
 export class ActivityLogService implements OnModuleInit, OnModuleDestroy {
@@ -32,10 +32,11 @@ export class ActivityLogService implements OnModuleInit, OnModuleDestroy {
               INSERT INTO recap.chzzk_accounts (channel_id) VALUES ($1) ON CONFLICT (channel_id) DO NOTHING
             )
             INSERT INTO recap.activity_logs
-              (channel_id, activity_type, started_at, finished_at, duration_ms, result, response_status, failure_stage, error_code)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+              (channel_id, activity_type, started_at, finished_at, duration_ms, result, response_status, failure_stage, error_code, code_name, reason)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           `, [context.channelId, context.activityType, startedAt, finishedAt, durationMs, outcome.result, responseStatus,
-            outcome.result === "success" ? null : outcome.failureStage, outcome.result === "success" ? null : outcome.errorCode]);
+            outcome.result === "success" ? null : outcome.failureStage, outcome.result === "success" ? null : outcome.errorCode,
+            ActivityDescriptions[context.activityType].codeName, ActivityDescriptions[context.activityType].reason]);
         } catch { Logger.warn("Activity log persistence failed", "ActivityLogService"); }
       }
     }
