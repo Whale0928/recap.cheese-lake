@@ -149,7 +149,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .legal-document ul { margin: 0 0 1.5rem; padding-left: 1.25rem; }
 .legal-document li { margin: .35rem 0; padding-left: .25rem; }
 .legal-document hr { margin: 2.5rem 0; border: 0; border-top: 1px solid var(--border); }
-.legal-document a { text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: .2rem; }
+.legal-document a { overflow-wrap: anywhere; text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: .2rem; }
 .legal-document a:hover { text-decoration-color: currentColor; }
 .legal-document code { padding: .1rem .3rem; border-radius: var(--radius-sm); background: var(--secondary); font-family: var(--font-mono); font-size: .85em; }
 .legal-table-wrap { width: 100%; margin: 1.5rem 0 2rem; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); }
