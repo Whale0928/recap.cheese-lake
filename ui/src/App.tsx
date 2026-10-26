@@ -8,6 +8,7 @@ import { MePage } from "./MePage";
 import { BottomBanner, SideBanners } from "./Banners";
 import { ContactDialog } from "./ContactDialog";
 import { AccessBlocked, PrivacyDialog, type AccessRestriction } from "./PrivacyControls";
+import { CollectionOverview } from "./CollectionOverview";
 
 type Theme = "light" | "dark";
 type AuthState = "loading" | "guest" | "authenticated";
@@ -217,7 +218,8 @@ function App() {
     page = <RelationshipPage authenticated={authenticated} pending={authState === "loading"} />;
   } else {
     page = (
-      <main id="main">
+      <main id="main" className="home-main--observations">
+        <CollectionOverview />
         <section className="hero">
           <div className="hero-copy">
             <p className="hero-eyebrow">어디서 제일 많이 채팅했을까.</p>
