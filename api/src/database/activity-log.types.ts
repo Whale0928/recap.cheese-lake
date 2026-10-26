@@ -1,4 +1,5 @@
 export const ActivityType = {
+  LOGIN: "login",
   PROFILE_VIEW: "profile_view",
   RECAP_VIEW: "recap_view",
 } as const;

@@ -153,6 +153,15 @@ describe("CHZZK OAuth HTTP flow", () => {
     expect(JSON.stringify(callback.headers)).not.toContain("secret-access-token");
   });
 
+  it("records a successful login as activity metadata without credentials", async () => {
+    const { agent, state } = await beginLogin();
+    await agent.get("/auth/callback").query({ code: "test-code", state }).expect(302);
+    const inserts = jest.mocked(database.query).mock.calls.filter(([sql]) => String(sql).includes("INSERT INTO recap.activity_logs"));
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0][1]).toEqual([user.channelId, "login", expect.any(Date), expect.any(Date), expect.any(Number), "success", 200, null, null]);
+    expect(JSON.stringify(inserts)).not.toMatch(/secret-|test-code/);
+  });
+
   it("requires login before querying profile data", async () => {
     await request(app.getHttpServer()).get("/api/me").expect(401);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -526,9 +535,9 @@ describe("CHZZK OAuth HTTP flow", () => {
     const calls = jest.mocked(database.query).mock.calls;
     await agent.get("/api/me/activity/summary").expect(200);
     await agent.get("/api/me/activity/trend").expect(200);
-    expect(calls.filter(([sql]) => sql.includes("INSERT INTO recap.activity_logs"))).toHaveLength(0);
+    expect(calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"))).toHaveLength(0);
     await agent.get("/api/recap").expect(200);
-    const logs = calls.filter(([sql]) => sql.includes("INSERT INTO recap.activity_logs"));
+    const logs = calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"));
     expect(logs).toHaveLength(1);
     expect(logs[0]![1]).toEqual([user.channelId, "recap_view", expect.any(Date), expect.any(Date), expect.any(Number), "success", 200, null, null]);
     expect(calls.some(([sql]) => sql.includes("channel_name = EXCLUDED.channel_name"))).toBe(true);
@@ -538,7 +547,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     const agent = await signedIn();
     labFailure = "activities";
     await agent.get("/api/recap").expect(200);
-    const logs = jest.mocked(database.query).mock.calls.filter(([sql]) => sql.includes("INSERT INTO recap.activity_logs"));
+    const logs = jest.mocked(database.query).mock.calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"));
     expect(logs).toHaveLength(1);
     expect(logs[0]![1]?.slice(5)).toEqual(["partial_success", 200, "channels", "ACTIVITY_UPSTREAM"]);
     expect(JSON.stringify(logs)).not.toContain("secret-");
@@ -548,7 +557,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     const agent = await signedIn();
     labRateLimited = true;
     await agent.get("/api/recap").expect(200);
-    const logs = jest.mocked(database.query).mock.calls.filter(([sql]) => sql.includes("INSERT INTO recap.activity_logs"));
+    const logs = jest.mocked(database.query).mock.calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"));
     expect(logs).toHaveLength(1);
     expect(logs[0]![1]?.slice(5)).toEqual(["failure", 200, "summary", "ACTIVITY_RATE_LIMITED"]);
   });
@@ -558,7 +567,7 @@ describe("CHZZK OAuth HTTP flow", () => {
     const agent = await signedIn();
     channelFailure = true;
     await agent.get("/api/me").expect(200);
-    const logs = jest.mocked(database.query).mock.calls.filter(([sql]) => sql.includes("INSERT INTO recap.activity_logs"));
+    const logs = jest.mocked(database.query).mock.calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"));
     expect(logs).toHaveLength(1);
     expect(logs[0]![1]?.slice(5)).toEqual(["failure", 200, "profile", "PROFILE_UNAVAILABLE"]);
   });

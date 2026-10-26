@@ -10,6 +10,7 @@ import { configureApp } from "../src/app.js";
 import { AuthConfig } from "../src/auth/auth.config.js";
 import { ChzzkClient } from "../src/auth/chzzk.client.js";
 import { LabConfig } from "../src/activity/lab.config.js";
+import { ActivityLogService } from "../src/database/activity-log.service.js";
 
 const channel = { channelId: "a".repeat(32), channelName: "개발 확인 계정", channelImageUrl: null, followerCount: 0, verifiedMark: false };
 const config = { sessionKey: "test-session-key-with-at-least-32-bytes", successUrl: "http://localhost:8180/", secureCookie: false, allowedPeer: () => true, allowedOrigins: ["http://localhost:8180"], sessionTtlMs: 30 * 86400_000, sessionAbsoluteTtlMs: 90 * 86400_000, sessionRotationMs: 7 * 86400_000 };
@@ -59,9 +60,11 @@ describe("local development login", () => {
   });
   it("creates a normal session from the verified channel and supports logout", async () => {
     await setup(); const agent = request.agent(app.getHttpServer());
+    const track = jest.spyOn(app.get(ActivityLogService), "track");
     const r = await agent.post("/_dev/login").set("Origin", config.successUrl.slice(0, -1)).type("form").send({ channelId: channel.channelId }).expect(303);
     expect(r.headers.location).toBe("/me/");
     expect(getChannel).toHaveBeenCalledWith(channel.channelId);
+    expect(track).not.toHaveBeenCalled();
     expect(r.headers["set-cookie"][0]).toContain("HttpOnly");
     const session = await agent.get("/api/session").expect(200);
     expect(session.body.localLoginAvailable).toBe(true);
