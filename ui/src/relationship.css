@@ -17,8 +17,13 @@
 .relationship-card-footer { position: relative; border-top: 1px dashed var(--border); }
 .relationship-card-footer::before, .relationship-card-footer::after { content: ""; position: absolute; width: 1.25rem; height: 1.25rem; top: -.625rem; border: 1px solid var(--border); border-radius: 50%; background: var(--background); }
 .relationship-card-footer::before { left: -.6875rem; }.relationship-card-footer::after { right: -.6875rem; }
-.relationship-share-action { padding: 0 1.75rem 1.5rem; }
-.relationship-share-action .btn { width: 100%; min-height: 2.75rem; white-space: normal; line-height: 1.5; text-align: center; }
+/* 기본 공유 버튼이 남는 폭을 차지하고, 공유·이미지 저장은 정사각 아이콘 버튼으로 한 줄에 둔다. */
+/* 카드가 좁아 기본 버튼 문구가 줄바꿈될 폭이면 아이콘 버튼을 다음 줄 오른쪽으로 내린다. */
+.relationship-share-action { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; padding: 0 1.75rem 1.5rem; }
+.relationship-share-action .btn { min-height: 2.75rem; white-space: normal; line-height: 1.5; text-align: center; }
+.relationship-share-action .btn-default { flex: 1 1 12.5rem; min-width: 0; }
+.relationship-share-tools { display: flex; flex: 0 0 auto; gap: .5rem; }
+.relationship-share-action .btn-icon { width: 2.75rem; }
 .relationship-details { min-width: 0; }
 .relationship-title { margin: 0; font-size: clamp(1.875rem, 3.5vw, 2.625rem); font-weight: 550; line-height: 1.25; letter-spacing: -.045em; }
 .relationship-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 0 0 1.5rem; padding: 2rem 0; border-bottom: 1px solid var(--border); }

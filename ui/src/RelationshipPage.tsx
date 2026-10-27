@@ -49,7 +49,17 @@ function RelationshipDetails({ response }: { response: ChannelRecordResponse & {
         </div>
         <div className="relationship-elapsed"><span>첫 채팅 이후</span><strong>{elapsed === null ? "기록 없음" : number(elapsed)}{elapsed !== null && <small>일</small>}</strong><span>{dateLabel(r.firstActiveDate)} ~ {dateLabel(today)}</span></div>
         <div className="relationship-card-footer"><span>recap</span><span>전체 채팅 중 <strong>{share}%</strong></span></div>
-        <div className="relationship-share-action"><button type="button" className="btn btn-default" aria-disabled="true">이 스트리머에게 기록 공유하기</button></div>
+        <div className="relationship-share-action">
+          <button type="button" className="btn btn-default" aria-disabled="true">이 스트리머에게 기록 공유하기</button>
+          <span className="relationship-share-tools">
+            <button type="button" className="btn btn-outline btn-icon" aria-disabled="true" aria-label="공유하기" title="공유하기">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
+            </button>
+            <button type="button" className="btn btn-outline btn-icon" aria-disabled="true" aria-label="이미지로 저장" title="이미지로 저장">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11M7 10l5 5 5-5M4 19h16" /></svg>
+            </button>
+          </span>
+        </div>
       </section>
       <section className="relationship-details" aria-label="채널과의 활동 기록">
         <h2 className="relationship-title">자주 만난 만큼,<br />쌓인 기록들.</h2>
