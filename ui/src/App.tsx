@@ -1,5 +1,6 @@
 import { RecapPage } from "./RecapPage";
 import { RelationshipPage } from "./RelationshipPage";
+import { SharedRecordPage } from "./SharedRecordPage";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import privacyPolicy from "../legal/개인정보 처리방침.md?raw";
 import termsOfService from "../legal/이용약관.md?raw";
@@ -216,6 +217,8 @@ function App() {
     page = <RecapPage key={authState === "guest" ? "guest" : "session"} />;
   } else if (path === "/recap/channel") {
     page = <RelationshipPage authenticated={authenticated} pending={authState === "loading"} />;
+  } else if (path === "/recap/shared") {
+    page = <SharedRecordPage authenticated={authenticated} pending={authState === "loading"} />;
   } else {
     page = (
       <main id="main" className="home-main--observations">

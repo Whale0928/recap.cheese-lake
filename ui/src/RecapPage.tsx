@@ -5,6 +5,7 @@ import { ActivityPatternChart } from "./ActivityPatternChart";
 import { ActivityChannels } from "./ActivityChannels";
 import { HomeChannelCard } from "./HomeChannelCard";
 import { useChannelProfiles } from "./useChannelProfiles";
+import { ReceivedShares } from "./ReceivedShares";
 export function RecapPage() {
   const currentMonth = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 7);
   const [mode, setMode] = useState<"all" | "month">("all");
@@ -51,6 +52,7 @@ export function RecapPage() {
     </div>;
   return <main id="main" className="me-main recap-data" aria-busy={state.status === "loading" || state.status === "ready" && state.refreshing}>
     <div className="me-heading"><div><a className="me-back" href="/">홈으로</a><h1>내 리캡</h1></div></div>
+    <ReceivedShares />
     <section className="recap-period" aria-labelledby="period-heading"><h2 id="period-heading">조회 기간</h2>{periodControls}</section>
     <div className="activity-refresh-status" role="status" aria-live="polite">
       {state.status === "ready" && (state.refreshing ? "갱신 중" : state.refreshFailed ? <><span>갱신 실패</span><button type="button" onClick={() => setAttempt(n => n + 1)}>다시 조회</button></> : null)}

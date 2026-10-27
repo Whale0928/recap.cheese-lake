@@ -42,7 +42,7 @@ test("공유 대표 이미지는 빌드에 포함된 1200×630 PNG를 가리킨�
 });
 
 test("개인 화면에는 정적 개인 기록을 생성하지 않고 noindex를 유지한다", async () => {
-  for (const path of ["recap/index.html", "recap/channel/index.html", "me/index.html"]) {
+  for (const path of ["recap/index.html", "recap/channel/index.html", "recap/shared/index.html", "me/index.html"]) {
     const html = await readBuilt(path);
     assert.match(html, /name="robots" content="noindex, nofollow"/);
     assert.match(html, /<div id="root"><\/div>/);

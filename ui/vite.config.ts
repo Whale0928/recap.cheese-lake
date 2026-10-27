@@ -13,6 +13,7 @@ export default defineConfig({
         terms: "terms/index.html",
         recap: "recap/index.html",
         relationship: "recap/channel/index.html",
+        shared: "recap/shared/index.html",
         relationshipPrototypes: "prototypes/relationship/index.html",
         me: "me/index.html"
       }
