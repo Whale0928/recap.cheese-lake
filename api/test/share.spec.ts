@@ -54,7 +54,10 @@ describe("channel record sharing", () => {
         return [before === shares.length ? [] : [{ consented_at: consentedAt }], before - shares.length];
       }
       if (sql.includes("SELECT consented_at FROM recap.recap_shares")) return shares.filter(s => s.owner === p[0] && s.recipient === p[1]).map(s => ({ consented_at: s.consentedAt }));
-      if (sql.includes("FROM recap.recap_shares s JOIN")) return shares.filter(s => s.recipient === p[0]).map(s => ({ owner_channel_id: s.owner, channel_name: "시청자", consented_at: s.consentedAt }));
+      if (sql.includes("FROM recap.recap_shares s JOIN")) {
+        if (!sql.includes("recap.privacy_requests") || !sql.includes("recap.account_restrictions")) throw new Error("received list must exclude restricted owners");
+        return shares.filter(s => s.recipient === p[0] && s.owner !== restricted).map(s => ({ owner_channel_id: s.owner, channel_name: "시청자", consented_at: s.consentedAt }));
+      }
       if (sql.includes("FROM recap.account_restrictions")) return restricted === p[0] ? [{ reason: "제한" }] : [];
       return [];
     });
@@ -129,7 +132,10 @@ describe("channel record sharing", () => {
     const shared = await streamerAgent.get(`/api/me/shares/received/${owner}/record`).expect(200);
     expect(shared.body.owner).toEqual({ channelId: owner, channelName: "시청자" });
     expect(shared.body.consentedAt).toBe(consentedAt.toISOString());
-    expect(shared.body.record).toMatchObject({ status: "ready", data: relationship });
+    // 동의 창에 적은 항목만 전달한다. 비율과 전체 채팅 수는 다른 방송 활동을 드러내므로 빠져야 한다.
+    const { share: _share, totalUserChatCount: _total, ...visible } = record;
+    expect(shared.body.record).toEqual({ status: "ready", data: { channel: relationship.channel, relationship: visible } });
+    expect(JSON.stringify(shared.body)).not.toContain("totalUserChatCount");
     expect(shared.body).not.toHaveProperty("profileRefresh");
     expect(shared.body.daily.status).toBe("ready");
     expect(shared.body.monthly.status).toBe("ready");
@@ -145,7 +151,8 @@ describe("channel record sharing", () => {
     await viewer.put(`/api/me/channels/${streamer}/share`).send({ consent: true }).expect(200);
     await streamerAgent.get(`/api/me/shares/received/${owner}/record`).expect(200);
     restricted = owner;
-    await streamerAgent.get(`/api/me/shares/received/${owner}/record`).expect(403);
+    expect((await streamerAgent.get("/api/me/shares/received").expect(200)).body).toEqual({ shares: [] });
+    await streamerAgent.get(`/api/me/shares/received/${owner}/record`).expect(404);
     restricted = null;
     await viewer.delete(`/api/me/channels/${streamer}/share`).expect(200);
     await streamerAgent.get(`/api/me/shares/received/${owner}/record`).expect(404);

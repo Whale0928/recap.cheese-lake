@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ChannelAvatar } from "./ChannelLink";
 import { CalendarGrid } from "./ActivityCalendar";
 import { dateInput, dateTime, number, ResultNotice, useActivity } from "./ActivityView";
-import type { RelationshipResponse } from "./relationship.data";
+import type { RelationshipResponse, RelationshipView } from "./relationship.data";
 import type { ActivityResult, ActivityTrend, ProfileRefresh } from "./activity.types";
 import { useChannelProfiles } from "./useChannelProfiles";
 import { RelationshipCardDialog } from "./RelationshipCardDialog";
@@ -68,7 +68,7 @@ function ShareActions({ channel, onOpenShare, onOpenCard }: { channel: Relations
 }
 
 // owner 가 있으면 스트리머가 보는 공유 화면이다. 내용은 같고 공유·이미지 저장 줄만 없다.
-export function RelationshipDetails({ response, owner }: { response: ChannelRecordResponse & { record: { status: "ready"; data: RelationshipResponse } }; owner?: { channelId: string; channelName: string | null } }) {
+export function RelationshipDetails({ response, owner }: { response: Omit<ChannelRecordResponse, "record"> & { record: { status: "ready"; data: RelationshipView } }; owner?: { channelId: string; channelName: string | null } }) {
   const { channel: originalChannel, relationship: r } = response.record.data;
   const [channel = originalChannel] = useChannelProfiles([originalChannel], owner ? undefined : response.profileRefresh, `/api/me/channels/${originalChannel.channelId}/profile`);
   const today = dateInput(response.fetchedAt);
@@ -77,7 +77,8 @@ export function RelationshipDetails({ response, owner }: { response: ChannelReco
   const [selectedDate, setSelectedDate] = useState(period.to);
   const [cardOpen, setCardOpen] = useState(false);
   const [shareDialog, setShareDialog] = useState<{ onGranted: (share: ShareGrant) => void } | null>(null);
-  const share = (r.share * 100).toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+  // 비율과 전체 채팅 수는 본인 화면에만 온다. 공유 화면에는 아예 그리지 않는다.
+  const share = r.share === undefined ? null : (r.share * 100).toLocaleString("ko-KR", { maximumFractionDigits: 2 });
   const elapsed = r.firstActiveDate ? Math.max(0, Math.floor((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${r.firstActiveDate}T00:00:00Z`)) / 86_400_000)) : null;
   return <>
     <div className="relationship-layout">
@@ -87,10 +88,10 @@ export function RelationshipDetails({ response, owner }: { response: ChannelReco
           <a className="relationship-channel" href={channel.channelUrl} target="_blank" rel="noopener noreferrer" aria-label={`${channel.channelName || "선택한 채널"} 치지직 채널 방문`}>
             <ChannelAvatar channel={channel} /><h2>{channel.channelName || "선택한 채널"}</h2>
           </a>
-          {r.share >= .5 && <span className="relationship-home-badge">나의 본진</span>}
+          {r.share !== undefined && r.share >= .5 && <span className="relationship-home-badge">나의 본진</span>}
         </div>
         <div className="relationship-elapsed"><span>첫 채팅 이후</span><strong>{elapsed === null ? "기록 없음" : number(elapsed)}{elapsed !== null && <small>일</small>}</strong><span>{dateLabel(r.firstActiveDate)} ~ {dateLabel(today)}</span></div>
-        <div className="relationship-card-footer"><span>recap</span><span>전체 채팅 중 <strong>{share}%</strong></span></div>
+        <div className="relationship-card-footer"><span>recap</span>{share !== null && <span>전체 채팅 중 <strong>{share}%</strong></span>}</div>
         {!owner && <ShareActions channel={channel} onOpenShare={onGranted => setShareDialog({ onGranted })} onOpenCard={() => setCardOpen(true)} />}
       </section>
       <section className="relationship-details" aria-label="채널과의 활동 기록">
@@ -111,7 +112,7 @@ export function RelationshipDetails({ response, owner }: { response: ChannelReco
           </dl>}
         </div>
         <div className="relationship-streak"><span>최장 연속 활동</span><strong>{number(r.longestConsecutiveActiveDays)}일</strong><div aria-hidden="true">{Array.from({ length: Math.min(60, r.longestConsecutiveActiveDays) }, (_, i) => <i key={i} />)}</div></div>
-        <dl className="relationship-footnotes"><div><dt>최근 채팅</dt><dd>{dateLabel(r.lastActiveDate)}</dd></div><div><dt>전체 채팅</dt><dd>{number(r.totalUserChatCount)}개</dd></div></dl>
+        <dl className="relationship-footnotes"><div><dt>최근 채팅</dt><dd>{dateLabel(r.lastActiveDate)}</dd></div>{r.totalUserChatCount !== undefined && <div><dt>전체 채팅</dt><dd>{number(r.totalUserChatCount)}개</dd></div>}</dl>
       </section>
     </div>
     <section className="relationship-calendar" aria-label="이 채널에서 남긴 채팅"><h2>이 채널에서 남긴 흔적</h2>{response.daily.status === "ready" ? <CalendarGrid trend={response.daily.data} period={period} selected={selectedDate} onSelect={setSelectedDate} /> : <ResultNotice result={response.daily} />}</section>

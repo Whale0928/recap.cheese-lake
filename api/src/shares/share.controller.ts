@@ -4,7 +4,7 @@ import { ActivityModule } from "../activity/activity.module.js";
 import { SessionAuthGuard } from "../activity/activity.controller.js";
 import { channelRecord } from "../activity/channel.record.js";
 import { LabClient } from "../activity/lab.client.js";
-import type { ChannelRecordResponse } from "../activity/activity.types.js";
+import type { ActivityResult, ChannelRecordResponse, ChannelRelationship } from "../activity/activity.types.js";
 import { ActivityLogService } from "../database/activity-log.service.js";
 import { ActivityType } from "../database/activity-log.types.js";
 import { AccessStore } from "../privacy/access.store.js";
@@ -14,7 +14,18 @@ const channelId = (value: string, message: string): string => {
   if (!/^[0-9a-f]{32}$/.test(value)) throw new BadRequestException(message);
   return value;
 };
-export interface SharedRecordResponse extends ChannelRecordResponse { owner: { channelId: string; channelName: string | null }; consentedAt: string }
+// 수신자에게는 동의 창에 적은 항목만 준다. 전체 채팅 중 비율과 전체 채팅 수는 다른 방송 활동을 드러내므로 뺀다.
+export type SharedRelationship = Omit<ChannelRelationship["relationship"], "share" | "totalUserChatCount">;
+export interface SharedRecordResponse extends Omit<ChannelRecordResponse, "record" | "profileRefresh"> {
+  record: ActivityResult<{ channel: ChannelRelationship["channel"]; relationship: SharedRelationship }>;
+  owner: { channelId: string; channelName: string | null };
+  consentedAt: string;
+}
+export function sharedRecord(record: ChannelRecordResponse["record"]): SharedRecordResponse["record"] {
+  if (record.status !== "ready") return record;
+  const { firstActiveDate, lastActiveDate, chatCount, activeDays, longestConsecutiveActiveDays, mostActiveDay, mostActiveMonth } = record.data.relationship;
+  return { status: "ready", data: { channel: record.data.channel, relationship: { firstActiveDate, lastActiveDate, chatCount, activeDays, longestConsecutiveActiveDays, mostActiveDay, mostActiveMonth } } };
+}
 
 // 공유는 "스트리머가 로그인하면 이 채널에서의 내 기록 화면을 그대로 본다"는 뜻이다. 주소만으로는 열리지 않고 동의 행이 있어야 한다.
 @Controller("api/me")
@@ -69,7 +80,7 @@ export class ShareController {
       if (await this.access.restriction(owner)) throw new ForbiddenException("Shared record unavailable");
       // 프로필 재조회 일정은 본인 화면 전용 경로를 가리키므로 수신자 응답에는 싣지 않는다.
       const { fetchedAt, calendarPeriod, record, daily, monthly } = await channelRecord(this.lab, owner, recipient);
-      return { fetchedAt, calendarPeriod, record, daily, monthly, owner: { channelId: owner, channelName: share.ownerChannelName }, consentedAt: share.consentedAt };
+      return { fetchedAt, calendarPeriod, record: sharedRecord(record), daily, monthly, owner: { channelId: owner, channelName: share.ownerChannelName }, consentedAt: share.consentedAt };
     });
   }
 }

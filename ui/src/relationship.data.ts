@@ -16,6 +16,11 @@ export interface RelationshipResponse {
   };
 }
 
+export type RelationshipRecord = RelationshipResponse["relationship"];
+// 스트리머에게 보여 주는 화면에는 비율과 전체 채팅 수가 오지 않는다.
+export type SharedRelationshipRecord = Omit<RelationshipRecord, "share" | "totalUserChatCount">;
+export type RelationshipView = { channel: RelationshipChannel; relationship: SharedRelationshipRecord & Partial<Pick<RelationshipRecord, "share" | "totalUserChatCount">> };
+
 const previewChannelKey = "recap.relationship.previewChannel";
 export const relationshipHref = (channelId: string) => `/recap/channel/?${new URLSearchParams({ channel: channelId })}`;
 

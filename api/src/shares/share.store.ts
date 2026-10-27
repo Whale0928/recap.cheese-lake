@@ -41,12 +41,16 @@ export class ShareStore {
   }
 
   // 수신자 화면 목록. 소유자 이름은 로그인 시 저장한 닉네임이다.
+  // 수집 거부를 요청했거나 이용이 제한된 소유자는 기록 조회가 막히므로 목록에서도 뺀다(AccessStore.restriction 과 같은 기준).
   async received(recipient: string): Promise<ReceivedShare[]> {
     if (!this.source) return [];
     const rows: ReceivedRow[] = await this.source.query(`
       SELECT s.owner_channel_id, a.channel_name, s.consented_at
       FROM recap.recap_shares s JOIN recap.chzzk_accounts a ON a.channel_id = s.owner_channel_id
-      WHERE s.recipient_channel_id = $1 ORDER BY s.consented_at DESC LIMIT 200
+      WHERE s.recipient_channel_id = $1
+        AND NOT EXISTS (SELECT 1 FROM recap.privacy_requests p WHERE p.channel_id = s.owner_channel_id AND p.restriction_released_at IS NULL)
+        AND NOT EXISTS (SELECT 1 FROM recap.account_restrictions r WHERE r.channel_id = s.owner_channel_id AND r.released_at IS NULL)
+      ORDER BY s.consented_at DESC LIMIT 200
     `, [recipient]);
     return rows.map(row => ({ ownerChannelId: row.owner_channel_id, ownerChannelName: row.channel_name?.trim() || null, consentedAt: new Date(row.consented_at).toISOString() }));
   }

@@ -192,8 +192,8 @@ Lab 관리 화면이 직접 쓰고 Recap은 `GET /api/banners`·`GET /api/banner
 | `GET /api/me/channels/:broadcastId/share` | 본인이 해당 스트리머에게 보여 주는 중인지 돌려준다(`share: { consentedAt }` 또는 `null`). |
 | `PUT /api/me/channels/:broadcastId/share` | 본문 `{ "consent": true }`로 동의한다. 동의 없음·자기 자신·잘못된 ID는 400이다. 다시 동의하면 시각만 갱신한다. |
 | `DELETE /api/me/channels/:broadcastId/share` | 해제한다. `revoked`는 행이 있었는지다. |
-| `GET /api/me/shares/received` | 로그인한 스트리머에게 보여 주기로 한 시청자 목록. 닉네임은 로그인 시 저장한 `chzzk_accounts.channel_name`이다. |
-| `GET /api/me/shares/received/:ownerId/record` | 그 시청자의 채널 기록 응답(`record`·`daily`·`monthly`)에 `owner`와 `consentedAt`을 더해 돌려준다. 동의 행이 없으면 404, 시청자가 수집 거부·이용 제한 상태면 403이다. |
+| `GET /api/me/shares/received` | 로그인한 스트리머에게 보여 주기로 한 시청자 목록. 닉네임은 로그인 시 저장한 `chzzk_accounts.channel_name`이다. 수집 거부·이용 제한 상태인 시청자는 목록에서 뺀다. |
+| `GET /api/me/shares/received/:ownerId/record` | 그 시청자의 채널 기록 응답(`record`·`daily`·`monthly`)에 `owner`와 `consentedAt`을 더해 돌려준다. 동의 창에 적은 항목만 담으며 `relationship.share`·`totalUserChatCount`(전체 채팅 중 비율과 전체 채팅 수)는 뺀다. 동의 행이 없거나 시청자가 수집 거부·이용 제한 상태면 404다. |
 
 모든 경로는 `SessionAuthGuard`를 거치므로 로그인하지 않으면 401, 본인이 이용 제한 상태면 403이다. 수신자 조회는 시청자 본인 조회와 같은 Lab 호출·검증·5분 캐시(`channelRecord`)를 쓰되, 본인 화면 전용인 프로필 재조회 일정은 싣지 않는다. 동의·해제·공유받은 기록 조회는 활동 로그에 `share_grant`·`share_revoke`·`shared_record_view`로 남긴다. 응답은 모두 `Cache-Control: no-store`다.
 

@@ -1,4 +1,4 @@
-import type { RelationshipResponse } from "./relationship.data";
+import type { RelationshipChannel, SharedRelationshipRecord } from "./relationship.data";
 import type { ActivityResult, ActivityTrend } from "./activity.types";
 
 // 스트리머 공유 동의 창의 문구. 공유는 상대가 로그인하면 "이 채널에서의 내 기록" 화면을 그대로 보는 것이다.
@@ -17,7 +17,7 @@ export function subjectParticle(name: string): "이" | "가" | "이(가)" {
 
 export interface ShareGrant { consentedAt: string }
 export interface ReceivedShare { ownerChannelId: string; ownerChannelName: string | null; consentedAt: string }
-export interface SharedRecordResponse { fetchedAt: string; calendarPeriod: { from: string; to: string }; record: ActivityResult<RelationshipResponse>; daily: ActivityResult<ActivityTrend>; monthly: ActivityResult<ActivityTrend>; owner: { channelId: string; channelName: string | null }; consentedAt: string }
+export interface SharedRecordResponse { fetchedAt: string; calendarPeriod: { from: string; to: string }; record: ActivityResult<{ channel: RelationshipChannel; relationship: SharedRelationshipRecord }>; daily: ActivityResult<ActivityTrend>; monthly: ActivityResult<ActivityTrend>; owner: { channelId: string; channelName: string | null }; consentedAt: string }
 
 export const shareApiHref = (channelId: string) => `/api/me/channels/${encodeURIComponent(channelId)}/share`;
 export const sharedRecordHref = (ownerChannelId: string) => `/recap/shared/?${new URLSearchParams({ owner: ownerChannelId })}`;
