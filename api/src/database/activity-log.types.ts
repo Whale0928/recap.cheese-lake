@@ -9,6 +9,9 @@ export const ActivityType = {
   INQUIRY_LIST_VIEW: "inquiry_list_view",
   PROFILE_VIEW: "profile_view",
   RECAP_VIEW: "recap_view",
+  SHARE_GRANT: "share_grant",
+  SHARE_REVOKE: "share_revoke",
+  SHARED_RECORD_VIEW: "shared_record_view",
 } as const;
 export type ActivityType = (typeof ActivityType)[keyof typeof ActivityType];
 
@@ -24,6 +27,9 @@ export const ActivityDescriptions: Record<ActivityType, { codeName: string; reas
   inquiry_list_view: { codeName: "문의 목록 조회", reason: "문의하기에서 이전 문의 목록을 조회했다." },
   profile_view: { codeName: "프로필 조회", reason: "프로필 화면에서 치지직 프로필을 조회했다." },
   recap_view: { codeName: "리캡 조회", reason: "리캡 화면에서 활동 요약과 채널별 기록을 조회했다." },
+  share_grant: { codeName: "기록 공유 동의", reason: "채널 기록 화면에서 해당 스트리머에게 이 채널에서의 내 기록을 보여 주는 데 동의했다." },
+  share_revoke: { codeName: "기록 공유 해제", reason: "스트리머에게 보여 주던 채널 기록 공유를 해제했다." },
+  shared_record_view: { codeName: "공유받은 기록 조회", reason: "시청자가 보여 주기로 한 채널 기록 화면을 조회했다." },
 };
 
 export type ActivityErrorCode = "PROFILE_UNAVAILABLE" | "ACTIVITY_NOT_CONFIGURED" | "ACTIVITY_RATE_LIMITED" | "ACTIVITY_UPSTREAM" | "REQUEST_REJECTED" | "PROCESSING_FAILED";

@@ -1,6 +1,7 @@
 import { BadRequestException, CanActivate, ForbiddenException, Inject, Controller, Get, Header, Injectable, Param, Query, Req, UnauthorizedException, UseGuards, type ExecutionContext } from "@nestjs/common";
 import type { Request } from "express";
 import { activityPeriod, recapPeriod } from "./activity.query.js";
+import { channelRecord } from "./channel.record.js";
 import { LabClient } from "./lab.client.js";
 import type { ChannelRecordResponse, RecapResponse, SummaryResponse } from "./activity.types.js";
 import { ActivityLogService } from "../database/activity-log.service.js";
@@ -54,18 +55,7 @@ export class ActivityController {
   @Header("Cache-Control", "no-store")
   async record(@Req() req: Request, @Param("broadcastId") broadcastId: string, @Query() query: Record<string, unknown>): Promise<ChannelRecordResponse> {
     if (!/^[0-9a-f]{32}$/.test(broadcastId) || Object.keys(query).length) throw new BadRequestException("Invalid channel record request");
-    const subject = req.session.user!.channelId;
-    const to = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10);
-    const from = new Date(Date.parse(`${to}T00:00:00Z`) - 364 * 86_400_000).toISOString().slice(0, 10);
-    const recent = activityPeriod({ from, to }, false);
-    const all = recapPeriod({ period: "all" });
-    const [record, daily, monthly] = await Promise.all([
-      this.lab.get("relationship", subject, all, [broadcastId]),
-      this.lab.get("trend", subject, recent, [broadcastId]),
-      this.lab.get("trend", subject, { ...all, interval: "month" }, [broadcastId]),
-    ]);
-    return { fetchedAt: new Date().toISOString(), calendarPeriod: { from, to }, record, daily, monthly,
-      ...(record.status === "ready" && record.profileRefresh ? { profileRefresh: record.profileRefresh } : {}) };
+    return channelRecord(this.lab, req.session.user!.channelId, broadcastId);
   }
 
   // 화면의 이미지 보충은 별도 사용자 활동으로 집계하지 않는다. 로그인 주체는 세션만 사용한다.
