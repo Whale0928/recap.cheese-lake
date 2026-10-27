@@ -5,6 +5,7 @@ import { dateInput, dateTime, number, ResultNotice, useActivity } from "./Activi
 import type { RelationshipResponse } from "./relationship.data";
 import type { ActivityResult, ActivityTrend, ProfileRefresh } from "./activity.types";
 import { useChannelProfiles } from "./useChannelProfiles";
+import { RelationshipCardDialog } from "./RelationshipCardDialog";
 import "./relationship.css";
 
 interface ChannelRecordResponse { fetchedAt: string; calendarPeriod: { from: string; to: string }; record: ActivityResult<RelationshipResponse>; daily: ActivityResult<ActivityTrend>; monthly: ActivityResult<ActivityTrend>; profileRefresh?: ProfileRefresh }
@@ -35,6 +36,7 @@ function RelationshipDetails({ response }: { response: ChannelRecordResponse & {
   const period = response.calendarPeriod;
   const [tab, setTab] = useState<"moments" | "monthly">("moments");
   const [selectedDate, setSelectedDate] = useState(period.to);
+  const [cardOpen, setCardOpen] = useState(false);
   const share = (r.share * 100).toLocaleString("ko-KR", { maximumFractionDigits: 2 });
   const elapsed = r.firstActiveDate ? Math.max(0, Math.floor((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${r.firstActiveDate}T00:00:00Z`)) / 86_400_000)) : null;
   return <>
@@ -51,14 +53,9 @@ function RelationshipDetails({ response }: { response: ChannelRecordResponse & {
         <div className="relationship-card-footer"><span>recap</span><span>전체 채팅 중 <strong>{share}%</strong></span></div>
         <div className="relationship-share-action">
           <button type="button" className="btn btn-default" aria-disabled="true">이 스트리머에게 기록 공유하기</button>
-          <span className="relationship-share-tools">
-            <button type="button" className="btn btn-outline btn-icon" aria-disabled="true" aria-label="공유하기" title="공유하기">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
-            </button>
-            <button type="button" className="btn btn-outline btn-icon" aria-disabled="true" aria-label="이미지로 저장" title="이미지로 저장">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11M7 10l5 5 5-5M4 19h16" /></svg>
-            </button>
-          </span>
+          <button type="button" className="btn btn-outline btn-icon" onClick={() => setCardOpen(true)} aria-haspopup="dialog" aria-label="이미지로 저장" title="이미지로 저장">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11M7 10l5 5 5-5M4 19h16" /></svg>
+          </button>
         </div>
       </section>
       <section className="relationship-details" aria-label="채널과의 활동 기록">
@@ -84,6 +81,7 @@ function RelationshipDetails({ response }: { response: ChannelRecordResponse & {
     </div>
     <section className="relationship-calendar" aria-label="이 채널에서 남긴 채팅"><h2>이 채널에서 남긴 흔적</h2>{response.daily.status === "ready" ? <CalendarGrid trend={response.daily.data} period={period} selected={selectedDate} onSelect={setSelectedDate} /> : <ResultNotice result={response.daily} />}</section>
     <p className="activity-meta">활동 정보 확인 · {dateTime(response.fetchedAt)}</p>
+    <RelationshipCardDialog open={cardOpen} channelId={originalChannel.channelId} channelName={channel.channelName} today={today} onClose={() => setCardOpen(false)} />
   </>;
 }
 

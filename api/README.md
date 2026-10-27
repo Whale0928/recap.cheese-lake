@@ -199,3 +199,9 @@ Lab 관리 화면이 직접 쓰고 Recap은 `GET /api/banners`·`GET /api/banner
 `GET /api/recap`은 기존 UI 응답 형식을 유지하면서 Lab의 요약과 통합 활동 API를 각각 한 번 호출한다. 방송 목록·추이·패턴의 개별 호출은 사용하지 않는다.
 
 `GET /api/me/channels/:broadcastId/record`는 로그인한 사용자의 해당 방송 기록을 반환한다. 경로에는 대상 방송 ID만 받으며 사용자 ID나 기간을 덮어쓰는 query는 거절한다. 전체 기간의 채널 기록 요약, 해당 방송으로 필터링한 최근 365일 일별 추이와 전체 기간 월별 추이를 조회한다. 5분 캐시·동시 요청 병합·429 재호출 대기를 재사용하며 캐시 키는 사용자·방송·기간·집계 단위별로 분리한다. 브라우저 응답에는 `Cache-Control: no-store`를 사용한다.
+
+## 채널 기록 카드 이미지
+
+`GET /api/me/channels/:broadcastId/card.png?theme=light|dark`는 로그인한 본인의 채널 기록 카드를 1080×1350 PNG로 돌려준다. 화면의 "이미지로 저장" 버튼이 미리보기 창에서 호출하고, 이용자가 미리보기를 확인한 뒤 내려받는다. `theme`만 받고 다른 query는 400으로 거절한다. 카드에는 채널 기록 화면과 같은 항목(채널 이름·프로필, 첫 채팅 이후 일수와 기간, 나눈 채팅·채팅한 날·최장 연속 활동, 가장 활발했던 날과 달, 최근 채팅, 전체 채팅 수와 비율, 연도)만 담고 채팅 원문이나 다른 채널 활동은 넣지 않는다.
+
+브라우저에서 DOM을 캡처하지 않고 서버가 satori·resvg(WASM)로 그린다. 치지직 프로필 CDN이 CORS 헤더를 주지 않고 Pretendard 동적 서브셋을 캔버스에 담기 어렵기 때문이다. 서체는 OFL인 Pretendard 정적 파일을 `assets/fonts`에 두고, 하단의 서비스 아이콘은 `ui/assets/favicon.svg`의 사본인 `assets/favicon.svg`를 쓴다. 두 자산은 Docker 이미지에도 복사한다. 프로필 이미지는 `*.pstatic.net`의 https 주소만 5초·2MB 제한으로 받아 PNG·JPEG일 때만 넣고, 실패하면 이름 첫 글자로 대체한다. Lab 기록 조회는 record와 같은 캐시를 쓰며 기록이 없으면 503(429일 때 `Retry-After` 포함)을 반환한다. 응답은 `Cache-Control: no-store`와 첨부 파일 헤더를 사용하고 카드 생성은 활동 로그에 기록하지 않는다.
