@@ -173,22 +173,33 @@ Lab의 한 시간 갱신을 따른다. 즉시 수정이 필요한 경우에는 L
 
 여러 Pod의 동시 기동은 PostgreSQL advisory lock으로 직렬화하며 락 대기는 5초로 제한한다. 적용 이력은 `recap.migrations`에 저장한다. 되돌리기는 업무 테이블만 삭제하며 이력 테이블이 있는 `recap` 스키마는 유지한다. 계정 매칭은 로그인 성공 시 채널 ID와 닉네임을 upsert한다.
 
-### 공유·삭제 요청 스키마 초안
+### 공유·삭제 요청 스키마
 
-`recap.recap_shares`(공유 승인)와 `recap.privacy_requests`(기록 삭제 요청)는 아직 마이그레이션을 만들지 않았다.
-테이블 정의 초안은 [공유 ADR](<adr/0003 수신자를 지정하는 리캡 공유.md>)과 module.secrets의 삭제 처리 ADR 0010에 있다.
+`recap.recap_shares`(채널 기록 공유 동의)는 `1793110722689-AddRecapShares.ts`로 만들었다. 설계는 [공유 ADR](<adr/0003 수신자를 지정하는 리캡 공유.md>)을 따른다.
+`recap.privacy_requests`(기록 삭제 요청)의 정의는 module.secrets의 삭제 처리 ADR 0010과 [삭제 ADR](<adr/0004 기록 삭제 요청과 처리 제외.md>)에 있다.
 
 운영 관리 화면은 Lab에 두고 Recap 내부 관리 API로 처리한다. Recap 스키마와 마이그레이션은
 Recap이 관리하며 Lab은 테이블을 직접 수정하지 않는다. 예외로 홍보 배너(`recap.banners`·`banner_placements`·`banner_images`)는
-Lab 관리 화면이 직접 쓰고 Recap은 `GET /api/banners`·`GET /api/banners/images/{hash}.webp`로 읽기만 한다. 공유·삭제 요청은 현재
-[공유 ADR 초안](<adr/0003 수신자를 지정하는 리캡 공유.md>),
-[삭제 ADR 초안](<adr/0004 기록 삭제 요청과 처리 제외.md>)만 추가한 상태다.
-공유·차단·삭제 API, 화면, 만료 정리와 Lab 연동은 아직 구현하지 않았다.
+Lab 관리 화면이 직접 쓰고 Recap은 `GET /api/banners`·`GET /api/banners/images/{hash}.webp`로 읽기만 한다.
+삭제 처리의 Lab 연동은 아직 구현하지 않았다.
 
+## 채널 기록 공유
+
+공유는 "스트리머가 로그인하면 시청자가 보는 '이 채널에서의 내 기록' 화면을 그대로 본다"는 뜻이다. 항목·기간·스냅샷·만료는 없다.
+
+| 경로 | 동작 |
+|---|---|
+| `GET /api/me/channels/:broadcastId/share` | 본인이 해당 스트리머에게 보여 주는 중인지 돌려준다(`share: { consentedAt }` 또는 `null`). |
+| `PUT /api/me/channels/:broadcastId/share` | 본문 `{ "consent": true }`로 동의한다. 동의 없음·자기 자신·잘못된 ID는 400이다. 다시 동의하면 시각만 갱신한다. |
+| `DELETE /api/me/channels/:broadcastId/share` | 해제한다. `revoked`는 행이 있었는지다. |
+| `GET /api/me/shares/received` | 로그인한 스트리머에게 보여 주기로 한 시청자 목록. 닉네임은 로그인 시 저장한 `chzzk_accounts.channel_name`이다. |
+| `GET /api/me/shares/received/:ownerId/record` | 그 시청자의 채널 기록 응답(`record`·`daily`·`monthly`)에 `owner`와 `consentedAt`을 더해 돌려준다. 동의 행이 없으면 404, 시청자가 수집 거부·이용 제한 상태면 403이다. |
+
+모든 경로는 `SessionAuthGuard`를 거치므로 로그인하지 않으면 401, 본인이 이용 제한 상태면 403이다. 수신자 조회는 시청자 본인 조회와 같은 Lab 호출·검증·5분 캐시(`channelRecord`)를 쓰되, 본인 화면 전용인 프로필 재조회 일정은 싣지 않는다. 동의·해제·공유받은 기록 조회는 활동 로그에 `share_grant`·`share_revoke`·`shared_record_view`로 남긴다. 응답은 모두 `Cache-Control: no-store`다.
 
 ## 활동 로그
 
-`ActivityLogService.track()`이 활동 단위의 시작·종료 시각, 처리 시간과 결과를 한 번 기록한다. 종류는 `ActivityType.PROFILE_VIEW`(`/api/me`)와 `ActivityType.RECAP_VIEW`(`/api/recap`)다. 요약·잔디의 보조 요청은 기록하지 않는다. 리캡의 내부 호출·캐시 조회·재시도 횟수는 로그 행 수에 영향을 주지 않는다.
+`ActivityLogService.track()`이 활동 단위의 시작·종료 시각, 처리 시간과 결과를 한 번 기록한다. 종류는 `ActivityType.PROFILE_VIEW`(`/api/me`), `ActivityType.RECAP_VIEW`(`/api/recap`)와 공유 관련 `SHARE_GRANT`·`SHARE_REVOKE`·`SHARED_RECORD_VIEW` 등이며 전체 목록은 `activity-log.types.ts`에 있다. 요약·잔디의 보조 요청은 기록하지 않는다. 리캡의 내부 호출·캐시 조회·재시도 횟수는 로그 행 수에 영향을 주지 않는다.
 
 리캡은 네 항목 모두 정상일 때 성공, 일부만 정상이면 부분 성공, 모두 조회하지 못하면 실패다. 여러 항목에 문제가 있으면 summary → channels → trend → patterns 순서로 첫 실패 단계와 정의된 오류 코드를 기록한다. 처리 중 예외가 발생하면 원래 예외를 유지하고 실패를 기록한다. 응답 본문·원문 오류·토큰은 저장하지 않는다. 로그 저장은 요청 종료 시 기다리되, 저장 실패가 원래 응답이나 예외를 바꾸지는 않는다.
 
