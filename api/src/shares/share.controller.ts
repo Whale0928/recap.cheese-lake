@@ -8,6 +8,9 @@ import type { ActivityResult, ChannelRecordResponse, ChannelRelationship } from 
 import { ActivityLogService } from "../database/activity-log.service.js";
 import { ActivityType } from "../database/activity-log.types.js";
 import { AccessStore } from "../privacy/access.store.js";
+import { AuthModule } from "../auth/auth.module.js";
+import { ChzzkClient } from "../auth/chzzk.client.js";
+import { ChzzkAccountStore } from "../database/chzzk-account.store.js";
 import { ShareStore, type ReceivedShare, type ShareGrant } from "./share.store.js";
 
 const channelId = (value: string, message: string): string => {
@@ -31,7 +34,7 @@ export function sharedRecord(record: ChannelRecordResponse["record"]): SharedRec
 @Controller("api/me")
 @UseGuards(SessionAuthGuard)
 export class ShareController {
-  constructor(private readonly shares: ShareStore, private readonly lab: LabClient, private readonly logs: ActivityLogService, private readonly access: AccessStore) {}
+  constructor(private readonly shares: ShareStore, private readonly lab: LabClient, private readonly logs: ActivityLogService, private readonly access: AccessStore, private readonly chzzk: ChzzkClient, private readonly accounts: ChzzkAccountStore) {}
 
   @Get("channels/:broadcastId/share")
   @Header("Cache-Control", "no-store")
@@ -48,7 +51,18 @@ export class ShareController {
     // 동의 체크 없이 보낸 요청과 자기 자신에게 보여 주는 요청은 받지 않는다.
     if (body?.consent !== true) throw new BadRequestException("Consent required");
     if (recipient === owner) throw new BadRequestException("Cannot share with yourself");
-    return this.logs.track({ channelId: owner, activityType: ActivityType.SHARE_GRANT }, async () => ({ share: await this.shares.grant(owner, recipient) }));
+    return this.logs.track({ channelId: owner, activityType: ActivityType.SHARE_GRANT }, async () => {
+      const share = await this.shares.grant(owner, recipient);
+      await this.saveProfileImage(req.session.user!);
+      return { share };
+    });
+  }
+
+  // 동의 창에 "내 닉네임과 프로필"이 전해진다고 적혀 있으므로, 공유하는 시점에 본인 프로필 사진 주소를 계정에 저장한다.
+  // 사진은 보조 정보라서 가져오지 못해도 동의 자체는 그대로 성공한다.
+  private async saveProfileImage(user: { channelId: string; channelName: string }): Promise<void> {
+    const profile = await this.chzzk.getChannel(user.channelId).catch(() => null);
+    if (profile?.channelImageUrl) await this.accounts.upsert({ channelId: user.channelId, channelName: user.channelName, channelImageUrl: profile.channelImageUrl });
   }
 
   @Delete("channels/:broadcastId/share")
@@ -65,6 +79,13 @@ export class ShareController {
   async received(@Req() req: Request, @Query() query: Record<string, unknown>): Promise<{ shares: ReceivedShare[] }> {
     if (Object.keys(query).length) throw new BadRequestException("Invalid share request");
     return { shares: await this.shares.received(req.session.user!.channelId) };
+  }
+
+  @Get("shares/received/exists")
+  @Header("Cache-Control", "no-store")
+  async receivedExists(@Req() req: Request, @Query() query: Record<string, unknown>): Promise<{ exists: boolean }> {
+    if (Object.keys(query).length) throw new BadRequestException("Invalid share request");
+    return { exists: await this.shares.receivedExists(req.session.user!.channelId) };
   }
 
   // 수신자가 보는 화면. 소유자의 기록을 소유자 자신의 조회와 같은 캐시·검증으로 가져오되, 동의 행과 소유자의 이용 제한 상태를 먼저 확인한다.
@@ -85,5 +106,5 @@ export class ShareController {
   }
 }
 
-@Module({ imports: [ActivityModule], controllers: [ShareController], providers: [ShareStore] })
+@Module({ imports: [ActivityModule, AuthModule], controllers: [ShareController], providers: [ShareStore] })
 export class ShareModule {}

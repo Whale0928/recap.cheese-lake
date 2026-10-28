@@ -1,11 +1,20 @@
 import { Inject, Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { DataSource } from "typeorm";
+import { storableImage } from "../database/chzzk-account.store.js";
 
 export interface ShareGrant { consentedAt: string }
-export interface ReceivedShare { ownerChannelId: string; ownerChannelName: string | null; consentedAt: string }
+export interface ReceivedShare { ownerChannelId: string; ownerChannelName: string | null; ownerChannelImageUrl: string | null; consentedAt: string }
 type ShareRow = { consented_at: Date };
-type ReceivedRow = { owner_channel_id: string; channel_name: string | null; consented_at: Date };
+type ReceivedRow = { owner_channel_id: string; channel_name: string | null; channel_image_url: string | null; consented_at: Date };
 const toGrant = (row: ShareRow): ShareGrant => ({ consentedAt: new Date(row.consented_at).toISOString() });
+
+// 목록과 존재 여부가 같은 기준으로 현재 열람 가능한 공유를 판정한다.
+const RECEIVED_SHARES = `
+  FROM recap.recap_shares s JOIN recap.chzzk_accounts a ON a.channel_id = s.owner_channel_id
+  WHERE s.recipient_channel_id = $1
+    AND NOT EXISTS (SELECT 1 FROM recap.privacy_requests p WHERE p.channel_id = s.owner_channel_id AND p.restriction_released_at IS NULL)
+    AND NOT EXISTS (SELECT 1 FROM recap.account_restrictions r WHERE r.channel_id = s.owner_channel_id AND r.released_at IS NULL)
+`;
 
 // 소유자(시청자)·수신자(스트리머) 한 쌍의 현재 동의 하나를 다룬다. 기간·항목·스냅샷은 없고, 있으면 보여 주고 지우면 끝이다.
 @Injectable()
@@ -45,13 +54,16 @@ export class ShareStore {
   async received(recipient: string): Promise<ReceivedShare[]> {
     if (!this.source) return [];
     const rows: ReceivedRow[] = await this.source.query(`
-      SELECT s.owner_channel_id, a.channel_name, s.consented_at
-      FROM recap.recap_shares s JOIN recap.chzzk_accounts a ON a.channel_id = s.owner_channel_id
-      WHERE s.recipient_channel_id = $1
-        AND NOT EXISTS (SELECT 1 FROM recap.privacy_requests p WHERE p.channel_id = s.owner_channel_id AND p.restriction_released_at IS NULL)
-        AND NOT EXISTS (SELECT 1 FROM recap.account_restrictions r WHERE r.channel_id = s.owner_channel_id AND r.released_at IS NULL)
+      SELECT s.owner_channel_id, a.channel_name, a.channel_image_url, s.consented_at
+      ${RECEIVED_SHARES}
       ORDER BY s.consented_at DESC LIMIT 200
     `, [recipient]);
-    return rows.map(row => ({ ownerChannelId: row.owner_channel_id, ownerChannelName: row.channel_name?.trim() || null, consentedAt: new Date(row.consented_at).toISOString() }));
+    return rows.map(row => ({ ownerChannelId: row.owner_channel_id, ownerChannelName: row.channel_name?.trim() || null, ownerChannelImageUrl: storableImage(row.channel_image_url), consentedAt: new Date(row.consented_at).toISOString() }));
+  }
+
+  async receivedExists(recipient: string): Promise<boolean> {
+    const rows: { exists: boolean }[] = await this.db().query(`SELECT EXISTS (SELECT 1 ${RECEIVED_SHARES}) AS exists`, [recipient]);
+    if (!rows[0]) throw new ServiceUnavailableException("Share unavailable");
+    return rows[0].exists;
   }
 }

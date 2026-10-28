@@ -31,7 +31,7 @@ export class LocalAuthController {
       if (!(error instanceof BadGatewayException)) throw error;
       res.status(502).type("html").send(localAuthPage("채널 정보를 확인하지 못했습니다.")); return;
     }
-    await this.sessions.login(req, { channelId: channel.channelId, channelName: channel.channelName }, "local");
+    await this.sessions.login(req, { channelId: channel.channelId, channelName: channel.channelName, channelImageUrl: channel.channelImageUrl }, "local");
     res.redirect(303, "/me/");
   }
 }
