@@ -1,0 +1,174 @@
+/* 공유받은 리캡의 보기 방식(별자리·궤도·카드·목록).
+   무대 안의 움직임은 shareStageMotion 이 transform·opacity 만 바꾸고, 여기서는 모양과 짧은 CSS 전환만 맡는다. */
+
+/* 제목 오른쪽의 보기 전환. 선택 표시가 미끄러져 옮겨 가며 살짝 튕긴다. */
+.share-view-switch { --n: 4; position: relative; display: grid; grid-template-columns: repeat(var(--n), 1fr); width: 19rem; max-width: 100%; padding: .25rem; border: 1px solid var(--border); border-radius: 999px; background: var(--card); }
+.share-view-switch::before { content: ""; position: absolute; top: .25rem; bottom: .25rem; left: .25rem; width: calc((100% - .5rem) / var(--n)); border-radius: 999px; background: var(--primary); transform: translateX(calc(var(--i, 0) * 100%)); transition: transform .45s cubic-bezier(.3, 1.35, .5, 1); }
+.share-view-switch button { position: relative; min-height: 2.25rem; border: 0; border-radius: 999px; background: transparent; color: var(--muted-foreground); font: inherit; font-size: .8125rem; cursor: pointer; transition: color .25s; }
+.share-view-switch button:hover { color: var(--foreground); }
+.share-view-switch button[aria-pressed="true"] { color: var(--primary-foreground); font-weight: 600; }
+
+.share-views .me-section-heading { align-items: flex-start; }
+
+/* 무대: 시청자 한 명이 폭 0 의 기준점 하나이고, 점과 카드는 그 점을 중심으로 겹쳐 놓는다. */
+.share-stage { position: relative; height: clamp(26rem, 50vw, 34rem); margin-top: 1.5rem; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-xl); background: radial-gradient(60% 80% at 50% 55%, color-mix(in srgb, var(--primary) 12%, var(--card)), var(--card) 75%); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.share-stage.is-fan, .share-stage.is-orbit { cursor: grab; }
+.share-stage.is-fan:active, .share-stage.is-orbit:active { cursor: grabbing; }
+.share-stage::before { content: ""; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .7s;
+  background-image: radial-gradient(1.5px 1.5px at 8% 18%, var(--muted-foreground) 50%, transparent 51%), radial-gradient(1px 1px at 21% 82%, var(--muted-foreground) 50%, transparent 51%), radial-gradient(1.5px 1.5px at 34% 12%, var(--muted-foreground) 50%, transparent 51%), radial-gradient(1px 1px at 47% 90%, var(--muted-foreground) 50%, transparent 51%), radial-gradient(1.5px 1.5px at 58% 8%, var(--muted-foreground) 50%, transparent 51%), radial-gradient(1px 1px at 69% 86%, var(--muted-foreground) 50%, transparent 51%), radial-gradient(1.5px 1.5px at 77% 16%, var(--muted-foreground) 50%, transparent 51%), radial-gradient(1px 1px at 92% 74%, var(--muted-foreground) 50%, transparent 51%); }
+.share-stage.is-sky::before { opacity: .65; animation: share-twinkle 5s ease-in-out infinite alternate; }
+
+.share-orbits { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; transition: opacity .6s .15s; }
+.share-orbits circle { fill: none; stroke: var(--border); stroke-dasharray: 3 7; }
+.is-orbit .share-orbits { opacity: 1; }
+.share-legend { position: absolute; left: 1.25rem; bottom: 1rem; z-index: 2000; display: flex; flex-wrap: wrap; gap: .25rem .5rem; max-width: calc(100% - 2.5rem); font-size: .6875rem; color: var(--muted-foreground); opacity: 0; pointer-events: none; transition: opacity .5s .2s; }
+.share-legend span { padding: .125rem .5rem; border-radius: 999px; background: color-mix(in srgb, var(--card) 88%, transparent); white-space: nowrap; }
+.is-orbit .share-legend { opacity: 1; }
+.share-core { position: absolute; left: 50%; top: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .125rem; width: 5.5rem; height: 5.5rem; margin: -2.75rem 0 0 -2.75rem; z-index: 1; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); font-size: .75rem; opacity: 0; transform: scale(.4); pointer-events: none; transition: opacity .5s, transform .7s cubic-bezier(.3, 1.4, .5, 1); }
+.share-core strong { font-size: .9375rem; letter-spacing: -.02em; }
+.is-orbit .share-core { opacity: 1; transform: scale(1); animation: share-core-glow 4s ease-in-out .7s infinite; }
+
+/* 별자리의 점선과 가로축 안내. 선은 별을 시간순으로 이어 모양이 바뀌는 별을 따라간다. */
+.share-line { position: absolute; left: 50%; top: 50%; width: 0; height: 0; overflow: visible; opacity: 0; pointer-events: none; transition: opacity .6s; }
+.share-line path { fill: none; stroke: var(--primary); stroke-opacity: .3; stroke-width: 1.2; stroke-dasharray: 2 7; }
+.is-sky .share-line { opacity: 1; }
+.share-axis { position: absolute; bottom: 1rem; color: var(--muted-foreground); font-size: .75rem; opacity: 0; pointer-events: none; transition: opacity .5s; }
+.share-axis-start { left: 1.25rem; }
+.share-axis-end { right: 1.25rem; }
+.is-sky .share-axis { opacity: 1; }
+
+.share-node { position: absolute; left: 50%; top: 50%; width: 0; height: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; visibility: hidden; cursor: pointer; will-change: transform; }
+.share-node:focus-visible { outline: none; }
+.share-node:focus-visible .share-dot, .share-node:focus-visible .share-card { outline: 2px solid var(--ring); outline-offset: 4px; }
+.share-dot { --vw-size: 36px; position: absolute; left: -18px; top: -18px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; font-size: .875rem; font-weight: 650; will-change: transform, opacity; }
+.tier-0 .share-dot { background: var(--heat-4); color: var(--primary-foreground); box-shadow: 0 0 18px color-mix(in srgb, var(--primary) 70%, transparent); }
+.tier-1 .share-dot { background: color-mix(in srgb, var(--primary) 78%, var(--card)); color: var(--primary-foreground); box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 40%, transparent); }
+.tier-2 .share-dot { background: color-mix(in srgb, var(--primary) 56%, var(--card)); color: var(--foreground); }
+.tier-3 .share-dot { background: color-mix(in srgb, var(--primary) 38%, var(--card)); color: var(--foreground); }
+.is-fan .share-dot, .is-sky .share-card, .is-orbit .share-card { pointer-events: none; }
+
+/* 이번 주에 도착한 별은 별자리 보기에서 잔잔하게 맥박이 뛴다. */
+.is-sky .share-node.is-fresh .share-dot::after { content: ""; position: absolute; inset: 0; border: 2px solid var(--primary); border-radius: 50%; animation: share-pulse 2.4s ease-out infinite; }
+
+/* 선택 표시는 점 크기를 따라 줄고 커진다. 테두리 굵기는 크기에 맞춰 보정한다. */
+.share-ring { position: absolute; left: -26px; top: -26px; width: 52px; height: 52px; box-sizing: border-box; border: calc(2px / max(var(--dot-s, 1), .3)) solid var(--foreground); border-radius: 50%; opacity: 0; transform: scale(var(--dot-s, 1)); pointer-events: none; transition: opacity .2s; }
+.share-node[aria-pressed="true"] .share-ring { opacity: 1; }
+.is-fan .share-ring { display: none; }
+.share-tip { position: absolute; left: 0; top: calc(var(--dot-s, 1) * 18px + 10px); transform: translateX(calc(-50% + var(--tip-dx, 0px))); padding: .1875rem .625rem; border: 1px solid var(--border); border-radius: 999px; background: var(--background); color: var(--foreground); font-size: .75rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.share-node:hover .share-tip, .share-node:focus-visible .share-tip, .share-node[aria-pressed="true"] .share-tip { opacity: 1; }
+.is-fan .share-tip { display: none; }
+
+/* 카드 보기의 앞면. 기록 카드와 같은 문법(머리, 큰 숫자, 점선 바닥)으로 줄여 놓았다. */
+.share-card { position: absolute; left: -150px; top: -200px; display: flex; flex-direction: column; width: 300px; height: 400px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--border); border-radius: 1.25rem; background: var(--card); color: var(--card-foreground); text-align: left; box-shadow: 0 18px 40px -14px rgb(0 0 0 / .35); will-change: transform, opacity; }
+.share-node[aria-pressed="true"] .share-card { border-color: var(--primary); }
+.share-card-head { display: flex; justify-content: space-between; padding: .75rem 1.5rem; border-bottom: 1px solid var(--border); color: var(--muted-foreground); font-size: .75rem; }
+.share-card-id { display: flex; flex-direction: column; align-items: center; gap: .4rem; padding: 1rem 1.25rem .85rem; background: var(--accent); }
+.share-card-avatar { --vw-size: 64px; flex: 0 0 64px; width: 64px; height: 64px; margin-top: 4px; }
+.share-card-id strong { max-width: 100%; overflow: hidden; font-size: 1.375rem; font-weight: 650; letter-spacing: -.035em; text-overflow: ellipsis; white-space: nowrap; }
+.share-card-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .25rem; font-size: .6875rem; }
+.share-card-chips span { padding: .125rem .5rem; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--accent-foreground); }
+.share-card-chips [data-chip="rank"] { color: oklch(.5 .12 75); border-color: oklch(.82 .13 90); }
+.share-card-days { display: flex; flex: 1; min-height: 0; flex-direction: column; align-items: center; justify-content: center; gap: .25rem; color: var(--muted-foreground); font-size: .75rem; }
+.share-card-big { display: flex; align-items: baseline; gap: .375rem; color: var(--foreground); }
+.share-card-big strong { font-size: 3.5rem; font-weight: 600; letter-spacing: -.065em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.share-card-big small { font-size: 1.125rem; }
+.share-card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .375rem .5rem; padding: .75rem 1.5rem; border-top: 1px dashed var(--border); color: var(--muted-foreground); font-size: .8125rem; }
+
+.share-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-top: .75rem; }
+.share-hint { flex: 1 1 14rem; margin: 0; color: var(--muted-foreground); font-size: .75rem; }
+.share-spin { display: flex; gap: .5rem; }
+.share-tool { display: inline-flex; align-items: center; gap: .4rem; min-height: 2.5rem; padding-inline: .9rem; }
+.share-spin .share-tool { padding-inline: .75rem; }
+.share-detail { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; margin-top: 1rem; padding: 1.25rem 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--background); }
+.share-detail-avatar { --vw-size: 44px; flex: 0 0 44px; width: 44px; height: 44px; }
+.share-list-avatar { --vw-size: 36px; display: block; flex: 0 0 36px; width: 36px; height: 36px; }
+.share-detail-name { display: flex; flex: 1 1 10rem; flex-direction: column; gap: .125rem; min-width: 0; }
+.share-detail-name strong { overflow-wrap: anywhere; font-size: 1.125rem; letter-spacing: -.03em; }
+.share-detail-name span, .share-detail-days span { color: var(--muted-foreground); font-size: .75rem; }
+.share-detail-days { display: flex; align-items: baseline; gap: .5rem; }
+.share-detail-days strong { font-size: 1.75rem; font-weight: 600; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+.share-detail-days small { margin-left: .25rem; font-size: .9375rem; font-weight: 400; }
+.share-detail .btn { min-height: 2.75rem; }
+
+/* 기록 모달. 시청자를 누르면 페이지 이동 없이 떠오른다. */
+.share-record-dialog { width: min(100% - 2rem, 70rem); max-height: calc(100dvh - 2rem); padding: 0; overflow: auto; color: var(--foreground); background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-xl); box-shadow: 0 30px 80px -20px rgb(0 0 0 / .55); overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.share-record-dialog[open] { animation: share-dialog-in .38s cubic-bezier(.2, .9, .3, 1.15); }
+.share-record-dialog::backdrop { background: rgb(0 0 0 / .62); backdrop-filter: blur(3px); animation: share-fade .25s both; }
+.share-record-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); background: var(--background); }
+.share-record-who { display: flex; align-items: center; gap: .85rem; min-width: 0; }
+.share-record-avatar { --vw-size: 48px; flex: 0 0 48px; width: 48px; height: 48px; }
+.share-record-head h2 { margin: 0; font-size: 1.375rem; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.share-record-head .me-source { margin: 0; }
+.share-record-head .btn-icon { flex: 0 0 auto; width: 2.75rem; height: 2.75rem; }
+.share-record-body { padding: 1.5rem; }
+.share-record-dialog button:focus-visible, .share-record-dialog a:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+
+/* 목록 보기는 위에서부터 차례로 떠오른다. */
+.recap-received-list li { animation: share-rise .45s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(min(var(--i, 0), 14) * 35ms); }
+
+@keyframes share-twinkle { from { opacity: .3; } to { opacity: .75; } }
+@keyframes share-pulse { from { opacity: .8; transform: scale(1); } to { opacity: 0; transform: scale(2.6); } }
+@keyframes share-core-glow { 0%, 100% { box-shadow: 0 0 40px 6px color-mix(in srgb, var(--primary) 30%, transparent); } 50% { box-shadow: 0 0 64px 16px color-mix(in srgb, var(--primary) 42%, transparent); } }
+@keyframes share-dialog-in { from { opacity: 0; transform: translateY(1.5rem) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes share-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes share-rise { from { opacity: 0; transform: translateY(.75rem); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 560px) {
+  #shared-view-slot { align-self: stretch; }
+  .share-view-switch { width: 100%; }
+  .share-view-switch button { min-height: 2.75rem; }
+  .share-detail { padding: 1rem; }
+  .share-detail .btn { width: 100%; }
+  .share-tool { min-height: 2.75rem; }
+  .share-record-head { padding: .75rem 1rem; }
+  .share-record-body { padding: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .share-record-dialog[open], .share-record-dialog::backdrop { animation: none; }
+  .share-view-switch::before, .share-core, .share-orbits, .share-line, .share-legend, .share-axis, .share-stage::before { transition: none; }
+  .share-stage.is-sky::before, .is-orbit .share-core, .is-sky .share-node.is-fresh .share-dot::after, .recap-received-list li { animation: none; }
+}
+
+/* 시청자 아바타: 사진이 있으면 사진, 없으면 유형별 기본 모양. 구독 개월 수가 길수록 테두리 효과가 화려해진다. */
+.vw-avatar { position: relative; display: block; width: 100%; height: 100%; border-radius: 50%; }
+.vw-art { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; border-radius: 50%; background: var(--accent); color: var(--accent-foreground); font-size: calc(var(--vw-size, 36px) * .39); font-weight: 650; }
+.vw-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.share-dot .vw-art { background: transparent; color: inherit; }
+.share-dot .vw-initial { opacity: clamp(0, calc((var(--dot-s, 1) - .5) * 4), 1); }
+.vw-avatar[data-kind="subscriber"] .vw-art { background: linear-gradient(145deg, color-mix(in srgb, var(--primary) 88%, white), color-mix(in srgb, var(--primary) 55%, oklch(.82 .12 195))); color: var(--primary-foreground); }
+.vw-avatar[data-kind="ranker"] .vw-art { background: linear-gradient(145deg, var(--primary), color-mix(in srgb, var(--primary) 55%, oklch(.86 .13 100))); color: var(--primary-foreground); }
+.vw-avatar[data-medal="1"] .vw-art { background: linear-gradient(145deg, oklch(.92 .12 95), oklch(.72 .15 70)); color: oklch(.3 .06 70); }
+.vw-avatar[data-medal="2"] .vw-art { background: linear-gradient(145deg, oklch(.94 .01 250), oklch(.72 .02 250)); color: oklch(.3 .02 250); }
+.vw-avatar[data-medal="3"] .vw-art { background: linear-gradient(145deg, oklch(.76 .1 55), oklch(.55 .1 45)); color: oklch(.97 .02 70); }
+.vw-crown, .vw-star { position: absolute; pointer-events: none; filter: drop-shadow(0 1px 2px rgb(0 0 0 / .4)); }
+.vw-crown { left: 50%; top: calc(var(--vw-size, 36px) * -.24); width: calc(var(--vw-size, 36px) * .5); transform: translateX(-50%); fill: oklch(.84 .14 150); }
+.vw-avatar[data-medal="1"] .vw-crown { fill: oklch(.86 .15 90); }
+.vw-avatar[data-medal="2"] .vw-crown { fill: oklch(.9 .01 250); }
+.vw-avatar[data-medal="3"] .vw-crown { fill: oklch(.7 .11 55); }
+.vw-star { right: calc(var(--vw-size, 36px) * -.08); bottom: calc(var(--vw-size, 36px) * -.04); width: calc(var(--vw-size, 36px) * .36); fill: oklch(.88 .15 95); stroke: var(--card); stroke-width: 1.2; }
+.vw-fx { position: absolute; inset: -3px; border-radius: 50%; pointer-events: none; }
+.vw-fx::before, .vw-fx::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
+.vw-avatar[data-tier="1"] .vw-fx::before { inset: 0; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 65%, transparent); }
+.vw-avatar[data-tier="2"] .vw-fx::before { inset: 0; box-shadow: inset 0 0 0 2px var(--primary); }
+.vw-avatar[data-tier="2"] .vw-fx::after, .vw-avatar[data-tier="3"] .vw-fx::after, .vw-avatar[data-tier="4"] .vw-fx::after { inset: -3px; box-shadow: 0 0 12px 2px color-mix(in srgb, var(--primary) 55%, transparent); animation: vw-breathe 3.2s ease-in-out infinite; }
+.vw-avatar[data-tier="3"] .vw-fx::before, .vw-avatar[data-tier="4"] .vw-fx::before { inset: 0; background: conic-gradient(from 0deg, var(--primary), oklch(.86 .13 195), oklch(.9 .14 95), var(--primary)); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); animation: vw-spin 5s linear infinite; }
+.vw-avatar[data-tier="4"] .vw-fx::before { background: conic-gradient(from 0deg, oklch(.92 .14 95), var(--primary), oklch(.86 .13 195), oklch(.82 .13 330), oklch(.92 .14 95)); animation-duration: 2.6s; }
+.vw-avatar[data-tier="4"] .vw-fx::after { box-shadow: 0 0 18px 4px color-mix(in srgb, var(--primary) 60%, transparent), 0 0 36px 8px color-mix(in srgb, oklch(.9 .14 95) 35%, transparent); }
+.vw-spark { position: absolute; inset: -6px; pointer-events: none; }
+.vw-spark i { position: absolute; width: calc(var(--vw-size, 36px) * .22); aspect-ratio: 1; background: oklch(.96 .1 95); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); opacity: 0; animation: vw-twinkle 2.4s ease-in-out infinite; }
+.vw-spark i:nth-child(1) { top: -4%; right: 6%; }
+.vw-spark i:nth-child(2) { bottom: 4%; left: -6%; animation-delay: .8s; }
+.vw-spark i:nth-child(3) { top: 40%; right: -10%; animation-delay: 1.6s; }
+/* 카드 전체 효과: 12개월 이상은 테두리가 빛나고, 24개월 이상은 홀로그램처럼 빛줄기가 훑는다. 1위는 금색 테두리다. */
+.share-node[data-fx="3"] .share-card, .share-node[data-fx="4"] .share-card { border-color: color-mix(in srgb, var(--primary) 70%, var(--border)); box-shadow: 0 18px 40px -14px rgb(0 0 0 / .35), 0 0 22px -6px color-mix(in srgb, var(--primary) 60%, transparent); }
+.share-node[data-fx="4"] .share-card::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 34%, color-mix(in srgb, oklch(.95 .1 95) 30%, transparent) 47%, color-mix(in srgb, oklch(.9 .1 195) 24%, transparent) 54%, transparent 68%); transform: translateX(-120%); animation: vw-foil 4.6s ease-in-out infinite; }
+.share-node[data-medal="1"] .share-card { border-color: oklch(.82 .13 90); }
+@keyframes vw-spin { to { transform: rotate(360deg); } }
+@keyframes vw-breathe { 0%, 100% { opacity: .45; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.05); } }
+@keyframes vw-twinkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
+@keyframes vw-foil { 0%, 45% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+@media (prefers-reduced-motion: reduce) {
+  .vw-fx::before, .vw-fx::after, .vw-spark i, .share-node[data-fx="4"] .share-card::after { animation: none; }
+  .vw-spark i { opacity: .9; transform: none; }
+  .share-node[data-fx="4"] .share-card::after { display: none; }
+}

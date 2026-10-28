@@ -13,6 +13,7 @@ import { CollectionOverview } from "./CollectionOverview";
 
 type Theme = "light" | "dark";
 type AuthState = "loading" | "guest" | "authenticated";
+type ReceivedSharesState = "loading" | "available" | "empty" | "error";
 
 type SessionResponse = {
   loggedIn?: boolean;
@@ -77,11 +78,17 @@ function SiteFooter({ onContact, onPrivacy }: { onContact?: () => void; onPrivac
   );
 }
 
-function AuthButtons({ authState, compact = false }: { authState: AuthState; compact?: boolean }) {
+function AuthButtons({ authState, receivedShares, compact = false }: { authState: AuthState; receivedShares: ReceivedSharesState; compact?: boolean }) {
   const size = compact ? "btn-sm" : "btn-lg";
   const appearance = compact ? "btn-outline header-recap-button" : "btn-default";
   if (authState === "loading") return <button className={`btn ${appearance} ${size}`} type="button" disabled>내 리캡 보기</button>;
-  return <a className={`btn ${appearance} ${size}`} href={authState === "authenticated" ? "/recap/" : "/auth/login"}>내 리캡 보기</a>;
+  // 공유받은 리캡이 없는 사람에게는 버튼 자체를 보이지 않는다. 확인하는 동안에도 깜빡이지 않도록 숨겨 두고, 있을 때만 빛나는 버튼으로 나타난다.
+  const sharedHint = "공유 여부를 확인하지 못했어요. 새로고침해 주세요.";
+  return <>
+    <a className={`btn ${appearance} ${size}`} href={authState === "authenticated" ? "/recap/" : "/auth/login"}>내 리캡 보기</a>
+    {authState === "authenticated" && receivedShares === "available" && <a className={`btn btn-outline btn-glow ${size}`} href="/recap/shared/">공유받은 리캡 보기</a>}
+    {authState === "authenticated" && receivedShares === "error" && <button className={`btn btn-outline ${size}`} type="button" disabled title={sharedHint} aria-label={`공유받은 리캡 보기: ${sharedHint}`}>공유받은 리캡 보기</button>}
+  </>;
 }
 
 function ActivityTexture() {
@@ -120,6 +127,7 @@ function ActivityTexture() {
 function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [authState, setAuthState] = useState<AuthState>("loading");
+  const [receivedShares, setReceivedShares] = useState<ReceivedSharesState>("loading");
   const [localLoginAvailable, setLocalLoginAvailable] = useState(false);
   const [restriction, setRestriction] = useState<AccessRestriction | null>(null);
   const [logoutPending, setLogoutPending] = useState(false);
@@ -161,6 +169,22 @@ function App() {
     return () => controller.abort();
   }, [path]);
 
+  // 로그인 확인 후 화면당 한 번만 조회한다. 테마 전환 등 재렌더링에는 다시 요청하지 않는다.
+  useEffect(() => {
+    if (authState !== "authenticated" || restriction) return;
+    const controller = new AbortController();
+    setReceivedShares("loading");
+    fetch("/api/me/shares/received/exists", { credentials: "same-origin", headers: { Accept: "application/json" }, signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) throw new Error("Shared recap check failed");
+        const body = await response.json() as { exists?: unknown };
+        if (typeof body.exists !== "boolean") throw new Error("Shared recap response malformed");
+        if (!controller.signal.aborted) setReceivedShares(body.exists ? "available" : "empty");
+      })
+      .catch(() => { if (!controller.signal.aborted) setReceivedShares("error"); });
+    return () => controller.abort();
+  }, [authState, restriction, path]);
+
   // 법적 문서 열람은 로그인한 이용자에 한해 접속·활동 기록에 남긴다. 기록 실패는 화면에 영향을 주지 않는다.
   useEffect(() => {
     if (authState !== "authenticated" || (path !== "/privacy" && path !== "/terms")) return;
@@ -189,7 +213,7 @@ function App() {
         <div className="site-header">
           <Wordmark />
           <nav className="site-nav" aria-label="주요 메뉴">
-            {!restriction && <AuthButtons authState={authState} compact />}
+            {!restriction && <AuthButtons authState={authState} receivedShares={receivedShares} compact />}
             {authState === "guest" && localLoginAvailable && <a className="btn btn-outline btn-sm" href="/_dev/login">채널 ID로 로그인</a>}
             {authenticated && !restriction && <a className="btn btn-outline btn-sm nav-icon-button profile-button" href="/me/" aria-label="내 정보 보기" title="내 정보 보기" aria-current={path === "/me" ? "page" : undefined}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg>
@@ -232,7 +256,7 @@ function App() {
               치지직 채팅 활동을 한 번에 봅니다.
             </p>
             <div className="hero-actions">
-              <AuthButtons authState={authState} />
+              <AuthButtons authState={authState} receivedShares={receivedShares} />
             </div>
             <p className="hero-footnote" aria-live="polite">
               * 치지직 공개 채팅을 바탕으로 만든 채팅 리캡입니다. 시청 기록은 포함하지 않습니다.
@@ -303,7 +327,7 @@ function App() {
         <section className="closing">
           <p className="section-kicker">CHAT RECAP</p>
           <h2>{authenticated ? <>본인 확인을<br />마쳤습니다.</> : <>채팅 기록을<br />한 번에 봅니다.</>}</h2>
-          <AuthButtons authState={authState} />
+          <div className="closing-actions"><AuthButtons authState={authState} receivedShares={receivedShares} /></div>
         </section>
       </main>
     );

@@ -16,7 +16,8 @@ export function subjectParticle(name: string): "이" | "가" | "이(가)" {
 }
 
 export interface ShareGrant { consentedAt: string }
-export interface ReceivedShare { ownerChannelId: string; ownerChannelName: string | null; consentedAt: string }
+// subscriptionMonths·rank 는 Lab 이 나중에 내려 줄 값이다. 아직 오지 않으면 없는 것으로 보고 기본 모양을 쓴다.
+export interface ReceivedShare { ownerChannelId: string; ownerChannelName: string | null; ownerChannelImageUrl: string | null; consentedAt: string; subscriptionMonths?: number | null; rank?: number | null }
 export interface SharedRecordResponse { fetchedAt: string; calendarPeriod: { from: string; to: string }; record: ActivityResult<{ channel: RelationshipChannel; relationship: SharedRelationshipRecord }>; daily: ActivityResult<ActivityTrend>; monthly: ActivityResult<ActivityTrend>; owner: { channelId: string; channelName: string | null }; consentedAt: string }
 
 export const shareApiHref = (channelId: string) => `/api/me/channels/${encodeURIComponent(channelId)}/share`;

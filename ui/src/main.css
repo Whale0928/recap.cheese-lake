@@ -70,7 +70,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 .hero h1 em { color: var(--primary); font-style: normal; }
 .hero-description { margin: 2rem 0 0; color: var(--muted-foreground); font-size: clamp(.9375rem, 1.5vw, 1.0625rem); line-height: 1.8; }
-.hero-actions { display: flex; align-items: center; gap: 1.25rem; margin-top: 2rem; }
+.hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1.25rem; margin-top: 2rem; }
+.closing-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
 .hero-footnote { max-width: 31rem; margin: 1.25rem 0 0; color: var(--muted-foreground); font-size: .75rem; }
 .hero-footnote strong { color: var(--foreground); }
 .hero-footnote .auth-error { color: var(--destructive); }
@@ -171,6 +172,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .footer-content { align-items: flex-start; flex-direction: column; gap: .75rem; }
 }
 
+@media (max-width: 760px) {
+  .site-header { height: auto; min-height: 5rem; flex-wrap: wrap; gap: .75rem; padding-block: .75rem; }
+  .site-nav { flex-wrap: wrap; }
+}
+
 @media (max-width: 560px) {
   .site-header, .hero, .principles, .site-footer { width: min(100% - 2rem, 72rem); }
   .site-header { position: relative; flex-wrap: wrap; height: auto; min-height: 4.25rem; padding: .75rem 0; gap: .75rem; }
@@ -206,4 +212,18 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
   :root { scroll-behavior: auto; }
+}
+
+/* 공유받은 리캡이 있을 때만 나타나는 버튼. 네온처럼 은은하게 숨 쉬고, 빛 한 줄기가 가끔 훑고 지나간다. */
+.btn-glow { position: relative; overflow: hidden; color: var(--primary); border-color: color-mix(in srgb, var(--primary) 70%, transparent); text-shadow: 0 0 10px color-mix(in srgb, var(--primary) 55%, transparent); box-shadow: 0 0 10px 0 color-mix(in srgb, var(--primary) 35%, transparent); animation: glow-breathe 3.4s ease-in-out infinite; }
+.btn-glow::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 38%, color-mix(in srgb, var(--primary) 34%, transparent) 50%, transparent 62%); transform: translateX(-130%); animation: glow-sweep 5s ease-in-out 1.2s infinite; pointer-events: none; }
+.btn-glow:hover, .btn-glow:focus-visible { background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); }
+@keyframes glow-breathe {
+  0%, 100% { border-color: color-mix(in srgb, var(--primary) 55%, transparent); box-shadow: 0 0 6px 0 color-mix(in srgb, var(--primary) 28%, transparent); text-shadow: 0 0 6px color-mix(in srgb, var(--primary) 35%, transparent); transform: scale(1); }
+  50% { border-color: var(--primary); box-shadow: 0 0 18px 2px color-mix(in srgb, var(--primary) 55%, transparent), 0 0 38px 6px color-mix(in srgb, var(--primary) 22%, transparent); text-shadow: 0 0 12px color-mix(in srgb, var(--primary) 70%, transparent); transform: scale(1.025); }
+}
+@keyframes glow-sweep { 0%, 55% { transform: translateX(-130%); } 100% { transform: translateX(130%); } }
+@media (prefers-reduced-motion: reduce) {
+  .btn-glow, .btn-glow::after { animation: none; }
+  .btn-glow { border-color: var(--primary); box-shadow: 0 0 14px 1px color-mix(in srgb, var(--primary) 40%, transparent); }
 }
