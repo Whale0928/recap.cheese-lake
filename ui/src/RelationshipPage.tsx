@@ -118,7 +118,7 @@ export function RelationshipDetails({ response, owner }: { response: Omit<Channe
     <section className="relationship-calendar" aria-label="이 채널에서 남긴 채팅"><h2>이 채널에서 남긴 흔적</h2>{response.daily.status === "ready" ? <CalendarGrid trend={response.daily.data} period={period} selected={selectedDate} onSelect={setSelectedDate} /> : <ResultNotice result={response.daily} />}</section>
     <p className="activity-meta">활동 정보 확인 · {dateTime(response.fetchedAt)}</p>
     {!owner && <RelationshipShareDialog open={shareDialog !== null} channel={channel} onClose={() => setShareDialog(null)} onGranted={share => { shareDialog?.onGranted(share); setShareDialog(null); }} />}
-    {!owner && <RelationshipCardDialog open={cardOpen} channelId={originalChannel.channelId} channelName={channel.channelName} today={today} onClose={() => setCardOpen(false)} />}
+    {!owner && <RelationshipCardDialog open={cardOpen} channelId={originalChannel.channelId} hasAvatar={channel.channelImageUrl !== null} input={{ channelName: channel.channelName, today, relationship: r }} onClose={() => setCardOpen(false)} />}
   </>;
 }
 

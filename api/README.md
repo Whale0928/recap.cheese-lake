@@ -213,6 +213,6 @@ Lab 관리 화면이 직접 쓰고 Recap은 `GET /api/banners`·`GET /api/banner
 
 ## 채널 기록 카드 이미지
 
-`GET /api/me/channels/:broadcastId/card.png?theme=light|dark`는 로그인한 본인의 채널 기록 카드를 1080×1350 PNG로 돌려준다. 화면의 "이미지로 저장" 버튼이 미리보기 창에서 호출하고, 이용자가 미리보기를 확인한 뒤 내려받는다. `theme`만 받고 다른 query는 400으로 거절한다. 카드에는 채널 기록 화면과 같은 항목(채널 이름·프로필, 첫 채팅 이후 일수와 기간, 나눈 채팅·채팅한 날·최장 연속 활동, 가장 활발했던 날과 달, 최근 채팅, 전체 채팅 수와 비율, 연도)만 담고 채팅 원문이나 다른 채널 활동은 넣지 않는다.
+채널 기록 화면의 "이미지로 저장"은 브라우저가 canvas로 1080×1350 PNG를 그려 미리보기 창에 보여 주고, 이용자가 확인한 뒤 내려받는다. 서버는 카드를 그리지 않는다. 카드에는 채널 기록 화면과 같은 항목(채널 이름·프로필, 첫 채팅 이후 일수와 기간, 나눈 채팅·채팅한 날·최장 연속 활동, 가장 활발했던 날과 달, 최근 채팅, 전체 채팅 수와 비율, 연도)만 담고 채팅 원문이나 다른 채널 활동은 넣지 않는다. 글꼴은 홈과 같은 Pretendard 동적 서브셋을 쓰며, 모든 페이지의 `index.html`이 그 CSS를 싣고 카드 글자 기준으로 `document.fonts.load`로 미리 받은 뒤 그린다.
 
-브라우저에서 DOM을 캡처하지 않고 서버가 satori·resvg(WASM)로 그린다. 치지직 프로필 CDN이 CORS 헤더를 주지 않고 Pretendard 동적 서브셋을 캔버스에 담기 어렵기 때문이다. 서체는 OFL인 Pretendard 정적 파일을 `assets/fonts`에 두고, 하단의 서비스 아이콘은 `ui/assets/favicon.svg`의 사본인 `assets/favicon.svg`를 쓴다. 두 자산은 Docker 이미지에도 복사한다. 프로필 이미지는 `*.pstatic.net`의 https 주소만 5초·2MB 제한으로 받아 PNG·JPEG일 때만 넣고, 실패하면 이름 첫 글자로 대체한다. Lab 기록 조회는 record와 같은 캐시를 쓰며 기록이 없으면 503(429일 때 `Retry-After` 포함)을 반환한다. 응답은 `Cache-Control: no-store`와 첨부 파일 헤더를 사용하고 카드 생성은 활동 로그에 기록하지 않는다.
+`GET /api/me/channels/:broadcastId/avatar`는 로그인한 본인이 기록을 조회한 채널의 프로필 사진 바이트를 그대로 중계한다. 치지직 프로필 CDN이 CORS 헤더를 주지 않아 브라우저가 그 사진을 canvas에 담으면 PNG로 꺼낼 수 없기 때문이다. 사진 주소는 클라이언트에서 받지 않고 Lab 관계 조회(record와 같은 캐시)의 `channelImageUrl`을 쓰며, `*.pstatic.net`의 https 주소만 5초·2MB 제한으로 받아 PNG·JPEG일 때만 돌려준다. 사진이 없거나 받지 못하면 404이고 화면은 이름 첫 글자로 대체한다. 기록 조회가 안 되면 503(429일 때 `Retry-After` 포함)이다. query는 받지 않으며 응답은 `Cache-Control: private, max-age=300`과 `nosniff`를 사용하고 활동 로그에 기록하지 않는다.
