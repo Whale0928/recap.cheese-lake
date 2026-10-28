@@ -1,11 +1,9 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { dateInput } from "./ActivityView";
-import { sharedRecordHref, type ReceivedShare } from "./relationship.share";
-import { ShareAvatar } from "./ShareAvatar";
+import type { ReceivedShare } from "./relationship.share";
 import { ShareRecordDialog } from "./ShareRecordDialog";
 import { ShareStage } from "./ShareStage";
-import { DEFAULT_SHARE_VIEW, MODE_HINT, SHARE_VIEWS, SHARE_VIEW_KEY, daysSince, elapsed, parseReceivedShare, parseShareView, shareName, viewerBadge, type ShareView } from "./sharedViews";
+import { DEFAULT_SHARE_VIEW, MODE_HINT, SHARE_VIEWS, SHARE_VIEW_KEY, parseReceivedShare, parseShareView, type ShareView } from "./sharedViews";
 import "./receivedShares.css";
 
 const loadView = (): ShareView => {
@@ -17,24 +15,8 @@ const saveView = (view: ShareView) => {
 };
 
 function ViewSwitch({ view, onChange }: { view: ShareView; onChange: (view: ShareView) => void }) {
-  return <div className="share-view-switch" role="group" aria-label="보기 방식" style={{ "--i": SHARE_VIEWS.findIndex(item => item.id === view) } as CSSProperties}>
+  return <div className="share-view-switch" role="group" aria-label="보기 방식" style={{ "--n": SHARE_VIEWS.length, "--i": SHARE_VIEWS.findIndex(item => item.id === view) } as CSSProperties}>
     {SHARE_VIEWS.map(item => <button key={item.id} type="button" aria-pressed={item.id === view} onClick={() => onChange(item.id)}>{item.label}</button>)}
-  </div>;
-}
-
-// 상세 바에 덧붙이는 구독·랭킹 문구. 값이 없으면 아무것도 붙이지 않는다.
-function badgeText(share: ReceivedShare): string {
-  const { months, rank } = viewerBadge(share);
-  return `${rank ? ` · 랭킹 ${rank}위` : ""}${months ? ` · 구독 ${months}개월` : ""}`;
-}
-
-function ShareDetail({ share, onOpen }: { share: ReceivedShare; onOpen: () => void }) {
-  const days = elapsed(daysSince(share.consentedAt, Date.now()));
-  return <div className="share-detail" role="status">
-    <span className="share-detail-avatar"><ShareAvatar share={share} px={44} large /></span>
-    <div className="share-detail-name"><strong>{shareName(share)}</strong><span>{dateInput(share.consentedAt).replaceAll("-", ".")}부터 보여 주는 중{badgeText(share)}</span></div>
-    <div className="share-detail-days"><span>{days.label}</span><strong>{days.big}<small>{days.unit}</small></strong></div>
-    <button className="btn btn-default" type="button" aria-haspopup="dialog" onClick={onOpen}>기록 열기</button>
   </div>;
 }
 
@@ -47,7 +29,7 @@ export function ReceivedShares() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [shuffleTick, setShuffleTick] = useState(0);
-  const [nudge, setNudge] = useState({ dir: 1, n: 0 });
+  const [pickTick, setPickTick] = useState(0);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   useEffect(() => setSlot(document.getElementById("shared-view-slot")), []);
   useEffect(() => {
@@ -82,29 +64,20 @@ export function ReceivedShares() {
     {slot ? createPortal(switcher, slot) : switcher}
     <section className="me-section recap-received share-views" aria-labelledby="received-heading">
       <div className="me-section-heading"><div><h2 id="received-heading">나에게 보여 준 기록</h2><p className="me-source">내 방송에서 남긴 자기 기록을 보여 주기로 한 시청자예요.</p></div><span className="me-status">시청자 {shares.length}명</span></div>
-      {view === "list"
-        ? <ul className="recap-received-list">{shares.map((share, i) => <li key={share.ownerChannelId} style={{ "--i": i } as CSSProperties}>
-          <a className="activity-channel" href={sharedRecordHref(share.ownerChannelId)} onClick={event => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); open(share.ownerChannelId); } }}>
-            <span className="share-list-avatar"><ShareAvatar share={share} px={40} /></span>
-            <span className="activity-channel-name">{shareName(share)}</span>
-          </a>
-          <span className="recap-received-date">{dateInput(share.consentedAt).replaceAll("-", ".")}부터</span>
-        </li>)}</ul>
-        : <>
-          <ShareStage shares={shares} mode={view} selectedId={selected.ownerChannelId} onSelect={setSelectedId} onOpen={open} shuffleTick={shuffleTick} nudge={nudge} />
-          <div className="share-tools">
-            <p className="share-hint">{MODE_HINT[view]}</p>
-            {view === "fan" && <button className="btn btn-outline share-tool" type="button" onClick={() => setShuffleTick(n => n + 1)}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4.5h2.2c1.6 0 2.4.8 3.3 2.2l1.1 1.6c.9 1.4 1.7 2.2 3.3 2.2H14M2 11.5h2.2c1.6 0 2.4-.8 3.3-2.2M10.4 4.5c-.9.6-1.4 1.2-1.9 2M12 3l2 1.5-2 1.5M12 10l2 1.5-2 1.5" /></svg>
-              셔플
-            </button>}
-            {view === "orbit" && <div className="share-spin" role="group" aria-label="판 돌리기">
-              <button className="btn btn-outline share-tool" type="button" aria-label="판을 왼쪽으로 돌리기" onClick={() => setNudge(({ n }) => ({ dir: -1, n: n + 1 }))}><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8a5 5 0 1 0 1.6-3.7M3 2.5v2.6h2.6" /></svg></button>
-              <button className="btn btn-outline share-tool" type="button" aria-label="판을 오른쪽으로 돌리기" onClick={() => setNudge(({ n }) => ({ dir: 1, n: n + 1 }))}><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v2.6h-2.6" /></svg></button>
-            </div>}
-          </div>
-          <ShareDetail share={selected} onOpen={() => open(selected.ownerChannelId)} />
-        </>}
+      <ShareStage shares={shares} mode={view} selectedId={selected.ownerChannelId} onSelect={setSelectedId} onOpen={open} shuffleTick={shuffleTick} pickTick={pickTick} />
+      <div className="share-tools">
+        <p className="share-hint">{MODE_HINT[view]}</p>
+        <div className="share-actions">
+          {view === "fan" && <button className="btn btn-outline share-tool" type="button" onClick={() => setShuffleTick(n => n + 1)}>
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4.5h2.2c1.6 0 2.4.8 3.3 2.2l1.1 1.6c.9 1.4 1.7 2.2 3.3 2.2H14M2 11.5h2.2c1.6 0 2.4-.8 3.3-2.2M10.4 4.5c-.9.6-1.4 1.2-1.9 2M12 3l2 1.5-2 1.5M12 10l2 1.5-2 1.5" /></svg>
+            셔플
+          </button>}
+          <button className="btn btn-outline share-tool" type="button" onClick={() => setPickTick(n => n + 1)}>
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5" /><circle cx="5.7" cy="5.7" r=".7" fill="currentColor" /><circle cx="10.3" cy="10.3" r=".7" fill="currentColor" /><circle cx="8" cy="8" r=".7" fill="currentColor" /></svg>
+            랜덤 선택
+          </button>
+        </div>
+      </div>
     </section>
     <ShareRecordDialog share={opened} onClose={() => setOpenId(null)} />
   </>;

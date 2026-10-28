@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CARD_W, DOT_PX, daysSince, elapsed, fanFit, fanPoses, invertOrder, orbitLayout, orbitPoses, parseReceivedShare, parseShareView, shareInitial, shareName, shuffleOrder, skyPoses, thumb, tierOf, unit, viewerBadge, type ShareItem } from "../src/sharedViews.ts";
+import { CARD_W, DOT_PX, daysSince, elapsed, fanFit, fanPoses, invertOrder, parseReceivedShare, parseShareView, shareInitial, shareName, shuffleOrder, skyPoses, thumb, tierOf, unit, viewerBadge, type ShareItem } from "../src/sharedViews.ts";
 
 // 한국 시간 2026-10-28 15:00
 const NOW = Date.parse("2026-10-28T06:00:00.000Z");
@@ -8,9 +8,9 @@ const item = (n: number, consentedAt: string): ShareItem => ({ id: n.toString(16
 const many = (count: number): ShareItem[] => Array.from({ length: count }, (_, i) => item(i + 1, new Date(NOW - i * 1.3 * 86_400_000).toISOString()));
 
 test("저장된 보기 방식이 올바르지 않으면 별자리로 돌아간다", () => {
-  assert.equal(parseShareView("orbit"), "orbit");
-  assert.equal(parseShareView("list"), "list");
-  for (const bad of [null, undefined, "grid", "", 3, {}]) assert.equal(parseShareView(bad), "sky");
+  assert.equal(parseShareView("fan"), "fan");
+  // 예전에 저장된 "list"(목록)·"orbit"(궤도)처럼 지금 없는 값은 별자리로 돌아간다.
+  for (const gone of ["list", "orbit", "grid", "", 3, null, undefined, {}]) assert.equal(parseShareView(gone), "sky", String(gone));
 });
 
 test("경과 일수는 한국 날짜 기준으로 센다", () => {
@@ -53,55 +53,6 @@ test("별자리는 시청자가 많아도 서로 겹치지 않게 밀어낸다",
 test("별자리는 시청자가 한 명이어도 가운데에 놓인다", () => {
   const [only] = skyPoses([item(1, "2026-10-28T00:00:00.000Z")], NOW, 800, 400);
   assert.equal(only.x, 0);
-});
-
-// 최근 7일 안, 8~30일, 그 이후가 고르게 섞인 시청자 목록.
-const spread = (count: number): ShareItem[] => Array.from({ length: count }, (_, i) => item(i + 1, new Date(NOW - Math.floor(Math.pow(i / count, 1.6) * 230) * 86_400_000).toISOString()));
-const meanRadius = (layout: ReturnType<typeof orbitLayout>, pick: (i: number) => boolean) => {
-  const rs = layout.dots.filter((_, i) => pick(i)).map(d => d.r);
-  return rs.reduce((a, b) => a + b, 0) / rs.length;
-};
-
-test("원판은 최근 시청자일수록 중심에 가깝게 놓는다", () => {
-  const list = spread(150), layout = orbitLayout(list, NOW, 894, 544);
-  const days = list.map(i => daysSince(i.consentedAt, NOW));
-  const recent = meanRadius(layout, i => days[i] <= 7), old = meanRadius(layout, i => days[i] > 90);
-  assert.ok(recent < old - 40, `최근 평균 ${recent.toFixed(0)}px, 오래된 평균 ${old.toFixed(0)}px`);
-  for (const d of layout.dots) assert.ok(d.r >= layout.inner - 1e-6 && d.r <= layout.outer + 1e-6);
-  assert.ok(layout.guideRadii[0] < layout.guideRadii[1] && layout.guideRadii[1] < layout.guideRadii[2]);
-  assert.equal(layout.counts.reduce((a, b) => a + b, 0), 150);
-});
-
-test("원판은 시청자마다 정해진 무작위 가중치로 흩어지되 매번 같은 자리다", () => {
-  const list = spread(80), a = orbitLayout(list, NOW, 894, 544), b = orbitLayout(list, NOW, 894, 544);
-  assert.deepEqual(a, b);
-  assert.ok(new Set(a.dots.map(d => d.dot.toFixed(2))).size > 10, "점 크기가 다양하다");
-  const first = a.dots.slice(0, 40).map(d => d.angle);
-  assert.ok(new Set(first.map(x => x.toFixed(1))).size > 20, "각도가 고르게 퍼져 있다");
-});
-
-test("원판은 시청자가 많아도 겹침을 풀어 점이 서로 떨어져 있다", () => {
-  const layout = orbitLayout(spread(150), NOW, 894, 544), pts = layout.dots.map(d => ({ x: Math.cos(d.angle) * d.r, y: Math.sin(d.angle) * d.r, rad: d.dot * DOT_PX / 2 }));
-  let worst = Infinity;
-  for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) worst = Math.min(worst, Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y) - (pts[i].rad + pts[j].rad));
-  assert.ok(worst > -4, `가장 심한 겹침이 ${worst.toFixed(1)}px 이다`);
-});
-
-test("좁은 판에서는 점이 작아지고 범위를 벗어나지 않는다", () => {
-  const wide = orbitLayout(spread(150), NOW, 894, 544), narrow = orbitLayout(spread(150), NOW, 316, 416);
-  const mean = (layout: ReturnType<typeof orbitLayout>) => layout.dots.reduce((a, d) => a + d.dot, 0) / layout.dots.length;
-  assert.ok(mean(narrow) < mean(wide));
-  assert.ok(narrow.dots.every(d => d.dot >= .3 && d.dot <= 1));
-  assert.equal(orbitLayout(many(1), NOW, 800, 560).dots.length, 1);
-});
-
-test("원판은 시간이 흐르면 각도만 바뀌고 반지름은 그대로이며, 손으로 돌리면 통째로 돈다", () => {
-  const layout = orbitLayout(spread(30), NOW, 800, 560);
-  const a = orbitPoses(layout, 0, 0), b = orbitPoses(layout, 10, 0), c = orbitPoses(layout, 0, Math.PI / 2);
-  assert.notEqual(a[0].x, b[0].x);
-  for (let i = 0; i < a.length; i++) assert.ok(Math.abs(Math.hypot(a[i].x, a[i].y) - Math.hypot(b[i].x, b[i].y)) < 1e-6);
-  // 90도 돌리면 (x, y) 가 (-y, x) 가 된다.
-  for (let i = 0; i < a.length; i++) { assert.ok(Math.abs(c[i].x + a[i].y) < 1e-6 && Math.abs(c[i].y - a[i].x) < 1e-6); }
 });
 
 test("카드 섞기는 모든 시청자를 한 번씩만 담은 순서를 만들고 되돌릴 수 있다", () => {

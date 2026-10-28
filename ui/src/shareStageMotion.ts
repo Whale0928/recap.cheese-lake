@@ -17,16 +17,9 @@ const MAX_STAGGER = 420;
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
 export class StageMotion {
-  phase = 0;
-  // 사용자가 손으로 돌린 판의 각도(라디안)와 놓은 뒤 이어지는 회전 속도(라디안/초).
-  spin = 0;
-  spinVel = 0;
-  dragging = false;
-  speedTarget = 1;
   selected = -1;
   reduced = false;
   paused = false;
-  continuous = false;
   // 무대 폭의 절반. 가장자리 별의 이름표가 잘리지 않게 안쪽으로 밀어 준다.
   halfW = 0;
   onFrame?: (cur: Float64Array) => void;
@@ -39,9 +32,8 @@ export class StageMotion {
   private raf = 0;
   private last = 0;
   private until = 0;
-  private speed = 1;
 
-  constructor(private source: (phase: number, spin: number) => Pose[]) {}
+  constructor(private source: () => Pose[]) {}
 
   // 새로 생긴 노드는 무대 중심에서 점 하나로 시작해 퍼져 나간다.
   setNodes(els: NodeEls[]) {
@@ -81,18 +73,7 @@ export class StageMotion {
     this.raf = 0;
     const dt = Math.min((t - this.last) / 1000, 1 / 40);
     this.last = t;
-    // 마우스를 올리면 궤도가 급정지하지 않고 서서히 느려진다.
-    this.speed += (this.speedTarget - this.speed) * (1 - Math.exp(-dt * 5));
-    const auto = this.continuous && !this.reduced;
-    if (!this.dragging) {
-      if (auto) this.phase += dt * this.speed;
-      // 놓은 뒤에는 마찰로 서서히 멈춘다.
-      this.spin += this.spinVel * dt;
-      this.spinVel *= Math.exp(-dt * 1.6);
-      if (Math.abs(this.spinVel) < .01) this.spinVel = 0;
-    }
-    const animating = auto || this.dragging || this.spinVel !== 0;
-    const poses = this.source(this.phase, this.spin);
+    const poses = this.source();
     let moving = false;
     const { cur, vel, tgt } = this;
     for (let i = 0; i < this.els.length; i++) {
@@ -114,7 +95,7 @@ export class StageMotion {
       this.write(i, b, p.z);
     }
     this.onFrame?.(cur);
-    if (moving || animating || t < this.until) this.kick();
+    if (moving || t < this.until) this.kick();
   };
 
   // 바뀐 값만 DOM 에 쓴다. 궤도처럼 계속 도는 동안에도 점 하나당 transform 한 줄만 갱신되어 프레임 비용이 작다.
@@ -139,11 +120,17 @@ export class StageMotion {
     if (prev[0] !== next[0]) root.style.transform = next[0];
     if (prev[1] !== next[1]) root.style.zIndex = next[1];
     if (prev[2] !== next[2]) root.style.visibility = next[2];
-    if (prev[3] !== next[3]) { root.style.setProperty("--dot-s", next[3]); dot.style.transform = `scale(${next[3]})`; }
+    if (prev[3] !== next[3]) {
+      // 크기 변수는 소수 둘째 자리까지만 갱신해 자손 요소의 스타일 재계산 횟수를 줄이고, 실제 크기는 transform 이 정밀하게 따른다.
+      const coarse = dotScale.toFixed(2);
+      if (prev[8] !== coarse) { root.style.setProperty("--dot-s", coarse); prev[8] = coarse; }
+      dot.style.transform = `scale(${next[3]})`;
+    }
     if (prev[4] !== next[4]) root.style.setProperty("--tip-dx", next[4]);
     if (prev[5] !== next[5]) dot.style.opacity = next[5];
     if (prev[6] !== next[6]) card.style.transform = `scale(${next[6]})`;
     if (prev[7] !== next[7]) card.style.opacity = next[7];
+    next[8] = prev[8] ?? "";
     this.written[i] = next;
   }
 }

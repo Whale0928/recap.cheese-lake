@@ -3,18 +3,17 @@ import type { ReceivedShare } from "./relationship.share";
 // 공유받은 리캡 화면의 보기 방식별 배치 계산. DOM 과 무관한 순수 함수로 두어 브라우저 없이 검증한다.
 // 좌표는 모두 무대 중심이 원점이다. 서버는 건드리지 않고 목록 응답의 이름·동의 시각만 쓴다.
 
-export type ShareView = "sky" | "orbit" | "fan" | "list";
-export type StageMode = Exclude<ShareView, "list">;
+export type ShareView = "sky" | "fan";
+export type StageMode = ShareView;
 
 export const SHARE_VIEWS: readonly { id: ShareView; label: string }[] = [
   { id: "sky", label: "별자리" },
-  { id: "orbit", label: "궤도" },
   { id: "fan", label: "카드" },
-  { id: "list", label: "목록" },
 ];
 export const DEFAULT_SHARE_VIEW: ShareView = "sky";
 export const SHARE_VIEW_KEY = "recap.shared.view";
 
+// 예전에 저장된 값(목록·궤도 보기 등)이 지금 없는 보기면 기본 보기로 돌아간다.
 export const parseShareView = (value: unknown): ShareView => SHARE_VIEWS.find(view => view.id === value)?.id ?? DEFAULT_SHARE_VIEW;
 
 export const DOT_PX = 36;
@@ -28,7 +27,6 @@ export const daysSince = (iso: string, now: number) => Math.max(0, kstDay(now) -
 
 export type Tier = 0 | 1 | 2 | 3;
 export const tierOf = (days: number): Tier => days <= 7 ? 0 : days <= 30 ? 1 : days <= 90 ? 2 : 3;
-export const TIER_LABELS = ["이번 주", "이번 달", "3개월 이내", "그 이전"] as const;
 
 export interface ShareItem { id: string; consentedAt: string }
 
@@ -75,73 +73,6 @@ export function skyPoses(items: readonly ShareItem[], now: number, w: number, h:
     for (const p of pts) { p.x = clamp(p.x, padX / 2, w - padX / 2); p.y = clamp(p.y, padTop, h - padBottom); }
   }
   return pts.map((p, i) => pose({ x: p.x - w / 2, y: p.y - h / 2, opacity: SKY_OPACITY[tiers[i]], z: 50 - tiers[i] * 10 }, SKY_SCALE[tiers[i]]));
-}
-
-export const orbitRadius = (w: number, h: number) => Math.max(80, Math.min(w, h) / 2 - 28);
-export const ORBIT_GUIDES = [{ days: 7, label: "이번 주" }, { days: 30, label: "이번 달" }, { days: 90, label: "3개월 이내" }] as const;
-const ORBIT_BANDS = 6;
-const ORBIT_SPEED = .22;
-
-// 한 점의 극좌표. band 는 같은 속도로 도는 띠 번호다.
-export interface OrbitDot { r: number; angle: number; band: number; dot: number; z: number }
-export interface OrbitLayout { dots: OrbitDot[]; guideRadii: number[]; counts: number[]; inner: number; outer: number }
-
-// 경과 일수를 로그 눈금의 반지름으로 바꾼다. 최근일수록 중심에 가깝다.
-const orbitRadiusOf = (days: number, dayMax: number, inner: number, outer: number) => inner + (outer - inner) * (Math.log1p(days) / Math.log1p(dayMax));
-
-// 원판: 반지름은 최근성을 따르되 시청자마다 정해진 무작위 가중치로 흩뜨리고(반지름·각도·크기), 겹친 점은 서로 밀어낸다.
-// 같은 시청자는 언제나 같은 자리에 놓이고, 많아지면 점이 작아져 판 안에 들어온다.
-export function orbitLayout(items: readonly ShareItem[], now: number, w: number, h: number): OrbitLayout {
-  const outer = orbitRadius(w, h), inner = outer * .24, slack = (outer - inner) * .12;
-  const days = items.map(item => daysSince(item.consentedAt, now));
-  const dayMax = Math.max(120, ...days, 1);
-  const weights = items.map(item => .55 + .45 * unit(item.id, 2));
-  const meanSquare = weights.reduce((sum, weight) => sum + weight * weight, 0) / Math.max(1, items.length);
-  const free = Math.PI * (outer * outer - inner * inner) * .42;
-  const density = clamp(Math.sqrt(free / Math.max(1, items.length * Math.PI * (DOT_PX / 2) ** 2 * meanSquare)), .3, 1);
-  const pts = items.map((item, i) => {
-    const target = orbitRadiusOf(days[i], dayMax, inner, outer);
-    const r = clamp(target + (unit(item.id, 3) - .5) * 2 * slack, inner, outer), angle = unit(item.id, 1) * Math.PI * 2;
-    const size = clamp(weights[i] * density, .3, 1);
-    return { target, x: Math.cos(angle) * r, y: Math.sin(angle) * r, size, rad: size * DOT_PX / 2 + 2 };
-  });
-  for (let pass = 0; pass < 32; pass++) {
-    for (let i = 0; i < pts.length; i++) {
-      for (let j = i + 1; j < pts.length; j++) {
-        const a = pts[i], b = pts[j];
-        let dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy);
-        const gap = a.rad + b.rad;
-        if (dist >= gap) continue;
-        if (dist < .01) { dx = unit(items[i].id, j) - .5; dy = unit(items[j].id, i) - .5; dist = Math.hypot(dx, dy) || 1; }
-        const push = (gap - dist) / 2 / dist;
-        a.x -= dx * push; a.y -= dy * push; b.x += dx * push; b.y += dy * push;
-      }
-    }
-    // 밀려나도 최근성이 뜻하는 반지름에서 크게 벗어나지 않게 당겨 놓는다.
-    for (const p of pts) {
-      const r = Math.hypot(p.x, p.y) || 1, wanted = clamp(r, Math.max(inner, p.target - slack * 2), Math.min(outer, p.target + slack * 2));
-      p.x *= wanted / r; p.y *= wanted / r;
-    }
-  }
-  const dots = pts.map(p => {
-    const r = Math.hypot(p.x, p.y);
-    return { r, angle: Math.atan2(p.y, p.x), band: clamp(Math.floor(((r - inner) / (outer - inner)) * ORBIT_BANDS), 0, ORBIT_BANDS - 1), dot: p.size, z: 40 + Math.round(p.size * 10) };
-  });
-  const bounds = ORBIT_GUIDES.map(guide => guide.days);
-  const counts = [0, 0, 0, 0];
-  for (const d of days) counts[d <= bounds[0] ? 0 : d <= bounds[1] ? 1 : d <= bounds[2] ? 2 : 3]++;
-  return { dots, guideRadii: bounds.map(d => orbitRadiusOf(d, dayMax, inner, outer)), counts, inner, outer };
-}
-
-// 띠마다 속도가 다르다. 안쪽이 빠르고 바깥이 느리며, 이웃한 띠는 서로 반대로 돈다.
-const bandSpeed = (band: number) => (band % 2 ? -1 : 1) * ORBIT_SPEED / (1 + band * .45) * (.85 + .3 * unit(String(band), 7));
-
-// phase 는 흐른 시간(초), spin 은 사용자가 손으로 돌린 각도(라디안)다.
-export function orbitPoses(layout: OrbitLayout, phase: number, spin: number): Pose[] {
-  return layout.dots.map(d => {
-    const angle = d.angle + bandSpeed(d.band) * phase + spin;
-    return pose({ x: Math.cos(angle) * d.r, y: Math.sin(angle) * d.r, z: d.z }, d.dot);
-  });
 }
 
 // 카드 한 장이 무대에 들어오도록 줄이는 비율.
@@ -206,7 +137,6 @@ export const shareInitial = (share: NamedShare) => share.ownerChannelName ? Arra
 
 export const MODE_HINT: Record<StageMode, string> = {
   sky: "별을 누르면 기록이 열려요. 방향키로 시청자를 옮길 수 있어요.",
-  orbit: "판을 끌어서 돌려 보세요. 마우스를 올리면 천천히 돌아요. 점을 누르면 기록이 열려요.",
   fan: "카드를 끌어서 넘기거나 셔플로 섞어 보세요. 카드를 누르면 기록이 열려요.",
 };
 

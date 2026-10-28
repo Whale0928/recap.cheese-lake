@@ -3,16 +3,16 @@ import { dateInput } from "./ActivityView";
 import type { ReceivedShare } from "./relationship.share";
 import { ShareAvatar } from "./ShareAvatar";
 import { FIELDS, StageMotion } from "./shareStageMotion";
-import { ORBIT_GUIDES, daysSince, elapsed, fanPoses, fanStep, invertOrder, orbitLayout, orbitPoses, shareName, shuffleOrder, skyPoses, tierOf, viewerBadge, type OrbitLayout, type Pose, type ShareItem, type StageMode } from "./sharedViews";
+import { daysSince, elapsed, fanPoses, fanStep, invertOrder, shareName, shuffleOrder, skyPoses, tierOf, viewerBadge, type Pose, type ShareItem, type StageMode } from "./sharedViews";
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-// 별자리·원판·카드 보기를 한 무대에서 그린다. 시청자마다 요소 하나를 두고 보기가 바뀌면 위치만 옮기므로,
-// 보기를 바꾸면 별이 원판으로, 다시 카드로 변한다. 움직임은 브라우저에서만 계산한다(shareStageMotion).
-// onSelect 는 고르기만, onOpen 은 누르는 즉시 기록을 여는 동작이다. shuffleTick 이 바뀌면 카드를 섞고 nudge 가 바뀌면 판을 한 번 굴린다.
-export function ShareStage({ shares, mode, selectedId, onSelect, onOpen, shuffleTick, nudge }: {
+// 별자리·카드 보기를 한 무대에서 그린다. 시청자마다 요소 하나를 두고 보기가 바뀌면 위치만 옮기므로,
+// 보기를 바꾸면 별이 카드로, 다시 별로 변한다. 움직임은 브라우저에서만 계산한다(shareStageMotion).
+// onSelect 는 고르기만, onOpen 은 누르는 즉시 기록을 여는 동작이다. shuffleTick 이 바뀌면 카드를 섞고, pickTick 이 바뀌면 무작위로 한 명을 고르며.
+export function ShareStage({ shares, mode, selectedId, onSelect, onOpen, shuffleTick, pickTick }: {
   shares: ReceivedShare[]; mode: StageMode; selectedId: string; onSelect: (id: string) => void; onOpen: (id: string) => void;
-  shuffleTick: number; nudge: { dir: number; n: number };
+  shuffleTick: number; pickTick: number;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const nodeRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -24,17 +24,15 @@ export function ShareStage({ shares, mode, selectedId, onSelect, onOpen, shuffle
     const days = daysSince(share.consentedAt, now);
     return { days, tier: tierOf(days), date: dateInput(share.consentedAt).replaceAll("-", "."), ...elapsed(days) };
   }), [shares, now]);
-  const orbit = useMemo<OrbitLayout | null>(() => size.w ? orbitLayout(items, now, size.w, size.h) : null, [items, now, size]);
   const selectedIndex = Math.max(0, shares.findIndex(share => share.ownerChannelId === selectedId));
   const sky = useRef<{ items?: ShareItem[]; now?: number; w?: number; h?: number; poses: Pose[] }>({ poses: [] });
   // 카드 덱: order[i] 는 i 번째 시청자의 덱 위치이고 focus 는 덱 위치 기준이다. stack 은 셔플 연출 단계(0 부채, 1 두 더미, 2 한 더미)다.
   const deck = useRef({ order: items.map((_, i) => i), inverse: items.map((_, i) => i), stack: 0 });
   const focus = useRef(selectedIndex);
-  const latest = useRef({ mode, items, now, size, selectedIndex, orbit });
-  latest.current = { mode, items, now, size, selectedIndex, orbit };
-  const engine = useMemo(() => new StageMotion((phase, spin) => {
-    const { mode: current, items: list, now: at, size: box, orbit: layout } = latest.current;
-    if (current === "orbit" && layout) return orbitPoses(layout, phase, spin);
+  const latest = useRef({ mode, items, now, size, selectedIndex });
+  latest.current = { mode, items, now, size, selectedIndex };
+  const engine = useMemo(() => new StageMotion(() => {
+    const { mode: current, items: list, now: at, size: box } = latest.current;
     if (current === "fan") return fanPoses(list.length, focus.current, box.w, box.h, deck.current.order, deck.current.stack);
     // 별 배치는 겹침을 푸는 계산이 들어가므로 크기·목록이 바뀔 때만 다시 구한다.
     const cache = sky.current;
@@ -72,8 +70,6 @@ export function ShareStage({ shares, mode, selectedId, onSelect, onOpen, shuffle
   }, [size, engine]);
 
   useEffect(() => {
-    engine.continuous = mode === "orbit";
-    engine.speedTarget = 1;
     // 카드 보기로 들어올 때는 고른 시청자가 맨 앞에 온다.
     focus.current = deck.current.order[latest.current.selectedIndex] ?? 0;
     if (placed.current) engine.retarget(9);
@@ -133,15 +129,47 @@ export function ShareStage({ shares, mode, selectedId, onSelect, onOpen, shuffle
   }, [shuffleTick, engine, items, onSelect]);
   useEffect(() => () => { for (const id of timers.current) clearTimeout(id); }, []);
 
-  // 판 굴리기 버튼: 한 번 누르면 판이 한 바퀴 남짓 돌고 서서히 멈춘다.
-  const seenNudge = useRef(nudge.n);
+  // 무작위 선택: 카드 보기에서는 룰렛처럼 카드가 빠르게 넘어가다 서서히 멈추고, 나머지 보기에서는 바로 한 명이 골라진다.
+  // 고른 시청자는 아래 선택 효과를 받으며, 기록은 열지 않고 선택만 한다. 지금 고른 시청자는 다시 고르지 않는다.
+  const picking = useRef(0);
+  const seenPick = useRef(pickTick);
+  const cancelPick = () => { cancelAnimationFrame(picking.current); picking.current = 0; };
   useEffect(() => {
-    if (seenNudge.current === nudge.n) return;
-    seenNudge.current = nudge.n;
-    if (latest.current.mode !== "orbit") return;
-    engine.spinVel += nudge.dir * 2.4;
-    engine.kick();
-  }, [nudge, engine]);
+    if (seenPick.current === pickTick) return;
+    seenPick.current = pickTick;
+    if (items.length < 2 || shuffling.current) return;
+    cancelPick();
+    let target = Math.floor(Math.random() * items.length);
+    if (target === latest.current.selectedIndex) target = (target + 1) % items.length;
+    if (latest.current.mode !== "fan" || engine.reduced) { onSelect(items[target].id); return; }
+    const to = deck.current.order[target], last = items.length - 1;
+    // 멀리 있는 카드는 도착 24장 전에서 출발해 서서히 느려지며 멈춘다.
+    const from = Math.abs(to - focus.current) > 24 ? clamp(to + (to > focus.current ? -24 : 24), 0, last) : focus.current;
+    const start = performance.now(), duration = 1600;
+    const step = (now: number) => {
+      const k = Math.min(1, (now - start) / duration);
+      focus.current = from + (to - from) * (1 - (1 - k) ** 4);
+      engine.kick();
+      if (k < 1) picking.current = requestAnimationFrame(step); else { picking.current = 0; onSelect(items[target].id); }
+    };
+    picking.current = requestAnimationFrame(step);
+  }, [pickTick, engine, items, onSelect]);
+  useEffect(() => () => cancelAnimationFrame(picking.current), []);
+
+  // 선택이 바뀔 때마다 잠깐 효과를 준다(고리 퍼짐, 아바타 통통 튐). 짧게 켰다 꺼서 다음 선택에서 다시 재생된다.
+  const prevSelected = useRef(selectedIndex);
+  useEffect(() => {
+    if (prevSelected.current === selectedIndex) return;
+    prevSelected.current = selectedIndex;
+    const el = nodeRefs.current[selectedIndex];
+    if (!el) return;
+    el.classList.remove("pop");
+    void el.offsetWidth;
+    el.classList.add("pop");
+    const id = window.setTimeout(() => el.classList.remove("pop"), 1000);
+    // 다음 선택으로 넘어가면 이전 요소의 효과도 바로 걷어 낸다(타이머가 취소되어도 클래스가 남지 않게).
+    return () => { clearTimeout(id); el.classList.remove("pop"); };
+  }, [selectedIndex]);
 
   const focusAfter = useRef(false);
   useEffect(() => {
@@ -165,55 +193,48 @@ export function ShareStage({ shares, mode, selectedId, onSelect, onOpen, shuffle
     onSelect(items[next].id);
   };
 
-  // 카드 보기에서는 좌우로 끌어 넘기고, 원판 보기에서는 판을 끌어 돌린다. 짧게 누른 것은 끌기가 아니라 선택으로 본다.
-  type Drag = { x0: number; y0: number; f0: number; moved: boolean; lastX: number; lastT: number; v: number; angle: number };
+  // 카드 보기에서는 좌우로 끌어 넘긴다. 짧게 누른 것은 끌기가 아니라 선택으로 본다.
+  type Drag = { x0: number; y0: number; f0: number; moved: boolean; lastX: number; lastT: number; v: number };
   const drag = useRef<Drag | null>(null);
   const suppressClick = useRef(false);
-  const angleAt = (event: PointerEvent<HTMLDivElement>) => {
-    const box = event.currentTarget.getBoundingClientRect();
-    return Math.atan2(event.clientY - (box.top + box.height / 2), event.clientX - (box.left + box.width / 2));
-  };
+  // 끌기를 끝내는 이벤트(버튼을 놓음·취소·창 포커스 이탈)가 무대까지 오지 않는 환경이 있어서, 끌기가 시작되면 창에서도 함께 듣는다.
+  // 놓은 뒤에도 마우스를 따라다니는 일이 없도록 어느 쪽이든 먼저 오는 쪽에서 끌기를 끝낸다.
+  const endRef = useRef<() => void>(() => undefined);
+  const detach = useRef<(() => void) | null>(null);
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (mode === "sky" || (event.pointerType === "mouse" && event.button !== 0)) return;
-    drag.current = { x0: event.clientX, y0: event.clientY, f0: focus.current, moved: false, lastX: event.clientX, lastT: event.timeStamp, v: 0, angle: angleAt(event) };
+    if (mode !== "fan" || (event.pointerType === "mouse" && event.button !== 0)) return;
+    drag.current = { x0: event.clientX, y0: event.clientY, f0: focus.current, moved: false, lastX: event.clientX, lastT: event.timeStamp, v: 0 };
+    cancelPick();
+    detach.current?.();
+    const stop = () => endRef.current();
+    const types = ["pointerup", "pointercancel", "blur"] as const;
+    for (const type of types) window.addEventListener(type, stop);
+    detach.current = () => { for (const type of types) window.removeEventListener(type, stop); };
   };
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     if (!d) return;
+    // 버튼이 이미 떼어진 상태로 움직임만 오면 놓는 이벤트를 놓친 것이므로 끌기를 끝낸다.
+    if (event.pointerType === "mouse" && event.buttons === 0) { endRef.current(); return; }
     const dx = event.clientX - d.x0, dt = Math.max(1, event.timeStamp - d.lastT);
     if (!d.moved) {
       if (Math.hypot(dx, event.clientY - d.y0) < 6) return;
       d.moved = true;
       event.currentTarget.setPointerCapture(event.pointerId);
-      if (mode === "orbit") { engine.dragging = true; engine.spinVel = 0; d.angle = angleAt(event); d.lastT = event.timeStamp; engine.kick(); return; }
     }
-    if (mode === "orbit") {
-      const angle = angleAt(event);
-      let delta = angle - d.angle;
-      if (delta > Math.PI) delta -= Math.PI * 2; else if (delta < -Math.PI) delta += Math.PI * 2;
-      engine.spin += delta;
-      d.v = .7 * d.v + .3 * (delta / (dt / 1000));
-      d.angle = angle; d.lastT = event.timeStamp;
-    } else {
-      d.v = .8 * d.v + .2 * ((event.clientX - d.lastX) / dt);
-      d.lastX = event.clientX; d.lastT = event.timeStamp;
-      focus.current = clamp(d.f0 - dx / fanStep(size.w, size.h), 0, shares.length - 1);
-    }
+    d.v = .8 * d.v + .2 * ((event.clientX - d.lastX) / dt);
+    d.lastX = event.clientX; d.lastT = event.timeStamp;
+    focus.current = clamp(d.f0 - dx / fanStep(size.w, size.h), 0, shares.length - 1);
     engine.kick();
   };
   const endDrag = () => {
     const d = drag.current;
     drag.current = null;
+    detach.current?.();
+    detach.current = null;
     if (!d?.moved) return;
     suppressClick.current = true;
     setTimeout(() => { suppressClick.current = false; }, 0);
-    if (mode === "orbit") {
-      // 놓는 순간의 속도로 이어서 돌다가 마찰로 멈춘다.
-      engine.dragging = false;
-      engine.spinVel = clamp(d.v, -6, 6);
-      engine.kick();
-      return;
-    }
     // 놓는 순간의 속도만큼 더 미끄러진 뒤 가장 가까운 카드에 멈춘다.
     const glide = clamp(clamp(d.v, -2, 2) * 140 / fanStep(size.w, size.h), -3, 3);
     const position = Math.round(clamp(focus.current - glide, 0, shares.length - 1));
@@ -222,18 +243,13 @@ export function ShareStage({ shares, mode, selectedId, onSelect, onOpen, shuffle
     engine.kick();
   };
 
-  const guideRadii = orbit?.guideRadii ?? [];
+  endRef.current = endDrag;
+  useEffect(() => () => { detach.current?.(); }, []);
+
   const first = dateInput(items[lineOrder[0]].consentedAt).replaceAll("-", ".");
-  // 가운데 원은 안쪽 점들과 겹치지 않도록 판 크기에 맞춰 줄인다.
-  const core = Math.max(44, Math.min(88, 2 * ((orbit?.inner ?? 60) - 6)));
-  const cumulative = (upTo: number) => (orbit?.counts ?? []).slice(0, upTo + 1).reduce((sum, count) => sum + count, 0);
   return <div ref={stageRef} className={`share-stage is-${mode}`} role="group" aria-label={`시청자 ${shares.length}명. 방향키로 시청자를 옮기고 엔터로 기록을 열 수 있어요.`}
-    onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}
-    onPointerEnter={() => { engine.speedTarget = .12; }} onPointerLeave={() => { engine.speedTarget = 1; }}
-    onFocus={() => { engine.speedTarget = .12; }} onBlur={() => { engine.speedTarget = 1; }}>
-    <svg className="share-orbits" aria-hidden="true">{guideRadii.map((r, i) => <circle key={i} cx="50%" cy="50%" r={r} />)}</svg>
-    <div className="share-legend" aria-hidden="true">{ORBIT_GUIDES.map((guide, i) => <span key={guide.days}>{guide.label} {cumulative(i)}</span>)}<span>그 이전 {(orbit?.counts[3] ?? 0)}</span></div>
-    <div className="share-core" aria-hidden="true" style={{ width: core, height: core, margin: `${-core / 2}px 0 0 ${-core / 2}px` }}><strong>내 방송</strong><span>{shares.length}명</span></div>
+    onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag} onLostPointerCapture={event => { if (event.target === event.currentTarget) endDrag(); }} onDragStart={event => event.preventDefault()}
+>
     <svg className="share-line" aria-hidden="true"><path ref={pathRef} /></svg>
     <span className="share-axis share-axis-start" aria-hidden="true">{first} 첫 공유</span>
     <span className="share-axis share-axis-end" aria-hidden="true">최근</span>
