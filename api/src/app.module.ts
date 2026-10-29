@@ -9,8 +9,9 @@ import { BannerModule } from "./banners/banner.controller.js";
 import { PrivacyModule } from "./privacy/privacy.controller.js";
 import { ObservationsModule } from "./observations/observations.controller.js";
 import { ShareModule } from "./shares/share.controller.js";
+import { TraitsModule } from "./traits/traits.controller.js";
 
-@Module({ imports: [DatabaseModule, PrivacyModule, AuthModule, ActivityModule, ShareModule, BannerModule, ObservationsModule], controllers: [MeController] })
+@Module({ imports: [DatabaseModule, PrivacyModule, AuthModule, ActivityModule, ShareModule, BannerModule, ObservationsModule, TraitsModule], controllers: [MeController] })
 export class AppModule {
   static register(): DynamicModule { return { module: AppModule, imports: localAuthEnabled() ? [LocalAuthModule] : [] }; }
 }
