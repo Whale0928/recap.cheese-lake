@@ -5,6 +5,7 @@ import { ActivityPatternChart } from "./ActivityPatternChart";
 import { ActivityChannels } from "./ActivityChannels";
 import { HomeChannelCard } from "./HomeChannelCard";
 import { useChannelProfiles } from "./useChannelProfiles";
+import { TraitsCard } from "./TraitsCard";
 export function RecapPage() {
   const currentMonth = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 7);
   const [mode, setMode] = useState<"all" | "month">("all");
@@ -58,7 +59,11 @@ export function RecapPage() {
     {data && channelResult ? <>
       {data.period.from === "1970-01-01T00:00:00.000Z" ? <p className="activity-meta">전체 · 한국 시간 · 확인된 채팅 기준</p> : <PeriodLabel {...data.period} />}
       <HomeChannelCard result={channelResult} />
-      <section className="me-section" aria-labelledby="summary-heading"><div className="me-section-heading"><h2 id="summary-heading">활동 요약</h2></div><SummaryValues result={data.summary} /></section>
+      {/* 활동 요약(3)과 습관 카드(7)를 한 줄에 둔다. 좁은 화면에서는 위아래로 쌓인다. */}
+      <div className="recap-overview">
+        <section className="me-section recap-summary" aria-labelledby="summary-heading"><div className="me-section-heading"><h2 id="summary-heading">활동 요약</h2></div><SummaryValues result={data.summary} /></section>
+        <TraitsCard />
+      </div>
       <ActivityChannels result={channelResult} />
       <section className="me-section" aria-labelledby="patterns-heading"><h2 id="patterns-heading">요일·시간대별 활동</h2>
         {data.patterns.status === "ready" ? <ActivityPatternChart data={data.patterns.data} weekday={weekday} onWeekdayChange={setWeekday} /> : <ResultNotice result={data.patterns} />}

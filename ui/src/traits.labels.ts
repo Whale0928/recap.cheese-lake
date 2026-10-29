@@ -1,0 +1,57 @@
+// 라벨·타입 문구 사전. 라벨 이름·설명은 랩 저장소 docs 「시청자 개성 패턴」, 꾸밈말·이름은 2026.10.30 단어 교정에서 확정했다.
+// 랩 traits API 는 키만 주므로 이름·설명·꾸밈말은 여기서 정한다. 모르는 키는 화면에 내지 않는다.
+export interface TraitLabel { name: string; description: string; modifier?: string; noun?: string }
+export const TRAIT_LABELS: Record<string, TraitLabel> = {
+  late_night: { name: "심야형", description: "남들이 잘 때 채팅해요", modifier: "새벽까지 깨어 있는", noun: "올빼미" },
+  morning: { name: "아침형", description: "아침에 방송을 찾아요", modifier: "아침부터 채팅하는", noun: "얼리버드" },
+  afternoon: { name: "낮형", description: "한낮에 주로 채팅해요", modifier: "대낮에 채팅 치는", noun: "대낮 손님" },
+  evening: { name: "저녁형", description: "저녁 시간에 몰아서 채팅해요", modifier: "저녁이면 채팅하는", noun: "저녁반" },
+  hour_even: { name: "시간 가리지 않는", description: "아침이든 밤이든 고르게 채팅해요", modifier: "시간을 가리지 않는", noun: "24시 시청러" },
+  weekend: { name: "주말형", description: "채팅의 절반 이상이 주말이에요", modifier: "주말에 깨어나는", noun: "주말 전사" },
+  weekday: { name: "평일형", description: "주말엔 거의 채팅하지 않아요", modifier: "평일에만 나타나는", noun: "평일 개근러" },
+  one_home: { name: "한 방송 외길", description: "거의 한 방송에서만 채팅해요", modifier: "한 방송에 눌러앉은", noun: "수호자" },
+  few_regulars: { name: "단골 몇 곳", description: "자주 가는 방송이 몇 곳 정해져 있어요", modifier: "가던 방송을 또 찾는", noun: "낯익은 얼굴" },
+  roaming: { name: "여기저기 순회", description: "여러 방송을 고르게 돌아다녀요", modifier: "여러 방송을 떠도는", noun: "방랑자" },
+  same_day_multi: { name: "하루에 여러 방", description: "하루에 두 방송 이상 들르는 날이 많아요", modifier: "하루에 여러 방 가는", noun: "순간이동" },
+  first_still_top: { name: "첫 방송 그대로", description: "처음 간 방송을 아직 제일 많이 봐요", modifier: "첫 방송이 아직 최애인", noun: "첫사랑" },
+  top1_volatile: { name: "1위가 자주 바뀌는", description: "달마다 제일 많이 가는 방송이 바뀌어요", modifier: "달마다 최애가 바뀌는", noun: "월간 단골" },
+  early_join: { name: "시작부터 함께", description: "방송이 켜지면 바로 들어와요", modifier: "방송 켜지면 바로 오는", noun: "오프닝 멤버" },
+  late_join: { name: "후반 합류", description: "방송 후반에 합류해요", modifier: "방송 후반에 들어오는", noun: "후발대" },
+  stays_to_end: { name: "끝까지 남는", description: "방송이 끝날 때까지 남아 있어요", modifier: "방송 끝까지 남아 있는", noun: "엔딩 요정" },
+  brief_visit: { name: "잠깐 들러 몰아치는", description: "짧게 들러 한꺼번에 말하고 가요", modifier: "잠깐 와서 말 쏟는", noun: "속사포" },
+  main_streak: { name: "연속 출석", description: "주 방송을 빠지지 않고 이어서 봐요", modifier: "연달아 출석 도장 찍는", noun: "개근왕" },
+  small_room: { name: "작은 방 단골", description: "작은 방송에서 존재감이 커요", modifier: "작은 방을 아끼는", noun: "작은 방 터줏대감" },
+  big_room: { name: "큰 방 군중", description: "수천 명이 보는 방송에서 채팅해요", modifier: "수천 명 틈에 섞인", noun: "대형방 군중" },
+  channel_top: { name: "주 방송 상위 2%", description: "주 방송에서 손꼽히는 채팅러예요", modifier: "주 방송 상위 2%에 든", noun: "채팅창 지분러" },
+  length_short: { name: "짧게 받아치는", description: "짧은 말로 빠르게 반응해요", modifier: "짧은 말로 받아치는", noun: "한 줄 리액션" },
+  length_long: { name: "길게 쓰는", description: "한 번에 길게 써요", modifier: "채팅을 길게 쓰는", noun: "장문 제조기" },
+  varied_phrase: { name: "매번 다른 말", description: "같은 말을 거의 되풀이하지 않아요", modifier: "매번 다른 말을 하는", noun: "멘트 부자" },
+  repeats_phrase: { name: "입버릇이 있는", description: "자주 쓰는 한마디가 있어요", modifier: "같은 말을 또 하는", noun: "입버릇 장인" },
+  laugh_only: { name: "웃음으로 말하는", description: "말 대신 웃음으로 반응해요", modifier: "말 대신 ㅋㅋ 치는", noun: "웃음 부자" },
+  question_ending: { name: "궁금한 게 많은", description: "방송 중에 자주 물어봐요", modifier: "방송 보며 자주 묻는", noun: "질문봇" },
+  exclaim_mark: { name: "느낌표가 많은", description: "느낌표로 텐션을 올려요", modifier: "느낌표를 아끼지 않는", noun: "텐션 담당" },
+  emoji_lines: { name: "이모티콘으로 말하는", description: "글 대신 이모티콘을 보내요", modifier: "이모티콘으로 말하는", noun: "이모티콘 장인" },
+  char_stretch: { name: "늘여 쓰는 감탄", description: "'캬ㅑㅑㅑ'처럼 길게 늘여 외쳐요", modifier: "감탄을 길게 늘이는", noun: "인간 확성기" },
+  stay_subscribed: { name: "구독한 곳에 머무는", description: "구독한 방송에서 대부분 채팅해요", modifier: "구독한 방에 머무는", noun: "전문 구독자" },
+  long_sub: { name: "1년 넘은 구독", description: "1년 넘게 구독한 방송이 있어요", modifier: "1년 넘게 구독 중인", noun: "장기 구독러" },
+  multi_sub: { name: "여러 곳 구독", description: "두 곳 이상을 구독하고 있어요", modifier: "구독한 방송이 여럿인", noun: "구독 멀티탭" },
+  one_game: { name: "한 게임 외길", description: "한 게임 방송만 봐요", modifier: "한 게임만 파는", noun: "한 게임 외골수" },
+  game_centric: { name: "게임 방송파", description: "주로 게임 방송에서 채팅해요", modifier: "게임 방송을 주로 보는", noun: "겜방 주민" },
+  talk_centric: { name: "토크 방송파", description: "게임보다 토크 방송을 즐겨요", modifier: "토크 방송을 주로 보는", noun: "토크 방청객" },
+  sports_centric: { name: "스포츠 중계파", description: "스포츠 중계를 함께 봐요", modifier: "스포츠 중계를 함께 보는", noun: "중계 응원단" },
+  omnivore: { name: "잡식", description: "장르를 가리지 않아요", modifier: "장르 안 가리고 보는", noun: "잡식 시청자" },
+  trend_surge: { name: "요즘 불붙은", description: "요즘 채팅이 부쩍 늘었어요" },
+  trend_steady: { name: "꾸준한 페이스", description: "한 달째 비슷한 페이스예요" },
+  trend_decline: { name: "요즘 뜸해진", description: "요즘 조금 뜸해졌어요" },
+  returned: { name: "돌아온", description: "한동안 안 보이다 다시 왔어요" },
+  new_finds: { name: "새 방송 탐방 중", description: "요즘 새로 찾은 방송에 빠져 있어요" },
+  tenure_veteran: { name: "원년 멤버", description: "2025년부터 함께했어요" },
+  tenure_new: { name: "새로 온", description: "최근에 치지직 채팅을 시작했어요" },
+};
+// 함께 붙으면 서로 반대말처럼 읽히는 쌍. 조합 이름에서 짝짓지 않는다.
+export const TRAIT_CLASH: [string, string][] = [
+  ["one_home", "same_day_multi"], ["one_home", "top1_volatile"], ["first_still_top", "top1_volatile"], ["one_home", "omnivore"], ["one_game", "omnivore"], ["stay_subscribed", "roaming"], ["weekday", "weekend"], ["length_short", "length_long"], ["one_game", "game_centric"], ["few_regulars", "one_home"], ["roaming", "one_game"],
+  // 2026.10.30 조합 검토(gpt-6-astra)에서 모순·중복·어감 문제로 막은 쌍
+  ["long_sub", "multi_sub"], ["same_day_multi", "roaming"], ["channel_top", "hour_even"], ["first_still_top", "omnivore"], ["char_stretch", "length_long"], ["main_streak", "weekday"], ["roaming", "small_room"], ["top1_volatile", "small_room"], ["laugh_only", "question_ending"], ["emoji_lines", "question_ending"], ["laugh_only", "varied_phrase"], ["emoji_lines", "varied_phrase"], ["laugh_only", "length_long"], ["emoji_lines", "length_long"],
+];
+export const MEME_NAMES: Record<string, string> = { heok: "헉", jwejwe: "줴줴이야", kya: "캬ㅑ", eoheu: "어흐", gitteuk: "기특 존경", bangjang: "방장", neng: "넹", tongnamu: "통나무" };

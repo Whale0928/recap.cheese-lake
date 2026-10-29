@@ -51,3 +51,7 @@
   .home-channel-image { grid-row: span 2; width: 4.5rem; height: 4.5rem; font-size: 1.75rem; }
   .home-channel-ratio { grid-column: 2; flex-direction: row; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
 }
+
+/* 내 리캡 화면의 섹션은 모두 같은 연한 초록 외곽선을 두른다. 습관 카드만 튀지 않게 한 값으로 맞춘다. */
+.recap-data { --recap-outline: color-mix(in oklab, var(--primary) 30%, var(--border)); }
+.recap-data .me-section, .recap-data .home-channel-card { border: 2px solid var(--recap-outline); }

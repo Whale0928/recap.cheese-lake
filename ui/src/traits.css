@@ -1,0 +1,125 @@
+/* 나는 어떤 시청자일까: 가로형 시청자 카드. 색은 테마 토큰만 써서 라이트·다크가 함께 맞는다. */
+/* 활동 요약과 한 줄(3:7)에 둔다. 카드는 놓인 칸의 폭으로 접히므로 컨테이너 쿼리를 쓴다. */
+.recap-overview { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 7fr); gap: 1.5rem; margin-top: 1.5rem; align-items: stretch; }
+.recap-overview > .me-section { margin-top: 0; }
+.recap-summary { display: flex; flex-direction: column; }
+.recap-summary { padding: 1.5rem; }
+.recap-summary .activity-summary { grid-template-columns: 1fr; gap: 0; margin: 1rem 0 0; flex-grow: 1; align-content: space-evenly; }
+.recap-summary .activity-summary > div { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: .85rem 0; border-top: 1px solid var(--border); }
+.recap-summary .activity-summary dd { margin: 0; font-size: 1.625rem; }
+/* 카드 자체가 섹션의 겉모양이라 바깥 테두리·여백은 없앤다. */
+.recap-overview > .traits-section { padding: 0; border: 0; background: none; box-shadow: none; container-type: inline-size; display: flex; flex-direction: column; }
+.recap-overview > .traits-section > .trait-card { flex-grow: 1; display: flex; }
+.recap-overview > .traits-section > .trait-card > .trait-card-inner { flex-grow: 1; }
+@media (max-width: 900px) { .recap-overview { grid-template-columns: 1fr; } }
+.trait-card { border-radius: var(--radius-xl); border: 2px solid var(--recap-outline, color-mix(in oklab, var(--primary) 30%, var(--border))); background: var(--card); }
+/* 위: 그림 타일 + 제목·정체·배지, 가운데: 근거 세 개 가로, 아래: 필살기 띠. 빈 칸이 생기지 않게 위에서 아래로 쌓는다. */
+.trait-card-inner { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "art main" "skills skills" "sig sig"; align-content: center; column-gap: 1.25rem; row-gap: 1rem; padding: 1rem; border-radius: var(--radius-xl); background: var(--card); color: var(--card-foreground); }
+
+.trait-art { grid-area: art; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .45rem; width: 8rem; padding: .85rem .5rem .7rem; border-radius: .75rem; border: 1px solid color-mix(in oklch, var(--primary) 35%, transparent); background-color: color-mix(in oklch, var(--primary) 9%, var(--card)); background-image: radial-gradient(color-mix(in oklch, var(--primary) 28%, transparent) 1px, transparent 1px); background-size: 10px 10px; }
+.trait-icon { display: grid; place-items: center; width: 4.5rem; height: 4.5rem; border-radius: 1.5rem; border: 2px solid var(--primary); background: var(--card); color: var(--primary); transform: rotate(6deg); }
+.trait-icon svg { width: 2.7rem; height: 2.7rem; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.trait-icon svg .fill { fill: currentColor; stroke: none; }
+.trait-icon svg text { fill: currentColor; stroke: none; font: 700 9px sans-serif; }
+.trait-stars { display: flex; gap: 2px; }
+.trait-stars svg { width: .8rem; height: .8rem; fill: color-mix(in oklch, var(--muted-foreground) 35%, transparent); }
+.trait-stars svg.on { fill: var(--chart-4); }
+.trait-rate { font-size: .75rem; line-height: 1.3; font-weight: 500; white-space: nowrap; color: var(--muted-foreground); text-align: center; }
+
+.trait-main { grid-area: main; display: flex; flex-direction: column; justify-content: center; gap: .45rem; min-width: 0; padding-right: 2.5rem; }
+.trait-title { margin: 0; font-size: 1.75rem; font-weight: 800; line-height: 1.1; letter-spacing: -.03em; word-break: keep-all; overflow-wrap: anywhere; }
+.trait-headline { margin: 0; font-size: .875rem; line-height: 1.55; color: var(--muted-foreground); word-break: keep-all; }
+.trait-lone-fact { margin: 0; font-size: .875rem; font-weight: 700; color: var(--primary); }
+.trait-badges { display: flex; flex-wrap: wrap; gap: .375rem; margin: 0; padding: 0; list-style: none; }
+.trait-badges li { padding: .2rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+.trait-badges .native { border: 1px solid var(--primary); color: var(--primary); }
+.trait-badges .state { background: var(--secondary); color: var(--secondary-foreground); }
+.trait-badges .state { display: inline-flex; align-items: center; gap: .3rem; }
+.trait-badges .state svg { width: .9rem; height: .9rem; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.trait-badges .state svg .fill { fill: currentColor; stroke: none; }
+.trait-signature { grid-area: sig; display: flex; align-items: center; gap: .5rem; margin: 0; padding: .5rem .7rem; border-radius: .6rem; background: var(--accent); color: var(--accent-foreground); }
+.trait-signature span { padding: .1rem .4rem; border-radius: .3rem; background: var(--primary); color: var(--primary-foreground); font-size: .6875rem; font-weight: 800; }
+.trait-signature b { font-size: 1.125rem; color: var(--foreground); }
+.trait-signature em { margin-left: auto; font: 500 .75rem/1 var(--font-mono, ui-monospace, monospace); font-style: normal; }
+
+.trait-skills { grid-area: skills; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 0; padding: .875rem 0 0; border-top: 1px solid var(--border); list-style: none; min-width: 0; }
+.trait-skills li { display: flex; gap: .6rem; align-items: stretch; min-width: 0; }
+.trait-skill-icon { flex-shrink: 0; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .6rem; background: var(--accent); color: var(--primary); }
+.trait-skill-icon svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.trait-skill-icon svg .fill { fill: currentColor; stroke: none; }
+.trait-skill-icon svg text { fill: currentColor; stroke: none; font: 700 9px sans-serif; }
+.trait-skill-body { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; }
+/* 뜻이 두 줄로 넘어가도 막대는 칸 맨 아래에 붙여 세 칸의 높이를 맞춘다. */
+.trait-skill-body .trait-bar, .trait-skill-body .trait-skill-fact { margin-top: auto; }
+.trait-skill-note { margin-bottom: .4rem; }
+.trait-skill-fact { display: block; margin-top: .3rem; font-size: .75rem; font-weight: 600; color: var(--primary); }
+.trait-skill-head { display: flex; justify-content: space-between; gap: .5rem; font-size: .8125rem; }
+.trait-skill-head b { font: 700 .8125rem/1.4 var(--font-mono, ui-monospace, monospace); }
+.trait-bar { height: 6px; margin-top: .3rem; border-radius: 999px; background: var(--muted); overflow: hidden; }
+.trait-bar i { display: block; height: 100%; border-radius: 999px; }
+.trait-bar .c1 { background: var(--chart-1); }
+.trait-bar .c2 { background: var(--chart-5); }
+.trait-bar .c3 { background: var(--chart-4); }
+.trait-skill-note { display: block; font-size: .75rem; line-height: 1.4; color: var(--muted-foreground); word-break: keep-all; }
+
+.trait-card.is-skeleton { border-color: var(--border); }
+.trait-card.is-skeleton .trait-skills { border-top-color: transparent; }
+.trait-card.is-skeleton .trait-art { border-color: transparent; background-image: none; background-color: var(--muted); }
+.sk { display: block; border-radius: .4rem; background: var(--muted); animation: traits-pulse 1.4s ease-in-out infinite; }
+.trait-art .sk-icon { width: 4.5rem; height: 4.5rem; border-radius: 1.5rem; background: color-mix(in oklch, var(--muted-foreground) 18%, var(--muted)); }
+.sk-title { width: 60%; height: 2rem; }
+.sk-line { width: 85%; height: .85rem; }
+.sk-line.short { width: 55%; }
+.sk-chip { width: 7rem; height: 1.4rem; border-radius: 999px; }
+.sk-sig { grid-area: sig; height: 2.6rem; border-radius: .6rem; }
+.trait-skills .sk-bar { margin-top: .5rem; }
+.sk-bar { width: 100%; height: 6px; }
+@keyframes traits-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+
+.traits-record { margin: 0; color: var(--muted-foreground); }
+.traits-retry { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.traits-retry .activity-notice { margin: 0; }
+.traits-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+@container (max-width: 560px) {
+  .trait-card-inner { grid-template-columns: 1fr; grid-template-areas: "art" "main" "skills" "sig"; }
+  .trait-art { width: auto; flex-direction: row; justify-content: flex-start; gap: .75rem; }
+  .trait-icon { width: 3.5rem; height: 3.5rem; border-radius: 1rem; }
+  .trait-icon svg { width: 2.1rem; height: 2.1rem; }
+  /* 칸 수는 근거 개수로 인라인 지정하므로, 좁은 폭에서 한 칸으로 덮을 때만 !important 를 쓴다. */
+  .trait-skills { grid-template-columns: 1fr !important; }
+  .trait-title { font-size: 1.5rem; }
+}
+
+/* 붙은 라벨 전부를 보여 주는 정보 버튼과 팝업. 팝업은 문의하기 창(contact.css)과 같은 틀이다. */
+.trait-info-button { position: absolute; top: .5rem; right: .5rem; z-index: 2; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--muted-foreground); cursor: pointer; }
+.trait-info-button:hover { color: var(--primary); background: var(--accent); }
+.trait-info-button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.trait-info-button svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.trait-info-button svg .dot { fill: currentColor; stroke: none; }
+
+.label-dialog { width: min(100% - 2rem, 46rem); max-height: min(100dvh - 2rem, 44rem); padding: 0; color: var(--foreground); background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 24px 80px rgb(0 0 0 / .35); }
+.label-dialog::backdrop { background: rgb(0 0 0 / .55); backdrop-filter: blur(2px); }
+.label-panel { display: flex; flex-direction: column; gap: 1rem; padding: 1.5rem; }
+.label-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.label-head h2 { margin: 0 0 .25rem; font-size: 1.375rem; letter-spacing: -.03em; line-height: 1.3; }
+.label-head p { margin: 0; color: var(--muted-foreground); font-size: .8125rem; }
+.label-group { display: grid; gap: .5rem; }
+.label-sub { margin: .25rem 0 0; font-size: .8125rem; font-weight: 700; color: var(--muted-foreground); }
+.label-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.label-item { display: flex; gap: .75rem; align-items: flex-start; padding: .75rem .875rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); }
+.label-item:not(.is-mine) { background: transparent; }
+.label-item:not(.is-mine) .label-item-icon { background: var(--muted); color: var(--muted-foreground); }
+.label-item:not(.is-mine) .label-item-name b { color: var(--muted-foreground); font-weight: 600; }
+.label-item.is-mine { border: 2px solid var(--recap-outline, var(--primary)); }
+.label-item-icon { flex-shrink: 0; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: .75rem; background: var(--accent); color: var(--primary); }
+.label-item-icon svg { width: 1.375rem; height: 1.375rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.label-item-icon svg .fill { fill: currentColor; stroke: none; }
+.label-item-icon svg text { fill: currentColor; stroke: none; font: 700 9px sans-serif; }
+.label-item-body { min-width: 0; display: grid; gap: .15rem; }
+.label-item-name { display: flex; align-items: center; gap: .5rem; margin: 0; font-size: 1rem; }
+.label-item-role { padding: .05rem .45rem; border-radius: 999px; background: var(--primary); color: var(--primary-foreground); font-size: .6875rem; font-weight: 700; }
+.label-item-desc { margin: 0; font-size: .8125rem; color: var(--muted-foreground); }
+.label-item-fact { margin: .2rem 0 0; font-size: .8125rem; font-weight: 600; color: var(--primary); }
+@media (max-width: 640px) { .label-dialog { width: 100%; max-width: none; max-height: 100dvh; height: 100dvh; margin: 0; border: 0; border-radius: 0; } }
