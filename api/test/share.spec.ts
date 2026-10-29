@@ -28,13 +28,15 @@ describe("channel record sharing", () => {
   let existsQueryFails: boolean;
   let images: Record<string, string | null>;
   let profileImage: string | null | "fail";
-  const previousEnv = { node: process.env.NODE_ENV, local: process.env.RECAP_LOCAL_AUTH_ENABLED };
+  const previousEnv = { node: process.env.NODE_ENV, local: process.env.RECAP_LOCAL_AUTH_ENABLED, logs: process.env.RECAP_ACTIVITY_LOG_ENABLED };
   const config = { sessionKey: "test-session-key-with-at-least-32-bytes", successUrl: "http://localhost:8180/", secureCookie: false, allowedPeer: () => true, allowedOrigins: ["http://localhost:8180"], sessionTtlMs: 30 * 86400_000, sessionAbsoluteTtlMs: 90 * 86400_000, sessionRotationMs: 7 * 86400_000 };
   const channel = (channelId: string) => ({ channelId, channelName: channelId === owner ? "시청자" : "스트리머", channelImageUrl: null, followerCount: 0, verifiedMark: false });
   const labCalls: string[] = [];
   beforeEach(async () => {
     process.env.NODE_ENV = "development";
     process.env.RECAP_LOCAL_AUTH_ENABLED = "true";
+    // 로컬 로그인을 쓰려고 development로 돌지만 활동 로그 기록 자체는 검증 대상이다.
+    process.env.RECAP_ACTIVITY_LOG_ENABLED = "true";
     shares = [];
     restricted = null;
     excluded = null;
@@ -91,6 +93,7 @@ describe("channel record sharing", () => {
     jest.restoreAllMocks();
     if (previousEnv.node === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previousEnv.node;
     if (previousEnv.local === undefined) delete process.env.RECAP_LOCAL_AUTH_ENABLED; else process.env.RECAP_LOCAL_AUTH_ENABLED = previousEnv.local;
+    if (previousEnv.logs === undefined) delete process.env.RECAP_ACTIVITY_LOG_ENABLED; else process.env.RECAP_ACTIVITY_LOG_ENABLED = previousEnv.logs;
   });
   async function login(channelId: string) {
     const agent = request.agent(app.getHttpServer());

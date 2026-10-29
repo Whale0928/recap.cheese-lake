@@ -8,6 +8,12 @@ export class ActivityLogService implements OnModuleInit, OnModuleDestroy {
   private cleanup: ReturnType<typeof setInterval> | undefined;
   constructor(@Inject(DataSource) private readonly source: DataSource | null) {}
 
+  // 로컬 개발에서는 사용자 활동을 남기지 않는다. 저장 동작을 확인할 때만 명시적으로 켠다.
+  private get persistence(): DataSource | null {
+    if (process.env.NODE_ENV === "development" && process.env.RECAP_ACTIVITY_LOG_ENABLED !== "true") return null;
+    return this.source;
+  }
+
   async track<T>(context: { channelId: string; activityType: ActivityType }, work: () => Promise<T>, classify: (value: T) => ActivityOutcome = () => ({ result: "success" })): Promise<T> {
     const startedAt = new Date();
     const timer = performance.now();
@@ -24,10 +30,11 @@ export class ActivityLogService implements OnModuleInit, OnModuleDestroy {
     } finally {
       const finishedAt = new Date();
       const durationMs = Math.round(performance.now() - timer);
-      if (this.source) {
+      const source = this.persistence;
+      if (source) {
         try {
           // 기존 세션도 계정 참조를 보장하고, 저장된 프로필은 변경하지 않는다.
-          await this.source.query(`
+          await source.query(`
             WITH account AS (
               INSERT INTO recap.chzzk_accounts (channel_id) VALUES ($1) ON CONFLICT (channel_id) DO NOTHING
             )
@@ -43,7 +50,7 @@ export class ActivityLogService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
-    if (!this.source) return;
+    if (!this.persistence) return;
     await this.purge();
     this.cleanup = setInterval(() => { void this.purge(); }, 60 * 60_000);
     this.cleanup.unref();
@@ -51,7 +58,7 @@ export class ActivityLogService implements OnModuleInit, OnModuleDestroy {
   onModuleDestroy(): void { if (this.cleanup) clearInterval(this.cleanup); }
 
   private async purge(): Promise<void> {
-    try { await this.source?.query("DELETE FROM recap.activity_logs WHERE started_at < CURRENT_TIMESTAMP - INTERVAL '90 days'"); }
+    try { await this.persistence?.query("DELETE FROM recap.activity_logs WHERE started_at < CURRENT_TIMESTAMP - INTERVAL '90 days'"); }
     catch { Logger.warn("Activity log cleanup failed", "ActivityLogService"); }
   }
 }

@@ -49,6 +49,35 @@ it("does not require a database in local development", async () => {
   expect(database.query).not.toHaveBeenCalled();
 });
 
+describe("in local development", () => {
+  const previous = { node: process.env.NODE_ENV, logs: process.env.RECAP_ACTIVITY_LOG_ENABLED };
+  beforeEach(() => { process.env.NODE_ENV = "development"; delete process.env.RECAP_ACTIVITY_LOG_ENABLED; });
+  afterEach(() => {
+    if (previous.node === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous.node;
+    if (previous.logs === undefined) delete process.env.RECAP_ACTIVITY_LOG_ENABLED; else process.env.RECAP_ACTIVITY_LOG_ENABLED = previous.logs;
+  });
+
+  it("returns the response without writing activity logs", async () => {
+    await expect(new ActivityLogService(database).track(context, async () => "ok")).resolves.toBe("ok");
+    expect(database.query).not.toHaveBeenCalled();
+  });
+
+  it("writes activity logs again when explicitly enabled", async () => {
+    process.env.RECAP_ACTIVITY_LOG_ENABLED = "true";
+    await expect(new ActivityLogService(database).track(context, async () => "ok")).resolves.toBe("ok");
+    expect(database.query).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not schedule log cleanup", async () => {
+    jest.useFakeTimers();
+    const service = new ActivityLogService(database);
+    await service.onModuleInit();
+    await jest.advanceTimersByTimeAsync(60 * 60_000);
+    expect(database.query).not.toHaveBeenCalled();
+    service.onModuleDestroy();
+  });
+});
+
 it("cleans expired logs on startup and hourly, and stops on shutdown", async () => {
   jest.useFakeTimers();
   const service = new ActivityLogService(database);
