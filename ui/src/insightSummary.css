@@ -1,0 +1,19 @@
+/* AI 분석 요약: 전체 카드의 핵심(한 줄 · 칭호 · 당신다운 채팅)만 한 줄 카드에 담는다. 색은 테마 토큰만 쓴다. */
+.me-section.insight-summary { padding: 0; border: 0; background: none; box-shadow: none; }
+.insight-summary-inner { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 2rem; align-items: center; padding: 1.75rem 2rem; border-radius: var(--radius-xl); border: 2px solid var(--recap-outline, color-mix(in oklab, var(--primary) 30%, var(--border))); background: var(--card); color: var(--card-foreground); }
+.insight-summary-main { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; min-width: 0; }
+.insight-summary-eyebrow { display: inline-flex; align-items: center; gap: .4rem; margin: 0; font-size: .75rem; font-weight: 700; letter-spacing: .02em; color: var(--primary); }
+.insight-summary-eyebrow svg { width: 1rem; height: 1rem; fill: currentColor; }
+.insight-summary h2.insight-summary-headline { margin: 0; font-size: clamp(1.25rem, 2.2vw, 1.625rem); font-weight: 800; line-height: 1.3; letter-spacing: -.03em; color: var(--foreground); word-break: keep-all; overflow-wrap: anywhere; text-wrap: balance; }
+.insight-summary-title { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; margin: 0; }
+.insight-summary-badge { display: inline-block; padding: .3rem .8rem; border-radius: 999px; border: 1px solid var(--primary); color: var(--primary); font-size: .9375rem; font-weight: 800; letter-spacing: -.02em; }
+.insight-summary-why { font-size: .8125rem; line-height: 1.5; color: var(--muted-foreground); word-break: keep-all; }
+.insight-summary-more { display: inline-flex; align-items: center; gap: .3rem; margin-top: .25rem; min-height: 2.5rem; padding: 0 1rem; font-weight: 700; }
+.insight-summary-more svg { width: .9rem; height: .9rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.insight-summary-quotes { display: flex; flex-direction: column; gap: .6rem; margin: 0; padding: 1rem 1.1rem; list-style: none; border-radius: 1rem; background: var(--background); border: 1px solid var(--border); }
+.insight-summary-quotes li { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; min-width: 0; }
+.insight-summary-bubble { margin: 0; max-width: 100%; padding: .5rem .8rem; border-radius: .75rem; background: var(--accent); color: var(--accent-foreground); font-size: .9375rem; line-height: 1.5; overflow-wrap: anywhere; }
+.insight-summary-bubble b { margin-right: .5rem; color: var(--primary); font-weight: 800; }
+.insight-summary-nick { padding-left: .25rem; font-size: .75rem; font-weight: 700; color: var(--muted-foreground); }
+@media (max-width: 900px) { .insight-summary-inner { grid-template-columns: 1fr; } }
+

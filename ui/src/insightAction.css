@@ -3,7 +3,7 @@
 .recap-period > div:first-child { min-width: 0; }
 .insight-action { position: relative; }
 .insight-action .btn { display: inline-flex; align-items: center; gap: .45rem; min-height: 2.75rem; padding: 0 1.1rem; font-weight: 700; }
-.insight-action .btn svg { width: 1rem; height: 1rem; fill: currentColor; }
+.insight-action .insight-btn svg { width: 1rem; height: 1rem; fill: currentColor; }
 @media (max-width: 640px) { .insight-action { width: 100%; } .insight-action .btn { width: 100%; justify-content: center; } }
 
 /* 눌림: 누르는 동안 눌려 들어가고 빛이 꺼지며, 떼면 테두리에서 민트 고리가 한 번 퍼져 나가고 별이 한 바퀴 돈다. */
@@ -49,3 +49,7 @@
 .insight-queue > div:first-child { border-top: 0; }
 .insight-queue dt { margin: 0; font-size: .8125rem; color: var(--muted-foreground); }
 .insight-queue dd { margin: 0; font-size: 1.125rem; font-weight: 800; letter-spacing: -.02em; }
+
+/* 완료: 같은 버튼이 민트 채움 「내 AI 분석 보기」가 된다. */
+.insight-btn-done { font-weight: 800; }
+.insight-btn-done svg { fill: currentColor; }

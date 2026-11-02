@@ -1,0 +1,121 @@
+/* ── 내 AI 분석 카드 ───────────────────
+   랩 콘솔 미리보기(viewerCard.css)의 구역 · 글자 크기 · 간격을 그대로 옮기고, 색은 리캡 테마 토큰으로 바꿨다.
+   그래서 라이트 · 다크가 함께 맞는다. 글꼴은 리캡 본문(Pretendard)을 그대로 쓴다. */
+.vc {
+  --vc-accent: var(--primary);
+  --vc-bg: var(--card);
+  --vc-ink: var(--foreground);
+  --vc-line: var(--border);
+  --vc-sub: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground));
+  --vc-desc: var(--muted-foreground);
+  --vc-mute: var(--muted-foreground);
+  --vc-well: var(--background);
+  --vc-chip: var(--secondary);
+  --vc-bubble: var(--accent);
+  container: vc / inline-size;
+  box-sizing: border-box; display: flex; flex-direction: column; gap: 36px;
+  padding: 32px 34px 28px; background: var(--vc-bg); color: var(--vc-ink);
+  border: 1px solid var(--vc-line); border-radius: var(--radius-xl);
+  word-break: keep-all; overflow-wrap: anywhere;
+}
+/* 구역 사이 가로선 */
+.vc > * + * { border-top: 1px solid var(--vc-line); padding-top: 30px; }
+.vc p, .vc h2, .vc h3, .vc ol, .vc dl, .vc dd { margin: 0; }
+.vc p, .vc li { text-wrap: pretty; }
+.vc-num { font-family: var(--font-mono); font-size: 11.5px; color: var(--vc-accent); }
+.vc h3.vc-label, .vc .vc-label { margin: 0; font-size: 12px; font-weight: 700; color: var(--vc-mute); letter-spacing: .02em; }
+.vc-desc { font-size: 13px; line-height: 1.65; color: var(--vc-desc); }
+
+/* 머리: 헤드라인 · 요약 | 말투 축(두 줄씩) */
+.vc-head { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 36px; align-items: center; }
+.vc-head-main { display: flex; flex-direction: column; gap: 14px; }
+.vc-eyebrow { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--vc-accent); }
+.vc h2.vc-title { margin: 0; font-weight: 800; font-size: clamp(22px, 3.6cqi, 32px); line-height: 1.25; letter-spacing: -.035em; color: var(--vc-ink); text-wrap: balance; }
+.vc-summary { max-width: 620px; font-size: 14.5px; line-height: 1.8; color: var(--vc-sub); }
+.vc-tone { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; }
+.vc-tone > div { display: flex; flex-direction: column; gap: 8px; }
+.vc-tone dt { display: flex; justify-content: space-between; font-size: 12px; color: var(--vc-mute); }
+.vc-tone-bar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.vc-tone-bar span { height: 6px; border-radius: 3px; background: var(--vc-line); }
+.vc-tone-bar span.on { background: var(--vc-accent); }
+.vc-tone-value { font-size: 13px; font-weight: 700; }
+
+.vc-block { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+/* 대표 인용: 채팅창 | 이유 목록 */
+.vc-quotes { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: center; }
+.vc-chat { border-radius: 18px; background: var(--vc-well); border: 1px solid var(--vc-line); overflow: hidden; }
+.vc-chat-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--vc-line); font-size: 13px; font-weight: 700; }
+.vc-chat-count { font-size: 12px; font-weight: 500; color: var(--vc-mute); }
+.vc-chat-body { display: flex; flex-direction: column; gap: 3px; padding: 12px 16px 14px; font-size: 13.5px; line-height: 1.6; }
+.vc-chat-ghost { display: block; height: 10px; margin: 9px 0; border-radius: 5px; background: var(--vc-chip); }
+.vc-bubble { padding: 8px 10px; margin-left: -10px !important; border-radius: 8px; background: var(--vc-bubble); white-space: pre-wrap; }
+.vc-bubble b { color: var(--vc-accent); margin-right: 8px; }
+.vc-why { display: flex; flex-direction: column; gap: 22px; }
+.vc h3.vc-why-title { margin: 0; text-wrap: balance; font-weight: 800; font-size: 21px; line-height: 1.3; letter-spacing: -.03em; color: var(--vc-ink); }
+.vc-why ol { padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.vc-why li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; font-size: 13px; line-height: 1.7; color: var(--vc-sub); }
+.vc-nick { display: block; font-size: 15px; line-height: 1.45; color: var(--vc-ink); letter-spacing: -.02em; margin-bottom: 2px; }
+.vc-role-tags .vc-chip { font-size: 14px; padding: 7px 14px; }
+/* 칭호 · 자주 하는 행동 · 자주 쓰는 말 한 줄 */
+.vc-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 28px; }
+.vc-strip > * + * { border-left: 1px solid var(--vc-line); padding-left: 28px; }
+.vc-badge { align-self: flex-start; font-size: 20px; line-height: 1.3; letter-spacing: -.03em; color: var(--vc-accent); }
+.vc-words { padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.vc-words li { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: baseline; font-size: 14.5px; font-weight: 600; }
+
+/* 예전과 요즘 (change.found 일 때만) */
+.vc-change { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .8fr); gap: 40px; }
+.vc-change-main { display: flex; flex-direction: column; gap: 14px; }
+.vc-change-text { font-size: 15.5px; font-weight: 700; line-height: 1.7; }
+.vc-chips-wrap { display: flex; flex-direction: column; gap: 10px; }
+.vc-chips-label { font-size: 12px; color: var(--vc-mute); }
+.vc-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.vc-chip { padding: 6px 12px; border-radius: 999px; background: var(--vc-chip); color: var(--secondary-foreground); font-size: 13px; }
+
+/* 이야기 표 | 말버릇 */
+.vc-bottom { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 32px; }
+.vc-bottom.no-phrases { grid-template-columns: minmax(0, 1fr); }
+.vc-topics { padding: 0; list-style: none; border-top: 1px solid var(--vc-line); }
+.vc-topics li { display: grid; grid-template-columns: 30px minmax(0, 1fr) minmax(0, 170px); gap: 12px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--vc-line); }
+.vc-topic-main { display: flex; flex-direction: column; gap: 4px; }
+.vc-topic-main b { font-size: 14.5px; }
+.vc-topic-main .vc-desc { font-size: 13px; line-height: 1.6; color: var(--vc-mute); }
+.vc-topic-quote { font-size: 13px; line-height: 1.6; color: var(--vc-sub); }
+.vc-mentions { margin-top: 2px; font-size: 12px; font-weight: 700; color: var(--vc-accent); }
+.vc-phrases { display: flex; flex-direction: column; gap: 18px; padding-top: 8px; }
+.vc-phrases > div { display: flex; flex-direction: column; gap: 4px; }
+.vc-phrase { font-weight: 800; font-size: 26px; line-height: 1.15; letter-spacing: -.03em; }
+.vc-phrase.accent { color: var(--vc-accent); }
+.vc-phrase.long { font-size: 18px; line-height: 1.35; }
+.vc-phrases .vc-desc { font-size: 13px; line-height: 1.6; }
+
+.vc-foot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; padding-top: 20px; border-top: 1px solid var(--vc-line); font-size: 12px; line-height: 1.7; color: var(--vc-mute); }
+.vc-gaps { display: flex; flex-direction: column; gap: 2px; }
+.vc-gaps b { color: var(--vc-desc); font-weight: 700; margin-bottom: 4px; }
+.vc-meta { align-self: end; text-align: right; }
+
+/* 좁은 폭: 가로 배치를 한 열로 접는다 */
+@container vc (max-width: 760px) {
+  .vc-head, .vc-quotes, .vc-change, .vc-bottom, .vc-strip { grid-template-columns: minmax(0, 1fr); }
+  .vc-strip { grid-auto-flow: row; }
+  .vc-strip > * + * { border-left: 0; padding-left: 0; }
+  .vc-topics li { grid-template-columns: 32px minmax(0, 1fr); }
+  .vc-topic-quote { grid-column: 2; }
+}
+@container vc (max-width: 420px) {
+  .vc { padding: 28px 22px 24px; gap: 36px; border-radius: 18px; }
+  .vc-title { font-size: 23px; line-height: 1.32; }
+  .vc-why-title { font-size: 22px; }
+  .vc-phrase { font-size: 28px; }
+  .vc-phrase.long { font-size: 19px; }
+  .vc-change-text { font-size: 16px; }
+  .vc-foot { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .vc-meta { text-align: left; }
+}
+
+/* 「내 AI 분석 보기」 창. 카드가 창의 겉모양이라 창 자체는 투명하고, 긴 카드는 창 안에서 스크롤한다. */
+.insight-view-dialog { width: min(100% - 2rem, 64rem); max-height: min(100dvh - 2rem, 60rem); padding: 0; background: transparent; border: 0; overflow: auto; }
+.insight-view-dialog::backdrop { background: rgb(0 0 0 / .6); backdrop-filter: blur(3px); }
+.insight-view-head { position: sticky; top: .75rem; z-index: 1; display: flex; justify-content: flex-end; height: 0; padding-right: .75rem; }
+.insight-view-head .btn { background: var(--card); border: 1px solid var(--border); }
