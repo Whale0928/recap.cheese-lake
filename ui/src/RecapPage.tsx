@@ -6,6 +6,9 @@ import { ActivityChannels } from "./ActivityChannels";
 import { HomeChannelCard } from "./HomeChannelCard";
 import { useChannelProfiles } from "./useChannelProfiles";
 import { TraitsCard } from "./TraitsCard";
+import { InsightAction } from "./InsightAction";
+import { InsightSection } from "./InsightSection";
+import type { InsightMock } from "./InsightAction";
 export function RecapPage() {
   const currentMonth = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 7);
   const [mode, setMode] = useState<"all" | "month">("all");
@@ -41,6 +44,8 @@ export function RecapPage() {
     }
     if (state.status === "guest" || state.status === "error" || state.status === "ready" && !state.refreshing && (state.source === url || state.refreshFailed)) anchor.current = null;
   }, [state, url]);
+  // AI 분석은 아직 목이다: 버튼과 응답 자리가 같은 가짜 상태를 본다.
+  const [insightMock, setInsightMock] = useState<InsightMock>({ state: "idle" });
   const data = state.status === "ready" ? state.data : null;
   const channelResult = data?.channels.status === "ready" ? { ...data.channels, data: { ...data.channels.data, channels: profileChannels } } : data?.channels;
   const periodControls = <div className="activity-filters">
@@ -52,7 +57,10 @@ export function RecapPage() {
     </div>;
   return <main id="main" className="me-main recap-data" aria-busy={state.status === "loading" || state.status === "ready" && state.refreshing}>
     <div className="me-heading"><div><a className="me-back" href="/">홈으로</a><h1>내 리캡</h1></div></div>
-    <section className="recap-period" aria-labelledby="period-heading"><h2 id="period-heading">조회 기간</h2>{periodControls}</section>
+    <section className="recap-period" aria-labelledby="period-heading">
+      <div><h2 id="period-heading">조회 기간</h2>{periodControls}</div>
+      {data && <InsightAction mock={insightMock} onChange={setInsightMock} />}
+    </section>
     <div className="activity-refresh-status" role="status" aria-live="polite">
       {state.status === "ready" && (state.refreshing ? "갱신 중" : state.refreshFailed ? <><span>갱신 실패</span><button type="button" onClick={() => setAttempt(n => n + 1)}>다시 조회</button></> : null)}
     </div>
@@ -64,6 +72,7 @@ export function RecapPage() {
         <section className="me-section recap-summary" aria-labelledby="summary-heading"><div className="me-section-heading"><h2 id="summary-heading">활동 요약</h2></div><SummaryValues result={data.summary} /></section>
         <TraitsCard />
       </div>
+      <InsightSection mock={insightMock} />
       <ActivityChannels result={channelResult} />
       <section className="me-section" aria-labelledby="patterns-heading"><h2 id="patterns-heading">요일·시간대별 활동</h2>
         {data.patterns.status === "ready" ? <ActivityPatternChart data={data.patterns.data} weekday={weekday} onWeekdayChange={setWeekday} /> : <ResultNotice result={data.patterns} />}

@@ -1,0 +1,51 @@
+/* 조회 기간 옆 「AI 분석 요청」 버튼. 기간 탭과 같은 줄의 오른쪽 끝에 선다. 색은 테마 토큰만 쓴다. */
+.recap-period { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem 2rem; }
+.recap-period > div:first-child { min-width: 0; }
+.insight-action { position: relative; }
+.insight-action .btn { display: inline-flex; align-items: center; gap: .45rem; min-height: 2.75rem; padding: 0 1.1rem; font-weight: 700; }
+.insight-action .btn svg { width: 1rem; height: 1rem; fill: currentColor; }
+@media (max-width: 640px) { .insight-action { width: 100%; } .insight-action .btn { width: 100%; justify-content: center; } }
+
+/* 눌림: 누르는 동안 눌려 들어가고 빛이 꺼지며, 떼면 테두리에서 민트 고리가 한 번 퍼져 나가고 별이 한 바퀴 돈다. */
+.insight-btn { transition: transform .12s ease, background-color .15s, box-shadow .15s; }
+.insight-btn:active { transform: scale(.95); animation: none; box-shadow: 0 0 0 0 transparent; background: color-mix(in srgb, var(--primary) 22%, transparent); }
+.insight-ring { position: absolute; inset: -2px; border-radius: var(--radius-md); border: 2px solid var(--primary); opacity: 0; pointer-events: none; }
+.insight-action.is-pulse .insight-ring { animation: insight-ring .65s ease-out forwards; }
+.insight-action.is-pulse .insight-spark { animation: insight-spark .65s ease-out; }
+.insight-action.is-pulse .insight-btn { animation: glow-breathe 3.4s ease-in-out infinite, insight-flash .65s ease-out; }
+@keyframes insight-ring { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.45); } }
+@keyframes insight-spark { 0% { transform: rotate(0) scale(1); } 50% { transform: rotate(180deg) scale(1.5); } 100% { transform: rotate(360deg) scale(1); } }
+@keyframes insight-flash { 0% { background: color-mix(in srgb, var(--primary) 30%, transparent); box-shadow: 0 0 24px 4px color-mix(in srgb, var(--primary) 60%, transparent); } 100% { background: var(--background); } }
+@media (prefers-reduced-motion: reduce) { .insight-btn:active { transform: none; } .insight-btn.is-pulse, .insight-action.is-pulse .insight-ring, .insight-action.is-pulse .insight-spark { animation: none; } }
+
+/* 동의 확인 창. 문의하기 창과 같은 네이티브 <dialog> 라 포커스 가두기·Esc 닫기·배경 막기를 브라우저가 맡는다. */
+.insight-dialog { width: min(100% - 2rem, 30rem); padding: 0; color: var(--foreground); background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 24px 80px rgb(0 0 0 / .35); text-align: left; }
+.insight-dialog::backdrop { background: rgb(0 0 0 / .55); backdrop-filter: blur(2px); }
+.insight-panel { display: flex; flex-direction: column; gap: 1rem; padding: 1.5rem; }
+.insight-dialog-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.insight-dialog-kicker { display: inline-flex; align-items: center; gap: .35rem; margin: 0 0 .35rem; font-size: .75rem; font-weight: 700; letter-spacing: .02em; color: var(--primary); }
+.insight-dialog-kicker svg { width: .9rem; height: .9rem; fill: currentColor; }
+.insight-dialog-head h2 { margin: 0; font-size: 1.25rem; letter-spacing: -.03em; line-height: 1.35; word-break: keep-all; }
+.insight-terms { display: flex; flex-direction: column; gap: .6rem; margin: 0; padding: 1rem 1.125rem; list-style: none; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--card); font-size: .875rem; line-height: 1.55; color: var(--muted-foreground); }
+.insight-terms li { position: relative; padding-left: 1.1rem; word-break: keep-all; }
+.insight-terms li::before { content: ""; position: absolute; left: 0; top: .6rem; width: .4rem; height: .4rem; border-radius: 50%; background: var(--primary); }
+.insight-terms b { color: var(--foreground); font-weight: 700; }
+.insight-dialog-note { margin: 0; font-size: .75rem; color: var(--muted-foreground); }
+.insight-dialog-note a { color: var(--primary); }
+.insight-dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }
+.insight-dialog-actions .btn { min-height: 2.5rem; padding: 0 1.1rem; font-weight: 600; }
+@media (max-width: 640px) { .insight-dialog-actions { flex-direction: column-reverse; } .insight-dialog-actions .btn { width: 100%; } }
+
+/* 진행 중: 같은 버튼이 글만 바꿔 「분석 진행 중 · 앞에 n명」이 되고, 누르면 순서 창이 열린다. 점이 천천히 깜빡인다. */
+.insight-btn-queued { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--foreground); }
+.insight-btn-queued:hover { background: color-mix(in srgb, var(--primary) 16%, transparent); }
+.insight-dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--primary); animation: insight-blink 1.6s ease-in-out infinite; }
+@keyframes insight-blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .insight-dot { animation: none; } }
+
+.insight-queue-dialog { width: min(100% - 2rem, 24rem); }
+.insight-queue { display: flex; flex-direction: column; margin: 0; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--card); }
+.insight-queue > div { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: .8rem 1.125rem; border-top: 1px solid var(--border); }
+.insight-queue > div:first-child { border-top: 0; }
+.insight-queue dt { margin: 0; font-size: .8125rem; color: var(--muted-foreground); }
+.insight-queue dd { margin: 0; font-size: 1.125rem; font-weight: 800; letter-spacing: -.02em; }
