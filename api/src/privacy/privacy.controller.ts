@@ -35,7 +35,7 @@ export class PrivacyController {
   @HttpCode(204)
   @Header("Cache-Control", "no-store")
   async pageView(@Req() req: Request, @Body() body: { page?: unknown }): Promise<void> {
-    const activityType = body?.page === "privacy" ? ActivityType.PRIVACY_POLICY_VIEW : body?.page === "terms" ? ActivityType.TERMS_VIEW : null;
+    const activityType = body?.page === "privacy" ? ActivityType.PRIVACY_POLICY_VIEW : body?.page === "terms" ? ActivityType.TERMS_VIEW : body?.page === "insight" ? ActivityType.INSIGHT_VIEW : null;
     if (!activityType) throw new BadRequestException("Invalid page");
     const { user, expiresAt } = req.session;
     if (!user || !expiresAt || expiresAt <= Date.now()) return;

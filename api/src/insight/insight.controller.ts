@@ -6,6 +6,7 @@ import { ActivityLogService } from "../database/activity-log.service.js";
 import { ActivityType, type ActivityOutcome } from "../database/activity-log.types.js";
 import { InsightService, type InsightResult } from "./insight.service.js";
 import { TicketStore, type RedeemResult } from "./ticket.store.js";
+import { ConsentStore } from "./consent.store.js";
 
 export interface InsightResponse { fetchedAt: string; insight: InsightResult; tickets: number }
 export interface RedeemResponse { granted: number; tickets: number }
@@ -18,7 +19,7 @@ const rejected = (errorCode: "NO_TICKET" | "COUPON_UNUSABLE"): ActivityOutcome =
 @Controller("api/me")
 @UseGuards(SessionAuthGuard)
 export class InsightController {
-  constructor(private readonly insight: InsightService, private readonly tickets: TicketStore, private readonly logs: ActivityLogService) {}
+  constructor(private readonly insight: InsightService, private readonly tickets: TicketStore, private readonly consents: ConsentStore, private readonly logs: ActivityLogService) {}
 
   @Get("insight")
   @Header("Cache-Control", "no-store")
@@ -34,25 +35,31 @@ export class InsightController {
     return { fetchedAt: new Date().toISOString(), insight, tickets: await this.tickets.available(channelId) };
   }
 
-  // 본문은 { refresh?: boolean } 뿐이다. 티켓 한 장을 쓰고 랩에 넣는다. 랩이 새 요청을 만들지 않았으면(대기 중 · 끝난 결과 재사용 · 오류) 티켓을 되돌린다.
+  // 본문은 { consent: true, refresh?: boolean } 다. 동의가 없으면 받지 않는다 — 채팅 원문이 외부 AI 로 나가는 일이라 동의를 먼저 남긴다.
+  // 티켓 한 장을 쓰고 랩에 넣는다. 랩이 새 요청을 만들지 않았으면(대기 중 · 끝난 결과 재사용 · 오류) 티켓을 되돌린다.
   @Post("insight")
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
   async request(@Req() req: Request, @Query() query: Record<string, unknown>, @Body() body: unknown): Promise<InsightResponse> {
     if (Object.keys(query).length) throw new BadRequestException("Query parameters are not supported");
-    const refresh = (body as { refresh?: unknown } | undefined)?.refresh;
-    if (body !== undefined && (typeof body !== "object" || body === null || Array.isArray(body) || Object.keys(body).some(k => k !== "refresh") || (refresh !== undefined && typeof refresh !== "boolean"))) {
-      throw new BadRequestException("Body must be { refresh?: boolean }");
+    const b = body as { consent?: unknown; refresh?: unknown } | undefined;
+    if (typeof body !== "object" || body === null || Array.isArray(body) || Object.keys(body).some(k => k !== "refresh" && k !== "consent") || (b?.refresh !== undefined && typeof b.refresh !== "boolean") || typeof b?.consent !== "boolean") {
+      throw new BadRequestException("Body must be { consent: boolean, refresh?: boolean }");
     }
+    if (b.consent !== true) throw new BadRequestException({ code: "consent_required", message: "동의해야 요청할 수 있다" });
+    const refresh = b.refresh === true;
     const channelId = req.session.user!.channelId;
     const outcome = await this.logs.track({ channelId, activityType: ActivityType.INSIGHT_REQUEST }, async (): Promise<{ kind: "no_ticket" } | { kind: "sent"; insight: InsightResult }> => {
+      const consentId = await this.consents.record(channelId);
       const ticketId = await this.tickets.consume(channelId);
       if (!ticketId) return { kind: "no_ticket" };
       let insight: InsightResult;
-      try { insight = await this.insight.request(channelId, refresh === true); }
+      try { insight = await this.insight.request(channelId, refresh); }
       catch (error) { await this.tickets.release(ticketId); throw error; }
-      if (insight.status === "ready" && insight.created && insight.data) await this.tickets.attach(ticketId, insight.data.requestId);
-      else await this.tickets.release(ticketId);
+      if (insight.status === "ready" && insight.created && insight.data) {
+        await this.tickets.attach(ticketId, insight.data.requestId);
+        await this.consents.attach(consentId, insight.data.requestId);
+      } else await this.tickets.release(ticketId);
       return { kind: "sent", insight };
     }, value => value.kind === "no_ticket" ? rejected("NO_TICKET") : { result: "success" });
     if (outcome.kind === "no_ticket") throw new ForbiddenException({ code: "no_ticket", message: "분석 티켓이 없다" });
@@ -90,5 +97,5 @@ function couponMessage(status: Exclude<RedeemResult["status"], "granted" | "not_
   }
 }
 
-@Module({ imports: [ActivityModule], controllers: [InsightController], providers: [InsightService, TicketStore] })
+@Module({ imports: [ActivityModule], controllers: [InsightController], providers: [InsightService, TicketStore, ConsentStore] })
 export class InsightModule {}

@@ -77,11 +77,13 @@ export class TicketStore {
 
   /** 티켓 한 장을 쓴다(만료 빠른 것부터). 없으면 null. 랩 요청 번호는 넣은 뒤 attach 로 적는다. */
   async consume(channelId: string): Promise<string | null> {
-    const rows: { id: string }[] = await this.db().query(`
+    // pg 드라이버는 UPDATE … RETURNING 을 [행들, 영향 수] 로 돌려준다 (share.store 의 revoke 와 같다). 행만 꺼낸다.
+    const out: unknown = await this.db().query(`
       UPDATE recap.insight_tickets SET used_at = CURRENT_TIMESTAMP
       WHERE id = (SELECT id FROM recap.insight_tickets WHERE ${AVAILABLE} ORDER BY expires_at NULLS LAST, issued_at LIMIT 1 FOR UPDATE SKIP LOCKED)
       RETURNING id
     `, [channelId]);
+    const rows = (Array.isArray(out) && Array.isArray(out[0]) ? out[0] : out) as { id: string }[];
     return rows[0]?.id ?? null;
   }
 

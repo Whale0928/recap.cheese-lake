@@ -110,7 +110,7 @@ describe("insight HTTP boundary", () => {
   afterEach(async () => { await app?.close(); });
   it("requires a login and never reaches Lab for guests", async () => {
     await request(app.getHttpServer()).get("/api/me/insight").expect(401);
-    await request(app.getHttpServer()).post("/api/me/insight").send({ refresh: true }).expect(401);
+    await request(app.getHttpServer()).post("/api/me/insight").send({ consent: true, refresh: true }).expect(401);
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });
@@ -125,6 +125,7 @@ describe("insight tickets", () => {
   let redemptions: Set<string>;
   let labStatus: () => Response;
   let labCalls: { method: string; path: string }[];
+  let consents: { id: string; labRequestId: number | null }[];
   const previousEnv = { node: process.env.NODE_ENV, local: process.env.RECAP_LOCAL_AUTH_ENABLED, logs: process.env.RECAP_ACTIVITY_LOG_ENABLED };
   const auth = { sessionKey: "test-session-key-with-at-least-32-bytes", successUrl: "http://localhost:8180/", secureCookie: false, allowedPeer: () => true, allowedOrigins: ["http://localhost:8180"], sessionTtlMs: 30 * 86400_000, sessionAbsoluteTtlMs: 90 * 86400_000, sessionRotationMs: 7 * 86400_000 };
   const available = (channel: string) => tickets.filter(t => t.channel === channel && !t.usedAt && (!t.expiresAt || t.expiresAt > new Date()));
@@ -133,7 +134,7 @@ describe("insight tickets", () => {
     process.env.NODE_ENV = "development";
     process.env.RECAP_LOCAL_AUTH_ENABLED = "true";
     process.env.RECAP_ACTIVITY_LOG_ENABLED = "true";
-    tickets = []; redemptions = new Set(); labCalls = []; seq = 0;
+    tickets = []; redemptions = new Set(); labCalls = []; consents = []; seq = 0;
     coupons = { NOV3TEST: { per: 2, max: 10, count: 0, disabled: false, expired: false }, OLDCODE: { per: 1, max: null, count: 0, disabled: false, expired: true } };
     labStatus = () => Response.json(waiting(), { status: 202 });
     jest.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
@@ -144,6 +145,8 @@ describe("insight tickets", () => {
     database = new DataSource({ type: "postgres" });
     jest.spyOn(database, "query").mockImplementation(async (sql: string, params?: unknown) => {
       const p = (Array.isArray(params) ? params : []) as (string | number)[];
+      if (sql.includes("INSERT INTO recap.insight_consents")) { consents.push({ id: `c${++seq}`, labRequestId: null }); return [{ id: consents.at(-1)!.id }]; }
+      if (sql.includes("UPDATE recap.insight_consents SET lab_request_id")) { const c = consents.find(c => c.id === p[0]); if (c) c.labRequestId = Number(p[1]); return []; }
       if (sql.includes("SELECT count(*) AS n FROM recap.insight_tickets")) return [{ n: available(String(p[0])).length }];
       if (sql.includes("INSERT INTO recap.insight_coupon_redemptions")) {
         const c = coupons[String(p[1])];
@@ -154,7 +157,8 @@ describe("insight tickets", () => {
         return [{ granted: c.per }];
       }
       if (sql.includes("FROM recap.insight_coupons WHERE code")) { const c = coupons[String(p[0])]; return c ? [{ disabled: c.disabled, expired: c.expired, exhausted: c.max !== null && c.count >= c.max }] : []; }
-      if (sql.includes("SET used_at = CURRENT_TIMESTAMP")) { const t = available(String(p[0]))[0]; if (!t) return []; t.usedAt = new Date(); return [{ id: t.id }]; }
+      // pg 드라이버의 UPDATE … RETURNING 모양: [행들, 영향 수]
+      if (sql.includes("SET used_at = CURRENT_TIMESTAMP")) { const t = available(String(p[0]))[0]; if (!t) return [[], 0]; t.usedAt = new Date(); return [[{ id: t.id }], 1]; }
       if (sql.includes("SET lab_request_id = $2")) { const t = tickets.find(t => t.id === p[0]); if (t) t.labRequestId = Number(p[1]); return []; }
       if (sql.includes("SET used_at = NULL")) { const t = tickets.find(t => t.id === p[0]); if (t && t.labRequestId === null) t.usedAt = null; return []; }
       if (sql.includes("INSERT INTO recap.insight_tickets (channel_id, source, refund_of_ticket_id")) {
@@ -205,18 +209,22 @@ describe("insight tickets", () => {
     const agent = await login(subject);
     labStatus = () => new Response("", { status: 404 });
     expect((await agent.get("/api/me/insight").expect(200)).body).toMatchObject({ insight: { status: "ready", data: null }, tickets: 0 });
-    expect((await agent.post("/api/me/insight").send({}).expect(403)).body.code).toBe("no_ticket");
+    await agent.post("/api/me/insight").send({}).expect(400);
+    expect((await agent.post("/api/me/insight").send({ consent: false }).expect(400)).body.code).toBe("consent_required");
+    expect((await agent.post("/api/me/insight").send({ consent: true }).expect(403)).body.code).toBe("no_ticket");
     expect(labCalls.filter(c => c.method === "POST")).toEqual([]);
     await agent.post("/api/me/insight/redeem").send({ code: "NOV3TEST" }).expect(200);
     // 랩이 끝난 결과를 돌려주면(200) 새 요청이 아니므로 티켓을 되돌린다
     labStatus = () => Response.json(done(), { status: 200 });
-    expect((await agent.post("/api/me/insight").send({}).expect(200)).body.tickets).toBe(2);
+    expect((await agent.post("/api/me/insight").send({ consent: true }).expect(200)).body.tickets).toBe(2);
     // 새로 넣으면(202) 한 장을 쓰고 요청 번호를 적는다
     labStatus = () => Response.json(waiting(), { status: 202 });
-    const sent = await agent.post("/api/me/insight").send({ refresh: true }).expect(200);
+    const sent = await agent.post("/api/me/insight").send({ consent: true, refresh: true }).expect(200);
     expect(sent.body.tickets).toBe(1);
     expect(labCalls.at(-1)).toEqual({ method: "POST", path: `/internal/v1/channels/${subject}/insight?refresh=true` });
     expect(tickets.filter(t => t.usedAt && t.labRequestId === 900)).toHaveLength(1);
+    // 동의는 요청마다 남고, 랩이 새 요청을 만든 것에만 번호가 붙는다
+    expect(consents.map(c => c.labRequestId)).toEqual([null, null, 900]);
     expect(activityLogs("insight_request")).toEqual([{ result: "failure", errorCode: "NO_TICKET" }, { result: "success", errorCode: null }, { result: "success", errorCode: null }]);
   });
 
@@ -224,7 +232,7 @@ describe("insight tickets", () => {
     const agent = await login(subject);
     await agent.post("/api/me/insight/redeem").send({ code: "NOV3TEST" }).expect(200);
     labStatus = () => Response.json(waiting(), { status: 202 });
-    await agent.post("/api/me/insight").send({}).expect(200);
+    await agent.post("/api/me/insight").send({ consent: true }).expect(200);
     labStatus = () => Response.json({ channelId: subject, requestId: 900, state: "failed", enqueuedAt: "2026-11-02T15:00:00Z", failure: "timeout" });
     expect((await agent.get("/api/me/insight").expect(200)).body.tickets).toBe(2);
     expect((await agent.get("/api/me/insight").expect(200)).body.tickets).toBe(2);
