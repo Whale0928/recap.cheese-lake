@@ -12,6 +12,12 @@ export const ActivityType = {
   SHARE_GRANT: "share_grant",
   SHARE_REVOKE: "share_revoke",
   SHARED_RECORD_VIEW: "shared_record_view",
+  INSIGHT_TICKET_REDEEM: "insight_ticket_redeem",
+  INSIGHT_REQUEST: "insight_request",
+  INSIGHT_TICKET_REFUND: "insight_ticket_refund",
+  CHANNEL_RECORD_VIEW: "channel_record_view",
+  RECEIVED_SHARES_VIEW: "received_shares_view",
+  PRIVACY_SETTINGS_VIEW: "privacy_settings_view",
 } as const;
 export type ActivityType = (typeof ActivityType)[keyof typeof ActivityType];
 
@@ -30,9 +36,15 @@ export const ActivityDescriptions: Record<ActivityType, { codeName: string; reas
   share_grant: { codeName: "기록 공유 동의", reason: "채널 기록 화면에서 해당 스트리머에게 이 채널에서의 내 기록을 보여 주는 데 동의했다." },
   share_revoke: { codeName: "기록 공유 해제", reason: "스트리머에게 보여 주던 채널 기록 공유를 해제했다." },
   shared_record_view: { codeName: "공유받은 기록 조회", reason: "시청자가 보여 주기로 한 채널 기록 화면을 조회했다." },
+  insight_ticket_redeem: { codeName: "분석 티켓 받기", reason: "쿠폰 코드로 AI 분석 티켓을 받았다. 같은 쿠폰은 한 번만 받는다." },
+  insight_request: { codeName: "AI 분석 요청", reason: "티켓 한 장을 쓰고 내 채팅의 AI 분석을 랩 대기열에 넣었다. 채팅 원문이 외부 AI 서비스로 전송된다." },
+  insight_ticket_refund: { codeName: "분석 티켓 환불", reason: "AI 분석이 실패로 끝나 쓴 티켓을 한 장 돌려줬다." },
+  channel_record_view: { codeName: "채널 기록 조회", reason: "채널 기록 화면에서 특정 방송에서의 내 기록을 조회했다." },
+  received_shares_view: { codeName: "공유받은 리캡 목록 조회", reason: "공유받은 리캡 보기 화면에서 나에게 기록을 보여 준 시청자 목록을 조회했다." },
+  privacy_settings_view: { codeName: "이용 설정 조회", reason: "이용 설정 화면에서 수집 거부 요청 상태를 조회했다." },
 };
 
-export type ActivityErrorCode = "PROFILE_UNAVAILABLE" | "ACTIVITY_NOT_CONFIGURED" | "ACTIVITY_RATE_LIMITED" | "ACTIVITY_UPSTREAM" | "REQUEST_REJECTED" | "PROCESSING_FAILED";
+export type ActivityErrorCode = "PROFILE_UNAVAILABLE" | "ACTIVITY_NOT_CONFIGURED" | "ACTIVITY_RATE_LIMITED" | "ACTIVITY_UPSTREAM" | "REQUEST_REJECTED" | "PROCESSING_FAILED" | "NO_TICKET" | "COUPON_UNUSABLE";
 export type ActivityOutcome = { result: "success" } | {
   result: "partial_success" | "failure";
   failureStage: "profile" | "summary" | "channels" | "trend" | "patterns" | "request";
