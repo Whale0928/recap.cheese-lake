@@ -202,7 +202,7 @@ Lab 관리 화면이 직접 쓰고 Recap은 `GET /api/banners`·`GET /api/banner
 
 ## 활동 로그
 
-`ActivityLogService.track()`이 활동 단위의 시작·종료 시각, 처리 시간과 결과를 한 번 기록한다. 종류는 `ActivityType.PROFILE_VIEW`(`/api/me`), `ActivityType.RECAP_VIEW`(`/api/recap`)와 공유 관련 `SHARE_GRANT`·`SHARE_REVOKE`·`SHARED_RECORD_VIEW` 등이며 전체 목록은 `activity-log.types.ts`에 있다. 요약·잔디의 보조 요청은 기록하지 않는다. 리캡의 내부 호출·캐시 조회·재시도 횟수는 로그 행 수에 영향을 주지 않는다.
+활동 로그는 `ActivityLogService.track()` 한 관문으로만 남긴다. 컨트롤러는 핸들러 본문을 `track()`으로 감쌀 뿐 `activity_logs`에 직접 쓰지 않는다. `track()`이 활동 단위의 시작·종료 시각, 처리 시간과 결과, 활동 종류의 이름과 설명을 한 번 기록한다. 종류는 `ActivityType.PROFILE_VIEW`(`/api/me`), `ActivityType.RECAP_VIEW`(`/api/recap`), `CHANNEL_RECORD_VIEW`(채널 기록), `RECEIVED_SHARES_VIEW`(공유받은 목록), `PRIVACY_SETTINGS_VIEW`(이용 설정), 공유 관련 `SHARE_GRANT`·`SHARE_REVOKE`·`SHARED_RECORD_VIEW`, AI 분석 관련 `INSIGHT_TICKET_REDEEM`·`INSIGHT_REQUEST`·`INSIGHT_TICKET_REFUND` 등이며 전체 목록은 `activity-log.types.ts`에 있다. 사람이 한 활동(화면 열기, 상태를 바꾸는 동작, 그 결과로 시스템이 대신 한 일)은 기록하고, 한 화면에 딸려 오는 보조 요청(요약·잔디·프로필·아바타·습관 카드), 존재 여부 조회, 공개 자료, 상태 폴링은 기록하지 않는다. 기록을 더하는 절차는 저장소 루트 `AGENTS.md`에 있다. 리캡의 내부 호출·캐시 조회·재시도 횟수는 로그 행 수에 영향을 주지 않는다.
 
 리캡은 네 항목 모두 정상일 때 성공, 일부만 정상이면 부분 성공, 모두 조회하지 못하면 실패다. 여러 항목에 문제가 있으면 summary → channels → trend → patterns 순서로 첫 실패 단계와 정의된 오류 코드를 기록한다. 처리 중 예외가 발생하면 원래 예외를 유지하고 실패를 기록한다. 응답 본문·원문 오류·토큰은 저장하지 않는다. 로그 저장은 요청 종료 시 기다리되, 저장 실패가 원래 응답이나 예외를 바꾸지는 않는다.
 
