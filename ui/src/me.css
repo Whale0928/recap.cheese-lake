@@ -2,7 +2,9 @@
 .me-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; margin-bottom: 2.5rem; }
 .me-back { color: var(--muted-foreground); font-size: .8125rem; }
 .me-back:hover { color: var(--foreground); text-decoration: underline; }
-.me-heading h1 { margin: 1.25rem 0 .5rem; font-size: clamp(2rem, 4vw, 2.75rem); letter-spacing: -.045em; line-height: 1.2; }
+.me-heading h1 { margin: 1.25rem 0 .5rem; font-size: clamp(2rem, 4vw, 2.75rem); letter-spacing: -.045em; line-height: 1.2; word-break: keep-all; overflow-wrap: anywhere; }
+/* 머리글의 닉네임. 긴 이름은 줄을 바꾸고, 이름만 민트로 세운다. */
+.me-heading-name { color: var(--primary); }
 .me-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .me-actions .btn { flex-shrink: 0; min-height: 2.75rem; }
 .me-section { margin-top: 1.5rem; padding: 2rem; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); }

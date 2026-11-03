@@ -10,7 +10,22 @@ import { InsightAction } from "./InsightAction";
 import { useInsight } from "./useInsight";
 import { InsightSummary } from "./InsightSummary";
 import { InsightViewDialog } from "./InsightViewDialog";
+// 머리글에 쓸 닉네임. 세션 응답의 channelName 이고, 못 읽거나 손님이면 「내 리캡」으로 둔다. 활동 로그에는 남지 않는 조회다.
+function useSessionName(): string | null {
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/session", { credentials: "same-origin", headers: { Accept: "application/json" }, signal: controller.signal })
+      .then(r => r.ok ? r.json() as Promise<{ loggedIn: boolean; session?: { channelName?: string } }> : null)
+      .then(s => { if (!controller.signal.aborted && s?.loggedIn && s.session?.channelName) setName(s.session.channelName); })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+  return name;
+}
+
 export function RecapPage() {
+  const sessionName = useSessionName();
   const currentMonth = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 7);
   const [mode, setMode] = useState<"all" | "month">("all");
   const [weekday, setWeekday] = useState(0);
@@ -56,7 +71,7 @@ export function RecapPage() {
       {mode === "month" && <label>조회 월<input type="month" required value={month} min="1970-02" max={currentMonth} onChange={e => { if (/^\d{4}-(0[1-9]|1[0-2])$/.test(e.target.value) && e.target.value >= "1970-02" && e.target.value <= currentMonth) { preservePosition(e); setMonth(e.target.value); } }} /></label>}
     </div>;
   return <main id="main" className="me-main recap-data" aria-busy={state.status === "loading" || state.status === "ready" && state.refreshing}>
-    <div className="me-heading"><div><a className="me-back" href="/">홈으로</a><h1>내 리캡</h1></div></div>
+    <div className="me-heading"><div><a className="me-back" href="/">홈으로</a><h1>{sessionName ? <><span className="me-heading-name">{sessionName}</span> 님의 리캡</> : "내 리캡"}</h1></div></div>
     <section className="recap-period" aria-labelledby="period-heading">
       <div><h2 id="period-heading">조회 기간</h2>{periodControls}</div>
       {data && <InsightAction insight={insight} />}
