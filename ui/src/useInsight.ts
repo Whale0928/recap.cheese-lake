@@ -14,8 +14,11 @@ export type InsightPhase =
 export type InsightDenial = "no_ticket" | "rate_limited" | "unavailable" | "error";
 export type InsightOpen = "" | "consent" | "queue" | "view";
 
-/** 방금 끝난 일. 대기 · 진행 중이던 요청이 끝나는 순간 한 번만 알린다 */
-export type InsightNotice = "done" | "failed";
+/** 토스트로 알릴 일. 기다리던 요청이 끝났거나, 쿠폰으로 티켓을 받았거나 못 받았거나 */
+export type InsightNotice =
+  | { kind: "done" } | { kind: "failed" }
+  | { kind: "redeemed"; granted: number }
+  | { kind: "redeem_failed"; code: string };
 
 export interface InsightHandle {
   phase: InsightPhase;
@@ -31,6 +34,8 @@ export interface InsightHandle {
   open: InsightOpen;
   setOpen: (o: InsightOpen) => void;
   request: (refresh: boolean) => void;
+  /** 쿠폰 코드로 티켓을 받는다 (URL 의 ?ticket=CODE). 결과는 토스트로 알린다 */
+  redeem: (code: string) => void;
   reload: () => void;
   clearDenial: () => void;
 }
@@ -56,7 +61,7 @@ export function useInsight(): InsightHandle {
       // 기다리던 요청이 끝났으면 알린다. 처음 열었을 때 이미 끝나 있던 것은 알리지 않는다.
       const next = body.insight.data?.state ?? null;
       const was = lastState.current;
-      if ((was === "waiting" || was === "running") && (next === "done" || next === "failed")) setNotice(next);
+      if ((was === "waiting" || was === "running") && (next === "done" || next === "failed")) setNotice({ kind: next });
       lastState.current = next;
       setPhase({ kind: "ready", status: body.insight.data, tickets: body.tickets, fetchedAt: body.fetchedAt });
     } else setPhase({ kind: "unavailable", ...body.insight, tickets: body.tickets });
@@ -90,6 +95,18 @@ export function useInsight(): InsightHandle {
       .finally(() => { if (alive.current) setBusy(false); });
   }, [applyBody, reload]);
 
+  const redeem = useCallback((code: string) => {
+    fetch("/api/me/insight/redeem", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ code }) })
+      .then(async response => {
+        if (!alive.current) return;
+        if (response.status === 401) { setPhase({ kind: "guest" }); return; }
+        const body = await response.json().catch(() => ({})) as { granted?: number; code?: string };
+        if (response.ok) { setNotice({ kind: "redeemed", granted: body.granted ?? 0 }); reload(); }
+        else setNotice({ kind: "redeem_failed", code: body.code ?? "error" });
+      })
+      .catch(() => { if (alive.current) setNotice({ kind: "redeem_failed", code: "error" }); });
+  }, [reload]);
+
   useEffect(() => { reload(); }, [reload]);
   // 대기 · 진행 중이면 다시 묻고, 잠시 거절당했으면 Retry-After 만큼 기다려 세 번까지 다시 부른다.
   useEffect(() => {
@@ -104,7 +121,7 @@ export function useInsight(): InsightHandle {
   const st = phase.kind === "ready" ? phase.status : null;
   const tickets = phase.kind === "ready" || phase.kind === "unavailable" ? phase.tickets : 0;
   return {
-    phase, busy, tickets, denial, open, setOpen, request, reload, notice,
+    phase, busy, tickets, denial, open, setOpen, request, redeem, reload, notice,
     clearNotice: () => setNotice(null),
     pending: st?.state === "waiting" || st?.state === "running",
     done: st?.state === "done" && !!st.result,

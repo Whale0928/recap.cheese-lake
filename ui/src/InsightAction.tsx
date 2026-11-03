@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { InsightDenial, InsightHandle } from "./useInsight";
+import type { InsightDenial, InsightHandle, InsightNotice } from "./useInsight";
 import "./insightAction.css";
 
 // 조회 기간 옆의 버튼 하나가 흐름을 다 맡는다 (시안 A):
@@ -11,6 +11,22 @@ const DENIAL_TEXT: Record<InsightDenial, string> = {
   unavailable: "지금은 분석을 받을 수 없어요",
   error: "요청을 보내지 못했어요",
 };
+const REDEEM_FAIL_TEXT: Record<string, string> = {
+  coupon_not_found: "없는 쿠폰 코드예요",
+  coupon_already_redeemed: "이미 받은 쿠폰이에요",
+  coupon_disabled: "지금은 쓸 수 없는 쿠폰이에요",
+  coupon_expired: "기한이 지난 쿠폰이에요",
+  coupon_exhausted: "받을 수 있는 사람 수가 다 찼어요",
+  invalid_code: "쿠폰 코드 모양이 아니에요",
+};
+function noticeText(n: InsightNotice): string {
+  switch (n.kind) {
+    case "done": return "AI 분석이 끝났어요";
+    case "failed": return "분석이 실패했어요. 티켓은 돌려드렸어요";
+    case "redeemed": return `분석 티켓 ${n.granted}장을 받았어요`;
+    case "redeem_failed": return REDEEM_FAIL_TEXT[n.code] ?? "쿠폰을 받지 못했어요";
+  }
+}
 const etaText = (sec: number) => sec < 60 ? `${Math.max(5, Math.round(sec / 5) * 5)}초` : `${Math.ceil(sec / 60)}분`;
 const timeText = (s: string) => new Date(s).toLocaleTimeString("ko-KR", { timeZone: "Asia/Seoul", hour: "numeric", minute: "2-digit" });
 
@@ -79,10 +95,10 @@ export function InsightAction({ insight }: { insight: InsightHandle }) {
     {(denial || lockedNote) && <p className="insight-denial" role="status">{denial ? DENIAL_TEXT[denial] : DENIAL_TEXT.no_ticket}</p>}
     {!locked && !pending && !done && phase.kind !== "loading" && tickets > 0 && <p className="insight-tickets">티켓 {tickets}장</p>}
 
-    {notice && <div className={`insight-toast is-${notice}`} role="status" aria-live="polite">
+    {notice && <div className={`insight-toast is-${notice.kind}`} role="status" aria-live="polite">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /></svg>
-      <span>{notice === "done" ? "AI 분석이 끝났어요" : "분석이 실패했어요. 티켓은 돌려드렸어요"}</span>
-      {notice === "done" && <button type="button" className="btn btn-default btn-sm" onClick={() => { clearNotice(); setOpen("view"); }}>보기</button>}
+      <span>{noticeText(notice)}</span>
+      {notice.kind === "done" && <button type="button" className="btn btn-default btn-sm" onClick={() => { clearNotice(); setOpen("view"); }}>보기</button>}
       <button type="button" className="insight-toast-close" aria-label="닫기" onClick={clearNotice}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
       </button>

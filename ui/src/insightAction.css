@@ -69,8 +69,8 @@
 /* 끝났다는 토스트. 화면 아래 가운데에 떠올라 한 번 번쩍이고, 7초 뒤 사라진다. */
 .insight-toast { position: fixed; left: 50%; bottom: 1.5rem; z-index: 60; display: flex; align-items: center; gap: .6rem; max-width: min(100% - 2rem, 32rem); padding: .7rem .8rem .7rem 1rem; border-radius: .9rem; border: 1px solid color-mix(in srgb, var(--primary) 55%, var(--border)); background: var(--card); color: var(--foreground); font-size: .9rem; font-weight: 600; box-shadow: 0 16px 48px rgb(0 0 0 / .35), 0 0 0 0 color-mix(in srgb, var(--primary) 50%, transparent); transform: translate(-50%, 0); animation: insight-toast-in .35s cubic-bezier(.2,.9,.3,1.2), insight-toast-flash 1.2s ease-out .25s; }
 .insight-toast > svg { width: 1.1rem; height: 1.1rem; flex-shrink: 0; fill: var(--primary); }
-.insight-toast.is-failed { border-color: color-mix(in srgb, var(--destructive) 55%, var(--border)); }
-.insight-toast.is-failed > svg { fill: var(--destructive); }
+.insight-toast.is-failed, .insight-toast.is-redeem_failed { border-color: color-mix(in srgb, var(--destructive) 55%, var(--border)); }
+.insight-toast.is-failed > svg, .insight-toast.is-redeem_failed > svg { fill: var(--destructive); }
 .insight-toast span { white-space: nowrap; }
 .insight-toast .btn-sm { height: 1.9rem; padding: 0 .8rem; font-weight: 700; }
 .insight-toast-close { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; margin-left: .1rem; border: 0; border-radius: .4rem; background: transparent; color: var(--muted-foreground); cursor: pointer; }

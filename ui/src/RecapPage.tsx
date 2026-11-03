@@ -10,6 +10,9 @@ import { InsightAction } from "./InsightAction";
 import { useInsight } from "./useInsight";
 import { InsightSummary } from "./InsightSummary";
 import { InsightViewDialog } from "./InsightViewDialog";
+/** 이 페이지가 떠 있는 동안 이미 보낸 쿠폰 코드 */
+const redeemedCodes = new Set<string>();
+
 // 머리글에 쓸 닉네임. 세션 응답의 channelName 이고, 못 읽거나 손님이면 「내 리캡」으로 둔다. 활동 로그에는 남지 않는 조회다.
 function useSessionName(): string | null {
   const [name, setName] = useState<string | null>(null);
@@ -61,6 +64,18 @@ export function RecapPage() {
     if (state.status === "guest" || state.status === "error" || state.status === "ready" && !state.refreshing && (state.source === url || state.refreshFailed)) anchor.current = null;
   }, [state, url]);
   const insight = useInsight();
+  // 쿠폰 링크(/recap/?ticket=CODE)로 들어오면 로그인 확인 뒤 한 번 받고, 주소에서 코드를 지운다 — 새로고침에 또 받지 않게.
+  // StrictMode 가 effect 를 두 번 돌리거나 페이지가 다시 마운트돼도 같은 코드를 한 번만 보내도록 모듈 단위로 기억한다.
+  useEffect(() => {
+    if (insight.phase.kind === "loading" || insight.phase.kind === "guest") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("ticket");
+    if (!code || redeemedCodes.has(code)) return;
+    redeemedCodes.add(code);
+    params.delete("ticket");
+    window.history.replaceState(null, "", `${window.location.pathname}${params.size ? `?${params}` : ""}${window.location.hash}`);
+    insight.redeem(code);
+  }, [insight]);
   const data = state.status === "ready" ? state.data : null;
   const channelResult = data?.channels.status === "ready" ? { ...data.channels, data: { ...data.channels.data, channels: profileChannels } } : data?.channels;
   const periodControls = <div className="activity-filters">
