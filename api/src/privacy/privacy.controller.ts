@@ -45,7 +45,8 @@ export class PrivacyController {
   @Get("me/privacy/requests")
   @Header("Cache-Control", "no-store")
   async current(@Req() req: Request): Promise<{ request: PrivacyRequest | null }> {
-    return { request: await this.access.privacyRequest(subject(req)) };
+    const channelId = subject(req);
+    return this.logs.track({ channelId, activityType: ActivityType.PRIVACY_SETTINGS_VIEW }, async () => ({ request: await this.access.privacyRequest(channelId) }));
   }
 }
 

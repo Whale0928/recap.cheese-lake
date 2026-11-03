@@ -102,6 +102,17 @@ describe("channel record sharing", () => {
   }
   const activityLogs = (type: string) => jest.mocked(database.query).mock.calls.filter(([sql, params]) => String(sql).includes("INSERT INTO recap.activity_logs") && Array.isArray(params) && params[1] === type);
 
+  it("records own channel record, received list and privacy settings views", async () => {
+    const agent = await login(owner);
+    await agent.get(`/api/me/channels/${streamer}/record`).expect(200);
+    await agent.get("/api/me/shares/received").expect(200);
+    await agent.get("/api/me/privacy/requests").expect(200);
+    const outcome = (type: string) => activityLogs(type).map(([, params]) => (params as unknown[])[5]);
+    expect(outcome("channel_record_view")).toEqual(["success"]);
+    expect(outcome("received_shares_view")).toEqual(["success"]);
+    expect(outcome("privacy_settings_view")).toEqual(["success"]);
+  });
+
   it("requires a login on every share path", async () => {
     const server = app.getHttpServer();
     await request(server).get(`/api/me/channels/${streamer}/share`).expect(401);

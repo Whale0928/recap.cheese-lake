@@ -55,7 +55,19 @@ export class ActivityController {
   @Header("Cache-Control", "no-store")
   async record(@Req() req: Request, @Param("broadcastId") broadcastId: string, @Query() query: Record<string, unknown>): Promise<ChannelRecordResponse> {
     if (!/^[0-9a-f]{32}$/.test(broadcastId) || Object.keys(query).length) throw new BadRequestException("Invalid channel record request");
-    return channelRecord(this.lab, req.session.user!.channelId, broadcastId);
+    const subject = req.session.user!.channelId;
+    return this.logs.track({ channelId: subject, activityType: ActivityType.CHANNEL_RECORD_VIEW }, () => channelRecord(this.lab, subject, broadcastId), value => this.recordOutcome(value));
+  }
+
+  // 인연 요약(record)이 없으면 화면이 비므로 실패, 추이(daily · monthly)만 없으면 부분 성공이다.
+  private recordOutcome(value: ChannelRecordResponse): ActivityOutcome {
+    const codes: Record<"not_configured" | "rate_limited" | "upstream", ActivityErrorCode> = {
+      not_configured: "ACTIVITY_NOT_CONFIGURED", rate_limited: "ACTIVITY_RATE_LIMITED", upstream: "ACTIVITY_UPSTREAM",
+    };
+    if (value.record.status === "unavailable") return { result: "failure", failureStage: "request", errorCode: codes[value.record.reason] };
+    const trend = [value.daily, value.monthly].find(r => r.status === "unavailable");
+    if (trend?.status === "unavailable") return { result: "partial_success", failureStage: "trend", errorCode: codes[trend.reason] };
+    return { result: "success" };
   }
 
   // 화면의 이미지 보충은 별도 사용자 활동으로 집계하지 않는다. 로그인 주체는 세션만 사용한다.

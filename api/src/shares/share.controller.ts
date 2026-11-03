@@ -78,7 +78,8 @@ export class ShareController {
   @Header("Cache-Control", "no-store")
   async received(@Req() req: Request, @Query() query: Record<string, unknown>): Promise<{ shares: ReceivedShare[] }> {
     if (Object.keys(query).length) throw new BadRequestException("Invalid share request");
-    return { shares: await this.shares.received(req.session.user!.channelId) };
+    const recipient = req.session.user!.channelId;
+    return this.logs.track({ channelId: recipient, activityType: ActivityType.RECEIVED_SHARES_VIEW }, async () => ({ shares: await this.shares.received(recipient) }));
   }
 
   @Get("shares/received/exists")
