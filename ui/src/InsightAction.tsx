@@ -15,7 +15,7 @@ const etaText = (sec: number) => sec < 60 ? `${Math.max(5, Math.round(sec / 5) *
 const timeText = (s: string) => new Date(s).toLocaleTimeString("ko-KR", { timeZone: "Asia/Seoul", hour: "numeric", minute: "2-digit" });
 
 export function InsightAction({ insight }: { insight: InsightHandle }) {
-  const { phase, busy, pending, done, tickets, denial, open, setOpen, request, clearDenial } = insight;
+  const { phase, busy, pending, done, tickets, denial, open, setOpen, request, clearDenial, notice, clearNotice } = insight;
   const [pulse, setPulse] = useState(0);
   const [shaking, setShaking] = useState(false);
   const [lockedNote, setLockedNote] = useState(false);
@@ -39,6 +39,12 @@ export function InsightAction({ insight }: { insight: InsightHandle }) {
     const timer = window.setTimeout(() => setLockedNote(false), 4000);
     return () => window.clearTimeout(timer);
   }, [lockedNote]);
+  // 끝났다는 토스트는 몇 초 뒤 저절로 사라진다. 「보기」를 누르면 바로 카드 창이다.
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(clearNotice, 7000);
+    return () => window.clearTimeout(timer);
+  }, [notice, clearNotice]);
   if (phase.kind === "guest") return null;
   const st = phase.kind === "ready" ? phase.status : null;
   const locked = phase.kind !== "loading" && !pending && !done && tickets === 0;
@@ -72,6 +78,15 @@ export function InsightAction({ insight }: { insight: InsightHandle }) {
         </button>}
     {(denial || lockedNote) && <p className="insight-denial" role="status">{denial ? DENIAL_TEXT[denial] : DENIAL_TEXT.no_ticket}</p>}
     {!locked && !pending && !done && phase.kind !== "loading" && tickets > 0 && <p className="insight-tickets">티켓 {tickets}장</p>}
+
+    {notice && <div className={`insight-toast is-${notice}`} role="status" aria-live="polite">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /></svg>
+      <span>{notice === "done" ? "AI 분석이 끝났어요" : "분석이 실패했어요. 티켓은 돌려드렸어요"}</span>
+      {notice === "done" && <button type="button" className="btn btn-default btn-sm" onClick={() => { clearNotice(); setOpen("view"); }}>보기</button>}
+      <button type="button" className="insight-toast-close" aria-label="닫기" onClick={clearNotice}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+    </div>}
 
     <dialog ref={consentDialog} className="insight-dialog" aria-labelledby="insight-dialog-title" onClose={close} onClick={e => { if (e.target === consentDialog.current) close(); }}>
       <div className="insight-panel">

@@ -14,8 +14,13 @@ export type InsightPhase =
 export type InsightDenial = "no_ticket" | "rate_limited" | "unavailable" | "error";
 export type InsightOpen = "" | "consent" | "queue" | "view";
 
+/** 방금 끝난 일. 대기 · 진행 중이던 요청이 끝나는 순간 한 번만 알린다 */
+export type InsightNotice = "done" | "failed";
+
 export interface InsightHandle {
   phase: InsightPhase;
+  notice: InsightNotice | null;
+  clearNotice: () => void;
   busy: boolean;
   /** 대기 · 진행 중 */
   pending: boolean;
@@ -39,13 +44,22 @@ export function useInsight(): InsightHandle {
   const [busy, setBusy] = useState(false);
   const [denial, setDenial] = useState<InsightDenial | null>(null);
   const [open, setOpen] = useState<InsightOpen>("");
+  const [notice, setNotice] = useState<InsightNotice | null>(null);
+  const lastState = useRef<InsightStatus["state"] | null>(null);
   const retries = useRef(0);
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
 
   const applyBody = useCallback((body: InsightResponse) => {
-    if (body.insight.status === "ready") { retries.current = 0; setPhase({ kind: "ready", status: body.insight.data, tickets: body.tickets, fetchedAt: body.fetchedAt }); }
-    else setPhase({ kind: "unavailable", ...body.insight, tickets: body.tickets });
+    if (body.insight.status === "ready") {
+      retries.current = 0;
+      // 기다리던 요청이 끝났으면 알린다. 처음 열었을 때 이미 끝나 있던 것은 알리지 않는다.
+      const next = body.insight.data?.state ?? null;
+      const was = lastState.current;
+      if ((was === "waiting" || was === "running") && (next === "done" || next === "failed")) setNotice(next);
+      lastState.current = next;
+      setPhase({ kind: "ready", status: body.insight.data, tickets: body.tickets, fetchedAt: body.fetchedAt });
+    } else setPhase({ kind: "unavailable", ...body.insight, tickets: body.tickets });
   }, []);
 
   const reload = useCallback(() => {
@@ -90,7 +104,8 @@ export function useInsight(): InsightHandle {
   const st = phase.kind === "ready" ? phase.status : null;
   const tickets = phase.kind === "ready" || phase.kind === "unavailable" ? phase.tickets : 0;
   return {
-    phase, busy, tickets, denial, open, setOpen, request, reload,
+    phase, busy, tickets, denial, open, setOpen, request, reload, notice,
+    clearNotice: () => setNotice(null),
     pending: st?.state === "waiting" || st?.state === "running",
     done: st?.state === "done" && !!st.result,
     clearDenial: () => setDenial(null),
