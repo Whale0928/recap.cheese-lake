@@ -117,5 +117,6 @@
 /* 「내 AI 분석 보기」 창. 카드가 창의 겉모양이라 창 자체는 투명하고, 긴 카드는 창 안에서 스크롤한다. */
 .insight-view-dialog { width: min(100% - 2rem, 64rem); max-height: min(100dvh - 2rem, 60rem); padding: 0; background: transparent; border: 0; overflow: auto; }
 .insight-view-dialog::backdrop { background: rgb(0 0 0 / .6); backdrop-filter: blur(3px); }
-.insight-view-head { position: sticky; top: .75rem; z-index: 1; display: flex; justify-content: flex-end; height: 0; padding-right: .75rem; }
+.insight-view-head { position: sticky; top: .75rem; z-index: 1; display: flex; justify-content: flex-end; align-items: flex-start; gap: .5rem; height: 0; padding-right: .75rem; }
+.insight-view-again { background: var(--card); border: 1px solid var(--border); font-weight: 600; }
 .insight-view-head .btn { background: var(--card); border: 1px solid var(--border); }

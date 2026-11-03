@@ -31,5 +31,5 @@ export interface InsightStatus {
   promptVersion?: string;
   result?: ViewerInsight;
 }
-/** null 은 아직 한 번도 요청하지 않은 것이다 */
-export interface InsightResponse { fetchedAt: string; insight: ActivityResult<InsightStatus | null> }
+/** insight.data 가 null 이면 아직 한 번도 요청하지 않은 것이다. tickets 는 남은 분석 티켓 장수다 */
+export interface InsightResponse { fetchedAt: string; insight: ActivityResult<InsightStatus | null>; tickets: number }

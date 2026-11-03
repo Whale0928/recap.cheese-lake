@@ -53,3 +53,15 @@
 /* 완료: 같은 버튼이 민트 채움 「내 AI 분석 보기」가 된다. */
 .insight-btn-done { font-weight: 800; }
 .insight-btn-done svg { fill: currentColor; }
+
+/* 잠김: 티켓이 없으면 회색 자물쇠 버튼. 누르면 흔들리고 아래에 까닭 한 줄이 떴다 사라진다. */
+.insight-btn-locked { color: var(--muted-foreground); border-color: var(--border); background: var(--background); cursor: not-allowed; }
+.insight-btn-locked:hover { background: var(--background); color: var(--muted-foreground); }
+.insight-lock { width: 1rem; height: 1rem; fill: none !important; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.insight-action.is-shake .insight-btn { animation: insight-shake .45s cubic-bezier(.36,.07,.19,.97); }
+@keyframes insight-shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(3px); } 30%, 50%, 70% { transform: translateX(-5px); } 40%, 60% { transform: translateX(5px); } }
+.insight-denial { position: absolute; right: 0; top: calc(100% + .35rem); margin: 0; padding: .3rem .65rem; border-radius: .5rem; background: color-mix(in srgb, var(--destructive) 14%, var(--card)); border: 1px solid color-mix(in srgb, var(--destructive) 45%, transparent); color: var(--foreground); font-size: .75rem; white-space: nowrap; animation: insight-denial 4s ease forwards; }
+@keyframes insight-denial { 0% { opacity: 0; transform: translateY(-4px); } 8%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.insight-tickets { position: absolute; right: .25rem; top: calc(100% + .3rem); margin: 0; font-size: .7rem; color: var(--muted-foreground); white-space: nowrap; }
+@media (max-width: 640px) { .insight-denial, .insight-tickets { position: static; margin-top: .35rem; } }
+@media (prefers-reduced-motion: reduce) { .insight-action.is-shake .insight-btn { animation: none; } .insight-denial { animation: none; } }
