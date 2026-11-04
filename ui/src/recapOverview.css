@@ -1,7 +1,7 @@
 .recap-profile-heading { display: flex; align-items: center; gap: 1rem; margin-top: 1.25rem; min-width: 0; }
 .recap-profile-name { min-width: 0; }
 .recap-profile-heading h1 { margin: 0; font-size: clamp(1.75rem, 3.5vw, 2.5rem); }
-.recap-profile-avatar { width: 3.5rem; height: 3.5rem; }
+.recap-profile-heading .recap-profile-avatar { width: 3.5rem; height: 3.5rem; }
 .recap-profile-retry { padding: 0; margin-top: .5rem; color: var(--muted-foreground); background: none; border: 0; text-decoration: underline; cursor: pointer; font: inherit; font-size: .75rem; }
 .recap-data > .activity-meta { margin: .75rem 0 0; }
 .recap-data > .activity-refresh-status:empty { display: none; }
@@ -18,11 +18,9 @@
 @media (max-width: 560px) {
   .recap-personal-panel { padding: 1rem; }
   .recap-profile-heading { gap: .75rem; }
-  .recap-profile-avatar { width: 3rem; height: 3rem; }
+  .recap-profile-heading .recap-profile-avatar { width: 3rem; height: 3rem; }
   .recap-personal-panel .home-channel-card { grid-template-columns: 3.5rem minmax(0, 1fr); gap: .5rem .75rem; }
   .recap-personal-panel .home-channel-image { width: 3.5rem; height: 3.5rem; }
   .recap-personal-panel .home-channel-ratio strong { font-size: 1.75rem; }
 }
-/* 공통 아바타 규칙이 뒤에 로드되어도 리캡 제목의 크기를 유지한다. */
-.recap-profile-heading .recap-profile-avatar { width: 3.5rem; height: 3.5rem; }
-@media (max-width: 560px) { .recap-profile-heading .recap-profile-avatar { width: 3rem; height: 3rem; } }
+.recap-profile-retry:disabled { cursor: wait; text-decoration: none; }

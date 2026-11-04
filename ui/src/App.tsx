@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import privacyPolicy from "../legal/개인정보 처리방침.md?raw";
 import termsOfService from "../legal/이용약관.md?raw";
 import { LegalDocument } from "./LegalDocument";
-import { MePage } from "./MePage";
 import { BottomBanner, SideBanners } from "./Banners";
 import { ContactDialog } from "./ContactDialog";
 import { AccessBlocked, PrivacyDialog, type AccessRestriction } from "./PrivacyControls";
@@ -215,9 +214,6 @@ function App() {
           <nav className="site-nav" aria-label="주요 메뉴">
             {!restriction && <AuthButtons authState={authState} receivedShares={receivedShares} compact />}
             {authState === "guest" && localLoginAvailable && <a className="btn btn-outline btn-sm" href="/_dev/login">채널 ID로 로그인</a>}
-            {authenticated && !restriction && <a className="btn btn-outline btn-sm nav-icon-button profile-button" href="/me/" aria-label="내 정보 보기" title="내 정보 보기" aria-current={path === "/me" ? "page" : undefined}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg>
-            </a>}
             {authenticated && <button className="btn btn-outline btn-sm nav-icon-button" type="button" disabled={logoutPending} onClick={logout} aria-label={logoutPending ? "로그아웃 중" : "로그아웃"} title={logoutPending ? "로그아웃 중" : "로그아웃"} aria-busy={logoutPending}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M10 4H5v16h5M10 12h11m-4-4 4 4-4 4" /></svg>
             </button>}
@@ -233,8 +229,6 @@ function App() {
   // 지우기·수집 거부를 요청했거나 이용이 제한된 계정은 법적 문서를 뺀 모든 화면을 차단 화면으로 대신한다.
   if (restriction && path !== "/privacy" && path !== "/terms") {
     page = <AccessBlocked restriction={restriction} onContact={restriction.kind === "ip_blocked" ? undefined : () => setContactOpen(true)} />;
-  } else if (path === "/me") {
-    page = <MePage key={authState === "guest" ? "guest" : "session"} />;
   } else if (path === "/privacy" || path === "/terms") {
     page = <LegalDocument markdown={path === "/privacy" ? privacyPolicy : termsOfService} />;
   } else if (path === "/recap") {

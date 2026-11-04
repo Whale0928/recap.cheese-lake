@@ -68,9 +68,9 @@ Jest·Supertest로 실제 Nest HTTP 처리를 검증하며, 치지직 HTTP 응�
 
 결정 기록은 [adr](adr)에 있다.
 
-## 내 정보 화면
+## 리캡 프로필
 
-`/me/`는 치지직 프로필과 Lab 활동 영역을 구분한다. Lab은 레이아웃만 있으며 호출하지 않는다. `GET /api/me`는 세션의 본인 ID만 조회하며 요청의 다른 사용자 ID를 사용하지 않는다. 치지직 조회 실패는 `chzzk.status=unavailable`로 반환하고, 로그인 때 확인한 기본 식별 정보는 유지한다. 사용자 토큰을 다시 보관하지 않으며 Client Secret은 서버에서만 사용한다.
+`/recap/`은 제목의 치지직 프로필, 본진과 최근 365일 활동 달력, 선택 기간의 활동 요약을 제공한다. 별도 내 정보 화면은 제거했으며 기존 `/me/` 주소는 `/recap/`으로 이동한다. `GET /api/me`는 세션의 본인 ID만 조회하며 요청의 다른 사용자 ID를 사용하지 않는다. 치지직 조회 실패는 `chzzk.status=unavailable`로 반환하고, 로그인 때 확인한 기본 식별 정보는 유지한다. 사용자 토큰을 다시 보관하지 않으며 Client Secret은 서버에서만 사용한다.
 
 ## 배포 네트워크
 
@@ -102,7 +102,7 @@ Kubernetes 배포 선언은 별도 deploy 저장소의 `base/recap-api.yaml`·`r
 - 브라우저는 재확인 횟수·다음 시각·15분 제한 시각만 불투명한 캐시 키별로 sessionStorage에 최대 128개 보관한다. 활동 값·인증정보는 저장하지 않는다. 새로고침으로 한도를 초기화하지 않으며 429 대기 시간을 지키고 화면 이동·로그아웃 시 취소한다. 확인 후에도 null이면 대체 이미지를 유지하고 자동 확인을 종료한다.
 - 응답의 대상 ID·기간·숫자·시간을 검증하고 선언한 필드만 반환한다. Lab 오류 본문·API Key는 응답이나 로그에 기록하지 않는다.
 
-내 정보 활동 달력은 인증된 본인 전용 `GET /api/me/activity/trend?from=YYYY-MM-DD&to=YYYY-MM-DD`로 일별 채팅 수를 조회한다. 기간은 최대 366일이며, 사용자 ID와 추이 단위는 입력받지 않는다. 기존 사용자별 캐시와 중복 요청 병합을 적용하고 자동 재시도는 하지 않는다.
+리캡 활동 달력은 인증된 본인 전용 `GET /api/me/activity/trend?from=YYYY-MM-DD&to=YYYY-MM-DD`로 일별 채팅 수를 조회한다. 기간은 최대 366일이며, 사용자 ID와 추이 단위는 입력받지 않는다. 기존 사용자별 캐시와 중복 요청 병합을 적용하고 자동 재시도는 하지 않는다.
 
 리캡 화면은 `GET /api/recap?period=all` 또는 `?month=YYYY-MM`을 사용한다. 전체는 확인된 모든 과거 기록부터 오늘까지, 월별은 한국 시간 달력 월로 조회하며 현재 월은 오늘까지 조회한다. 두 방식 모두 추이는 일별로 고정한다. 기존 from/to/interval 조회 계약은 유지한다.
 
@@ -114,7 +114,7 @@ Kubernetes 배포 선언은 별도 deploy 저장소의 `base/recap-api.yaml`·`r
 
 개발용 세션에는 발급 경로를 기록하며, 개발 로그인 옵션을 끄거나 운영 환경에서 해당 세션을 읽으면 인증을 무효화한다. 이 표시는 세션 교체 후에도 유지한다.
 
-내 정보의 활동 요약은 `GET /api/me/activity/summary?period=all`로 전체 수집 기간을 조회한다. 잔디의 일별 조회 기간은 최근 365일로 유지한다.
+리캡의 활동 요약은 `GET /api/recap` 응답을 사용한다. 기존 `GET /api/me/activity/summary?period=all`은 호환성을 위해 유지한다. 활동 달력의 일별 조회 기간은 최근 365일이다.
 
 `GET /api/session`은 실제 로컬 로그인 접근 조건을 충족할 때만 `localLoginAvailable: true`를 포함한다. UI는 이 응답으로 개발 로그인 버튼의 노출 여부를 결정하며, 운영 응답에는 이 항목을 포함하지 않는다.
 
@@ -202,7 +202,7 @@ Lab 관리 화면이 직접 쓰고 Recap은 `GET /api/banners`·`GET /api/banner
 
 ## 활동 로그
 
-활동 로그는 `ActivityLogService.track()` 한 관문으로만 남긴다. 컨트롤러는 핸들러 본문을 `track()`으로 감쌀 뿐 `activity_logs`에 직접 쓰지 않는다. `track()`이 활동 단위의 시작·종료 시각, 처리 시간과 결과, 활동 종류의 이름과 설명을 한 번 기록한다. 종류는 `ActivityType.PROFILE_VIEW`(`/api/me`), `ActivityType.RECAP_VIEW`(`/api/recap`), `CHANNEL_RECORD_VIEW`(채널 기록), `RECEIVED_SHARES_VIEW`(공유받은 목록), `PRIVACY_SETTINGS_VIEW`(이용 설정), 공유 관련 `SHARE_GRANT`·`SHARE_REVOKE`·`SHARED_RECORD_VIEW`, AI 분석 관련 `INSIGHT_TICKET_REDEEM`·`INSIGHT_REQUEST`·`INSIGHT_TICKET_REFUND` 등이며 전체 목록은 `activity-log.types.ts`에 있다. 사람이 한 활동(화면 열기, 상태를 바꾸는 동작, 그 결과로 시스템이 대신 한 일)은 기록하고, 한 화면에 딸려 오는 보조 요청(요약·잔디·프로필·아바타·습관 카드), 존재 여부 조회, 공개 자료, 상태 폴링은 기록하지 않는다. 기록을 더하는 절차는 저장소 루트 `AGENTS.md`에 있다. 리캡의 내부 호출·캐시 조회·재시도 횟수는 로그 행 수에 영향을 주지 않는다.
+활동 로그는 `ActivityLogService.track()` 한 관문으로만 남긴다. 컨트롤러는 핸들러 본문을 `track()`으로 감쌀 뿐 `activity_logs`에 직접 쓰지 않는다. `track()`이 활동 단위의 시작·종료 시각, 처리 시간과 결과, 활동 종류의 이름과 설명을 한 번 기록한다. 종류는 `ActivityType.RECAP_VIEW`(`/api/recap`), `CHANNEL_RECORD_VIEW`(채널 기록), `RECEIVED_SHARES_VIEW`(공유받은 목록), `PRIVACY_SETTINGS_VIEW`(이용 설정), 공유 관련 `SHARE_GRANT`·`SHARE_REVOKE`·`SHARED_RECORD_VIEW`, AI 분석 관련 `INSIGHT_TICKET_REDEEM`·`INSIGHT_REQUEST`·`INSIGHT_TICKET_REFUND` 등이며 전체 목록은 `activity-log.types.ts`에 있다. 사람이 한 활동(화면 열기, 상태를 바꾸는 동작, 그 결과로 시스템이 대신 한 일)은 기록하고, 한 화면에 딸려 오는 보조 요청(요약·잔디·프로필·아바타·습관 카드), 존재 여부 조회, 공개 자료, 상태 폴링은 기록하지 않는다. 기록을 더하는 절차는 저장소 루트 `AGENTS.md`에 있다. `GET /api/me`는 리캡의 보조 프로필 조회이므로 성공·실패·재시도를 활동 로그에 남기지 않는다. 리캡 조회는 `GET /api/recap`에서 기록한다. 기존 `profile_view` 기록은 그대로 보존하며 새로 생성하지 않는다.
 
 리캡은 네 항목 모두 정상일 때 성공, 일부만 정상이면 부분 성공, 모두 조회하지 못하면 실패다. 여러 항목에 문제가 있으면 summary → channels → trend → patterns 순서로 첫 실패 단계와 정의된 오류 코드를 기록한다. 처리 중 예외가 발생하면 원래 예외를 유지하고 실패를 기록한다. 응답 본문·원문 오류·토큰은 저장하지 않는다. 로그 저장은 요청 종료 시 기다리되, 저장 실패가 원래 응답이나 예외를 바꾸지는 않는다.
 

@@ -42,10 +42,19 @@ test("공유 대표 이미지는 빌드에 포함된 1200×630 PNG를 가리킨�
 });
 
 test("개인 화면에는 정적 개인 기록을 생성하지 않고 noindex를 유지한다", async () => {
-  for (const path of ["recap/index.html", "recap/channel/index.html", "recap/shared/index.html", "me/index.html"]) {
+  for (const path of ["recap/index.html", "recap/channel/index.html", "recap/shared/index.html"]) {
     const html = await readBuilt(path);
     assert.match(html, /name="robots" content="noindex, nofollow"/);
     assert.match(html, /<div id="root"><\/div>/);
     assert.doesNotMatch(html, /rel="canonical"/);
   }
+});
+
+
+test("기존 내 정보 주소는 앱을 중복 실행하지 않고 리캡으로 이동한다", async () => {
+  const html = await readBuilt("me/index.html");
+  assert.match(html, /http-equiv="refresh" content="0;url=\/recap\/"/);
+  assert.match(html, /href="\/recap\/"/);
+  assert.match(html, /name="robots" content="noindex, nofollow"/);
+  assert.doesNotMatch(html, /<script/);
 });

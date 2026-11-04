@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ActivityResult, ActivitySummary, SummaryResponse } from "./activity.types";
+import type { ActivityResult, ActivitySummary } from "./activity.types";
 import "./activity.css";
 export type ActivityState<T> = { status: "loading" | "guest" | "error" } | { status: "ready"; data: T; source: string; refreshing: boolean; refreshFailed: boolean };
 export function useActivity<T>(url: string, attempt: number): ActivityState<T> {
@@ -37,11 +37,4 @@ export function SummaryValues({ result }: { result: ActivityResult<ActivitySumma
   if (result.status !== "ready") return <ResultNotice result={result} />;
   const d = result.data;
   return <dl className="activity-summary"><div><dt>채팅</dt><dd>{number(d.chatCount)}<span>개</span></dd></div><div><dt>활동일</dt><dd>{number(d.activeDays)}<span>일</span></dd></div><div><dt>활동한 방송</dt><dd>{number(d.channelCount)}<span>개</span></dd></div></dl>;
-}
-export function MeActivity({ attempt }: { attempt: number }) {
-  const state = useActivity<SummaryResponse>("/api/me/activity/summary?period=all", attempt);
-  return <>
-    {state.status === "ready" ? <><PeriodLabel {...state.data.period} /><SummaryValues result={state.data.summary} />{state.data.summary.status === "ready" && <p className="me-updated">활동 정보 확인 · {dateTime(state.data.fetchedAt)}</p>}</>
-      : <p className="activity-notice" role="status">{state.status === "loading" ? "불러오는 중" : state.status === "guest" ? "로그인 필요" : "활동 정보 조회 실패"}</p>}
-  </>;
 }

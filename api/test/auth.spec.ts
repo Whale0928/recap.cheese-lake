@@ -533,6 +533,7 @@ describe("CHZZK OAuth HTTP flow", () => {
   it("records one recap activity for two upstream requests and ignores auxiliary queries", async () => {
     const agent = await signedIn();
     const calls = jest.mocked(database.query).mock.calls;
+    await agent.get("/api/me").expect(200);
     await agent.get("/api/me/activity/summary").expect(200);
     await agent.get("/api/me/activity/trend").expect(200);
     expect(calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"))).toHaveLength(0);
@@ -562,14 +563,22 @@ describe("CHZZK OAuth HTTP flow", () => {
     expect(logs[0]![1]?.slice(5, 9)).toEqual(["failure", 200, "summary", "ACTIVITY_RATE_LIMITED"]);
   });
 
-  it("records handled profile failure once and rejects anonymous access without a log", async () => {
+  it("never logs auxiliary profile success, failure or retries and preserves one recap log", async () => {
     await request(app.getHttpServer()).get("/api/me").expect(401);
     const agent = await signedIn();
+    const success = await agent.get("/api/me").expect(200);
+    expect(success.body.chzzk.status).toBe("ready");
     channelFailure = true;
+    const failed = await agent.get("/api/me").expect(200);
+    expect(failed.body.chzzk.status).toBe("unavailable");
     await agent.get("/api/me").expect(200);
-    const logs = jest.mocked(database.query).mock.calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"));
-    expect(logs).toHaveLength(1);
-    expect(logs[0]![1]?.slice(5, 9)).toEqual(["failure", 200, "profile", "PROFILE_UNAVAILABLE"]);
+    const activityLogs = () => jest.mocked(database.query).mock.calls.filter(([sql, params]) => sql.includes("INSERT INTO recap.activity_logs") && !(Array.isArray(params) && params[1] === "login"));
+    expect(activityLogs()).toHaveLength(0);
+    channelFailure = false;
+    await agent.get("/api/me").expect(200);
+    await agent.get("/api/recap").expect(200);
+    expect(activityLogs()).toHaveLength(1);
+    expect(activityLogs()[0]![1]).toEqual([user.channelId, "recap_view", expect.any(Date), expect.any(Date), expect.any(Number), "success", 200, null, null, "리캡 조회", expect.any(String)]);
   });
 
   it("does not forward a mismatched subject from Lab", async () => {

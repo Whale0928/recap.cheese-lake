@@ -5,6 +5,7 @@ import { ActivityPatternChart } from "./ActivityPatternChart";
 import { ActivityChannels } from "./ActivityChannels";
 import { ActivityCalendar } from "./ActivityCalendar";
 import { RecapProfile } from "./RecapProfile";
+import "./me.css";
 import "./recapOverview.css";
 import { HomeChannelCard } from "./HomeChannelCard";
 import { useChannelProfiles } from "./useChannelProfiles";

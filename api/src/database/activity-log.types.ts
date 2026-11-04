@@ -7,7 +7,6 @@ export const ActivityType = {
   PRIVACY_REQUEST_CANCEL: "privacy_request_cancel",
   INQUIRY_CREATE: "inquiry_create",
   INQUIRY_LIST_VIEW: "inquiry_list_view",
-  PROFILE_VIEW: "profile_view",
   RECAP_VIEW: "recap_view",
   SHARE_GRANT: "share_grant",
   SHARE_REVOKE: "share_revoke",
@@ -32,7 +31,6 @@ export const ActivityDescriptions: Record<ActivityType, { codeName: string; reas
   privacy_request_cancel: { codeName: "수집 거부 취소 요청", reason: "수집 거부 취소를 요청했다. 운영자가 이용을 재개하기 전까지 차단을 유지한다." },
   inquiry_create: { codeName: "문의 등록", reason: "문의하기에서 문의를 등록했다." },
   inquiry_list_view: { codeName: "문의 목록 조회", reason: "문의하기에서 이전 문의 목록을 조회했다." },
-  profile_view: { codeName: "프로필 조회", reason: "프로필 화면에서 치지직 프로필을 조회했다." },
   recap_view: { codeName: "리캡 조회", reason: "리캡 화면에서 활동 요약과 채널별 기록을 조회했다." },
   share_grant: { codeName: "기록 공유 동의", reason: "채널 기록 화면에서 해당 스트리머에게 이 채널에서의 내 기록을 보여 주는 데 동의했다." },
   share_revoke: { codeName: "기록 공유 해제", reason: "스트리머에게 보여 주던 채널 기록 공유를 해제했다." },
@@ -46,9 +44,9 @@ export const ActivityDescriptions: Record<ActivityType, { codeName: string; reas
   privacy_settings_view: { codeName: "이용 설정 조회", reason: "이용 설정 화면에서 수집 거부 요청 상태를 조회했다." },
 };
 
-export type ActivityErrorCode = "PROFILE_UNAVAILABLE" | "ACTIVITY_NOT_CONFIGURED" | "ACTIVITY_RATE_LIMITED" | "ACTIVITY_UPSTREAM" | "REQUEST_REJECTED" | "PROCESSING_FAILED" | "NO_TICKET" | "COUPON_UNUSABLE";
+export type ActivityErrorCode = "ACTIVITY_NOT_CONFIGURED" | "ACTIVITY_RATE_LIMITED" | "ACTIVITY_UPSTREAM" | "REQUEST_REJECTED" | "PROCESSING_FAILED" | "NO_TICKET" | "COUPON_UNUSABLE";
 export type ActivityOutcome = { result: "success" } | {
   result: "partial_success" | "failure";
-  failureStage: "profile" | "summary" | "channels" | "trend" | "patterns" | "request";
+  failureStage: "summary" | "channels" | "trend" | "patterns" | "request";
   errorCode: ActivityErrorCode;
 };
