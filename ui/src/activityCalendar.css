@@ -1,6 +1,6 @@
 .activity-calendar { --calendar-cell-size: 12px; margin-top: 2rem; min-width: 0; }
 .activity-calendar-heading, .activity-calendar-footer { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
-.activity-calendar-heading h3 { margin: 0; font-size: .875rem; font-weight: 600; }
+.activity-calendar-heading :is(h2, h3) { margin: 0; font-size: .875rem; font-weight: 600; }
 .activity-calendar-heading > span, .activity-calendar-footer { color: var(--muted-foreground); font-size: .75rem; }
 .activity-calendar-scroll { max-width: 100%; overflow-x: auto; margin: 1rem 0 .75rem; padding: 4px; overscroll-behavior-inline: contain; }
 .activity-calendar-layout { display: grid; grid-template-columns: 20px 1fr; grid-template-rows: 20px 1fr; gap: 4px; width: max(100%, calc(var(--calendar-weeks) * (var(--calendar-cell-size) + 3px) + 24px)); }
@@ -19,3 +19,15 @@
 @media (max-width: 560px) { .activity-calendar { --calendar-cell-size: 24px; } }
 
 .activity-calendar-mood { display: inline-block; font-size: 1.25rem; line-height: 1.4; }
+
+.calendar-period-note, .calendar-scroll-hint { margin: .5rem 0; font-size: .75rem; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.calendar-scroll-hint { display: none; }
+.calendar-loading { min-height: 14rem; }
+.calendar-skeleton-title { width: 8rem; height: 1rem; border-radius: .25rem; margin-bottom: 2rem; }
+.calendar-skeleton-grid { height: 8rem; border-radius: .5rem; }
+.recap-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.recap-skeleton { background: var(--secondary); animation: recap-loading-pulse 1.5s ease-in-out infinite; }
+@keyframes recap-loading-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .recap-skeleton { animation: none; } }
+@media (max-width: 940px) { .calendar-scroll-hint { display: block; } }
+@media (max-width: 560px) { .calendar-loading { min-height: 20rem; } .calendar-skeleton-grid { height: 12rem; } }

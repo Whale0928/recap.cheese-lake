@@ -1,8 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type SyntheticEvent } from "react";
 import type { RecapResponse } from "./activity.types";
-import { dateTime, number, PeriodLabel, ResultNotice, SummaryValues, useActivity } from "./ActivityView";
+import { dateTime, PeriodLabel, ResultNotice, SummaryValues, useActivity } from "./ActivityView";
 import { ActivityPatternChart } from "./ActivityPatternChart";
 import { ActivityChannels } from "./ActivityChannels";
+import { ActivityCalendar } from "./ActivityCalendar";
+import { RecapProfile } from "./RecapProfile";
+import "./recapOverview.css";
 import { HomeChannelCard } from "./HomeChannelCard";
 import { useChannelProfiles } from "./useChannelProfiles";
 import { TraitsCard } from "./TraitsCard";
@@ -86,20 +89,27 @@ export function RecapPage() {
       {mode === "month" && <label>조회 월<input type="month" required value={month} min="1970-02" max={currentMonth} onChange={e => { if (/^\d{4}-(0[1-9]|1[0-2])$/.test(e.target.value) && e.target.value >= "1970-02" && e.target.value <= currentMonth) { preservePosition(e); setMonth(e.target.value); } }} /></label>}
     </div>;
   return <main id="main" className="me-main recap-data" aria-busy={state.status === "loading" || state.status === "ready" && state.refreshing}>
-    <div className="me-heading"><div><a className="me-back" href="/">홈으로</a><h1>{sessionName ? <><span className="me-heading-name">{sessionName}</span> 님의 리캡</> : "내 리캡"}</h1></div></div>
+    <div className="me-heading"><div><a className="me-back" href="/">홈으로</a><RecapProfile sessionName={sessionName} /></div></div>
     <section className="recap-period" aria-labelledby="period-heading">
       <div><h2 id="period-heading">조회 기간</h2>{periodControls}</div>
-      {data && <InsightAction insight={insight} />}
+      <InsightAction insight={insight} />
     </section>
+    {data && <PeriodLabel {...data.period} />}
     <div className="activity-refresh-status" role="status" aria-live="polite">
-      {state.status === "ready" && (state.refreshing ? "갱신 중" : state.refreshFailed ? <><span>갱신 실패</span><button type="button" onClick={() => setAttempt(n => n + 1)}>다시 조회</button></> : null)}
+      {state.status === "ready" && (state.refreshing ? "선택 기간을 불러오는 중 · 아래는 이전 조회 결과입니다" : state.refreshFailed ? <><span>갱신 실패 · 아래는 이전 조회 결과입니다</span><button type="button" onClick={() => setAttempt(n => n + 1)}>다시 조회</button></> : null)}
     </div>
+    {state.status !== "guest" && <section className="recap-personal-panel" aria-label="본진과 최근 활동">
+      <div className="recap-home-area" aria-busy={state.status === "loading"}>
+        {state.status === "loading" ? <div className="recap-home-loading" role="status"><span className="recap-visually-hidden">본진 불러오는 중</span><div className="recap-skeleton" aria-hidden="true" /></div>
+          : channelResult?.status === "ready" ? <HomeChannelCard result={channelResult} />
+          : <div className="activity-notice"><p role="status">본진 정보를 불러오지 못했습니다.</p><button className="btn btn-outline btn-sm" onClick={() => setAttempt(n => n + 1)}>다시 불러오기</button></div>}
+      </div>
+      <ActivityCalendar recap />
+    </section>}
     {data && channelResult ? <>
-      {data.period.from === "1970-01-01T00:00:00.000Z" ? <p className="activity-meta">전체 · 한국 시간 · 확인된 채팅 기준</p> : <PeriodLabel {...data.period} />}
-      <HomeChannelCard result={channelResult} />
       {/* 활동 요약(3)과 습관 카드(7)를 한 줄에 둔다. 좁은 화면에서는 위아래로 쌓인다. */}
       <div className="recap-overview">
-        <section className="me-section recap-summary" aria-labelledby="summary-heading"><div className="me-section-heading"><h2 id="summary-heading">활동 요약</h2></div><SummaryValues result={data.summary} /></section>
+        <section className="me-section recap-summary" aria-labelledby="summary-heading"><div className="me-section-heading"><h2 id="summary-heading">선택 기간 활동</h2></div><SummaryValues result={data.summary} /></section>
         <TraitsCard />
       </div>
       <InsightSummary insight={insight} />

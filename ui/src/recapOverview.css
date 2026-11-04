@@ -1,0 +1,28 @@
+.recap-profile-heading { display: flex; align-items: center; gap: 1rem; margin-top: 1.25rem; min-width: 0; }
+.recap-profile-name { min-width: 0; }
+.recap-profile-heading h1 { margin: 0; font-size: clamp(1.75rem, 3.5vw, 2.5rem); }
+.recap-profile-avatar { width: 3.5rem; height: 3.5rem; }
+.recap-profile-retry { padding: 0; margin-top: .5rem; color: var(--muted-foreground); background: none; border: 0; text-decoration: underline; cursor: pointer; font: inherit; font-size: .75rem; }
+.recap-data > .activity-meta { margin: .75rem 0 0; }
+.recap-data > .activity-refresh-status:empty { display: none; }
+.recap-personal-panel { margin-top: 1.25rem; padding: 1.5rem; min-width: 0; background: var(--card); border: 1px solid var(--recap-outline); border-radius: var(--radius-xl); }
+.recap-home-area:empty { display: none; }
+.recap-personal-panel .home-channels { margin: 0 0 1.25rem; gap: 1rem; }
+.recap-personal-panel .home-channel-card { grid-template-columns: 4.5rem minmax(0, 1fr) auto; gap: 1rem; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; padding: 0 0 1.25rem; }
+.recap-personal-panel .home-channel-image { width: 4.5rem; height: 4.5rem; border-radius: 1rem; }
+.recap-personal-panel .home-channel-identity h2 { font-size: 1.5rem; margin-top: .25rem; }
+.recap-personal-panel .home-channel-ratio strong { font-size: 2.25rem; }
+.recap-personal-panel .activity-calendar { margin-top: 0; min-width: 0; }
+.recap-home-loading { height: 6rem; padding-bottom: 1.25rem; }
+.recap-home-loading > .recap-skeleton { height: 100%; border-radius: .75rem; }
+@media (max-width: 560px) {
+  .recap-personal-panel { padding: 1rem; }
+  .recap-profile-heading { gap: .75rem; }
+  .recap-profile-avatar { width: 3rem; height: 3rem; }
+  .recap-personal-panel .home-channel-card { grid-template-columns: 3.5rem minmax(0, 1fr); gap: .5rem .75rem; }
+  .recap-personal-panel .home-channel-image { width: 3.5rem; height: 3.5rem; }
+  .recap-personal-panel .home-channel-ratio strong { font-size: 1.75rem; }
+}
+/* 공통 아바타 규칙이 뒤에 로드되어도 리캡 제목의 크기를 유지한다. */
+.recap-profile-heading .recap-profile-avatar { width: 3.5rem; height: 3.5rem; }
+@media (max-width: 560px) { .recap-profile-heading .recap-profile-avatar { width: 3rem; height: 3rem; } }

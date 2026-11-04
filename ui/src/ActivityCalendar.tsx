@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { dateInput, number, ResultNotice, useActivity } from "./ActivityView";
+import { dateInput, number, useActivity } from "./ActivityView";
 import type { ActivityPeriod, ActivityResult, ActivityTrend } from "./activity.types";
 import "./activityCalendar.css";
 
@@ -17,24 +17,23 @@ function calendarPeriod() {
   const from = new Date(Date.parse(`${to}T00:00:00Z`) - 364 * DAY).toISOString().slice(0, 10);
   return { from, to };
 }
-export function ActivityCalendar() {
+export function ActivityCalendar({ recap = false }: { recap?: boolean }) {
+  const [attempt, setAttempt] = useState(0);
   const [period] = useState(calendarPeriod);
-  const state = useActivity<TrendResponse>(`/api/me/activity/trend?${new URLSearchParams(period)}`, 0);
+  const state = useActivity<TrendResponse>(`/api/me/activity/trend?${new URLSearchParams(period)}`, attempt);
   const [selected, setSelected] = useState(period.to);
-  if (state.status !== "ready") return <p className="activity-notice" role="status">{state.status === "loading" ? "활동 달력 불러오는 중" : state.status === "guest" ? "로그인 필요" : "활동 달력 조회 실패"}</p>;
-  if (state.data.trend.status !== "ready") return <ResultNotice result={state.data.trend} />;
-  return <CalendarGrid trend={state.data.trend.data} period={period} selected={selected} onSelect={setSelected} />;
+  const loading = state.status === "loading" || state.status === "ready" && state.refreshing && state.data.trend.status !== "ready";
+  if (loading) return <div className="activity-calendar calendar-loading" aria-busy="true" role="status"><span className="recap-visually-hidden">활동 캘린더 불러오는 중</span><div className="calendar-skeleton-title recap-skeleton" aria-hidden="true" /><div className="calendar-skeleton-grid recap-skeleton" aria-hidden="true" /></div>;
+  if (state.status === "guest") return <p className="activity-notice" role="status">로그인 필요</p>;
+  if (state.status !== "ready" || state.data.trend.status !== "ready") return <div className="activity-calendar"><p className="activity-notice" role="status">활동 캘린더를 불러오지 못했습니다.</p><button className="btn btn-outline btn-sm" onClick={() => setAttempt(n => n + 1)}>다시 불러오기</button></div>;
+  return <CalendarGrid trend={state.data.trend.data} period={period} selected={selected} onSelect={setSelected} recap={recap} />;
 }
-export function CalendarGrid({ trend, period, selected, onSelect }: { trend: Pick<ActivityTrend, "points">; period: { from: string; to: string }; selected: string; onSelect: (date: string) => void }) {
+export function CalendarGrid({ trend, period, selected, onSelect, recap = false }: { recap?: boolean; trend: Pick<ActivityTrend, "points">; period: { from: string; to: string }; selected: string; onSelect: (date: string) => void }) {
   const scroll = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = scroll.current;
     if (!element) return;
-    const alignRecent = () => { element.scrollLeft = element.scrollWidth; };
-    alignRecent();
-    const observer = new ResizeObserver(alignRecent);
-    observer.observe(element);
-    return () => observer.disconnect();
+    element.scrollLeft = element.scrollWidth;
   }, []);
   const counts = new Map(trend.points.map(p => [dateInput(p.from), p.chatCount]));
   const max = Math.max(1, ...counts.values());
@@ -53,7 +52,9 @@ export function CalendarGrid({ trend, period, selected, onSelect }: { trend: Pic
     event.currentTarget.closest(".activity-calendar-grid")?.querySelector<HTMLButtonElement>(`[data-day-index="${next}"]`)?.focus();
   };
   return <div className="activity-calendar">
-    <div className="activity-calendar-heading"><h3>최근 1년</h3><span>채팅 {number(total)}개</span></div>
+    <div className="activity-calendar-heading">{recap ? <h2>최근 1년</h2> : <h3>최근 1년</h3>}{!recap && <span>채팅 {number(total)}개</span>}</div>
+    {recap && <p className="calendar-period-note">{period.from} ~ {period.to} · 한국 시간 · 조회 기간과 별개인 최근 365일</p>}
+    <p className="calendar-scroll-hint">좌우로 스크롤해 이전 날짜를 확인하세요.</p>
     <div ref={scroll} className="activity-calendar-scroll" role="region" aria-label="최근 1년 날짜별 채팅 수" tabIndex={0}>
       <div className="activity-calendar-layout" style={{ "--calendar-weeks": weeks } as CSSProperties}>
         <div className="activity-calendar-months" aria-hidden="true">{Array.from({ length: weeks }, (_, week) => {
