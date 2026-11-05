@@ -22,6 +22,7 @@ export class ActivityLogService implements OnModuleInit, OnModuleDestroy {
     try {
       const value = await work();
       outcome = classify(value);
+      if (outcome.result !== "success") responseStatus = outcome.responseStatus ?? 200;
       return value;
     } catch (error) {
       responseStatus = error instanceof HttpException ? error.getStatus() : 500;

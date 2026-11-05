@@ -1,3 +1,4 @@
+import { couponError } from "./coupon";
 import { useEffect, useRef, useState } from "react";
 import type { InsightDenial, InsightHandle, InsightNotice } from "./useInsight";
 import "./insightAction.css";
@@ -11,20 +12,12 @@ const DENIAL_TEXT: Record<InsightDenial, string> = {
   unavailable: "지금은 분석을 받을 수 없어요",
   error: "요청을 보내지 못했어요",
 };
-const REDEEM_FAIL_TEXT: Record<string, string> = {
-  coupon_not_found: "없는 쿠폰 코드예요",
-  coupon_already_redeemed: "이미 받은 쿠폰이에요",
-  coupon_disabled: "지금은 쓸 수 없는 쿠폰이에요",
-  coupon_expired: "기한이 지난 쿠폰이에요",
-  coupon_exhausted: "받을 수 있는 사람 수가 다 찼어요",
-  invalid_code: "쿠폰 코드 모양이 아니에요",
-};
 function noticeText(n: InsightNotice): string {
   switch (n.kind) {
     case "done": return "AI 분석이 끝났어요";
     case "failed": return "분석이 실패했어요. 티켓은 돌려드렸어요";
     case "redeemed": return `분석 티켓 ${n.granted}장을 받았어요`;
-    case "redeem_failed": return REDEEM_FAIL_TEXT[n.code] ?? "쿠폰을 받지 못했어요";
+    case "redeem_failed": return couponError(n.code);
   }
 }
 const etaText = (sec: number) => sec < 60 ? `${Math.max(5, Math.round(sec / 5) * 5)}초` : `${Math.ceil(sec / 60)}분`;
@@ -104,7 +97,7 @@ export function InsightAction({ insight }: { insight: InsightHandle }) {
       </button>
     </div>}
 
-    <dialog ref={consentDialog} className="insight-dialog" aria-labelledby="insight-dialog-title" onClose={close} onClick={e => { if (e.target === consentDialog.current) close(); }}>
+    <dialog ref={consentDialog} className="insight-dialog" aria-labelledby="insight-dialog-title" onClose={() => { if (open === "consent") close(); }} onClick={e => { if (e.target === consentDialog.current) close(); }}>
       <div className="insight-panel">
         <header className="insight-dialog-head">
           <div>
@@ -127,7 +120,7 @@ export function InsightAction({ insight }: { insight: InsightHandle }) {
       </div>
     </dialog>
 
-    <dialog ref={queueDialog} className="insight-dialog insight-queue-dialog" aria-labelledby="insight-queue-title" onClose={close} onClick={e => { if (e.target === queueDialog.current) close(); }}>
+    <dialog ref={queueDialog} className="insight-dialog insight-queue-dialog" aria-labelledby="insight-queue-title" onClose={() => { if (open === "queue") close(); }} onClick={e => { if (e.target === queueDialog.current) close(); }}>
       <div className="insight-panel">
         <header className="insight-dialog-head">
           <div>

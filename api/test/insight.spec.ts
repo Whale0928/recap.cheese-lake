@@ -121,7 +121,7 @@ describe("insight tickets", () => {
   let database: DataSource;
   type Ticket = { id: string; channel: string; usedAt: Date | null; labRequestId: number | null; refundOf: string | null; expiresAt: Date | null };
   let tickets: Ticket[];
-  let coupons: Record<string, { per: number; max: number | null; count: number; disabled: boolean; expired: boolean }>;
+  let coupons: Record<string, { per: number; max: number | null; count: number; disabled: boolean; expired: boolean; allowTickets?: boolean; allowReview?: boolean }>;
   let redemptions: Set<string>;
   let labStatus: () => Response;
   let labCalls: { method: string; path: string }[];
@@ -136,7 +136,7 @@ describe("insight tickets", () => {
     process.env.RECAP_ACTIVITY_LOG_ENABLED = "true";
     tickets = []; redemptions = new Set(); labCalls = []; consents = []; seq = 0;
     coupons = { NOV3TEST: { per: 2, max: 10, count: 0, disabled: false, expired: false }, OLDCODE: { per: 1, max: null, count: 0, disabled: false, expired: true } };
-    labStatus = () => Response.json(waiting(), { status: 202 });
+    labStatus = () => new Response("", { status: 404 });
     jest.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = new URL(String(input instanceof Request ? input.url : input));
       labCalls.push({ method: init?.method ?? "GET", path: url.pathname + url.search });
@@ -147,16 +147,21 @@ describe("insight tickets", () => {
       const p = (Array.isArray(params) ? params : []) as (string | number)[];
       if (sql.includes("INSERT INTO recap.insight_consents")) { consents.push({ id: `c${++seq}`, labRequestId: null }); return [{ id: consents.at(-1)!.id }]; }
       if (sql.includes("UPDATE recap.insight_consents SET lab_request_id")) { const c = consents.find(c => c.id === p[0]); if (c) c.labRequestId = Number(p[1]); return []; }
+      if (sql.includes("SELECT channel_id FROM recap.insight_tickets WHERE id")) { const t = tickets.find(t => t.id === p[0]); return t ? [{ channel_id: t.channel }] : []; }
       if (sql.includes("SELECT count(*) AS n FROM recap.insight_tickets")) return [{ n: available(String(p[0])).length }];
-      if (sql.includes("INSERT INTO recap.insight_coupon_redemptions")) {
-        const c = coupons[String(p[1])];
-        if (!c || c.disabled || c.expired || (c.max !== null && c.count >= c.max)) return [{ granted: 0 }];
-        if (redemptions.has(`${p[1]}:${p[0]}`)) throw Object.assign(new Error("duplicate key"), { code: "23505" });
-        redemptions.add(`${p[1]}:${p[0]}`); c.count += 1;
-        for (let i = 0; i < c.per; i++) tickets.push({ id: `t${++seq}`, channel: String(p[0]), usedAt: null, labRequestId: null, refundOf: null, expiresAt: null });
-        return [{ granted: c.per }];
+      if (sql.includes("FROM recap.insight_coupons c")) {
+        const c = coupons[String(p[0])];
+        return c ? [{ already_redeemed: redemptions.has(`${p[0]}:${p[1]}`), balance: available(String(p[1])).length,
+          has_refund: tickets.some(t => t.channel === p[1] && !!t.refundOf), pending: tickets.some(t => t.channel === p[1] && !!t.usedAt && t.labRequestId === null), version: JSON.stringify(tickets.filter(t => t.channel === p[1])), tickets_per_redeem: c.per, ticket_valid_days: null, allow_with_available_tickets: c.allowTickets ?? false, allow_with_completed_review: c.allowReview ?? false, disabled: c.disabled, expired: c.expired, exhausted: c.max !== null && c.count >= c.max }] : [];
       }
-      if (sql.includes("FROM recap.insight_coupons WHERE code")) { const c = coupons[String(p[0])]; return c ? [{ disabled: c.disabled, expired: c.expired, exhausted: c.max !== null && c.count >= c.max }] : []; }
+      if (sql.includes("SELECT EXISTS (SELECT 1 FROM recap.insight_coupon_redemptions")) return [{ found: redemptions.has(`${p[0]}:${p[1]}`) }];
+      if (sql.includes("SELECT EXISTS (SELECT 1 FROM recap.insight_tickets")) return [{ found: tickets.some(t => t.channel === p[0] && t.refundOf) }];
+      if (sql.includes("INSERT INTO recap.insight_coupon_redemptions")) { redemptions.add(`${p[0]}:${p[1]}`); return []; }
+      if (sql.includes("INSERT INTO recap.insight_tickets (channel_id, source, coupon_code")) {
+        for (let i = 0; i < Number(p[3]); i++) tickets.push({ id: `t${++seq}`, channel: String(p[0]), usedAt: null, labRequestId: null, refundOf: null, expiresAt: null });
+        return [];
+      }
+      if (sql.includes("UPDATE recap.insight_coupons SET redemption_count")) { coupons[String(p[0])].count++; return []; }
       // pg 드라이버의 UPDATE … RETURNING 모양: [행들, 영향 수]
       if (sql.includes("SET used_at = CURRENT_TIMESTAMP")) { const t = available(String(p[0]))[0]; if (!t) return [[], 0]; t.usedAt = new Date(); return [[{ id: t.id }], 1]; }
       if (sql.includes("SET lab_request_id = $2")) { const t = tickets.find(t => t.id === p[0]); if (t) t.labRequestId = Number(p[1]); return []; }
@@ -167,6 +172,11 @@ describe("insight tickets", () => {
         return used.map(t => ({ id: t.id }));
       }
       return [];
+    });
+    jest.spyOn(database.manager, "query").mockImplementation((sql, params) => database.query(sql, params));
+    jest.spyOn(database, "transaction").mockImplementation(async (isolationOrRun, run) => {
+      const work = typeof isolationOrRun === "function" ? isolationOrRun : run!;
+      return work(database.manager);
     });
     const module = await Test.createTestingModule({ imports: [AppModule.register()] })
       .overrideProvider(DataSource).useValue(database)
@@ -202,7 +212,91 @@ describe("insight tickets", () => {
     expect((await agent.post("/api/me/insight/redeem").send({ code: "NOPE1234" }).expect(404)).body.code).toBe("coupon_not_found");
     expect((await agent.post("/api/me/insight/redeem").send({ code: "OLDCODE" }).expect(409)).body.code).toBe("coupon_expired");
     expect(activityLogs("insight_ticket_redeem")).toEqual([{ result: "success", errorCode: null }, { result: "failure", errorCode: "COUPON_UNUSABLE" }, { result: "failure", errorCode: "COUPON_UNUSABLE" }, { result: "failure", errorCode: "COUPON_UNUSABLE" }]);
-    expect(labCalls).toEqual([]);
+    expect(labCalls.map(c => c.method)).toEqual(["GET"]);
+    const statuses = jest.mocked(database.query).mock.calls
+      .filter(([sql, params]) => String(sql).includes("INSERT INTO recap.activity_logs") && Array.isArray(params) && params[1] === "insight_ticket_redeem")
+      .map(([, params]) => (params as unknown[])[6]);
+    expect(statuses).toEqual([200, 409, 404, 409]);
+  });
+
+  it.each([false, true].flatMap(allowTickets => [false, true].flatMap(allowReview =>
+    [false, true].flatMap(hasTickets => [false, true].map(hasReview => ({ allowTickets, allowReview, hasTickets, hasReview }))))))(
+    "independent eligibility flags: %j", async ({ allowTickets, allowReview, hasTickets, hasReview }) => {
+      coupons.NOV3TEST.allowTickets = allowTickets;
+      coupons.NOV3TEST.allowReview = allowReview;
+      if (hasTickets) tickets.push({ id: "existing", channel: subject, usedAt: null, labRequestId: null, refundOf: null, expiresAt: null });
+      labStatus = () => hasReview ? Response.json(done()) : new Response("", { status: 404 });
+      const agent = await login(subject);
+      const blocked = hasTickets && !allowTickets ? "coupon_available_tickets" : hasReview && !allowReview ? "coupon_completed_review" : null;
+      const response = await agent.post("/api/me/insight/redeem").send({ code: "NOV3TEST" }).expect(blocked ? 409 : 200);
+      if (blocked) {
+        expect(response.body.code).toBe(blocked);
+        expect(redemptions.size).toBe(0);
+        expect(coupons.NOV3TEST.count).toBe(0);
+        expect(activityLogs("insight_ticket_redeem")).toEqual([{ result: "failure", errorCode: "COUPON_UNUSABLE" }]);
+      } else expect(response.body).toEqual({ granted: 2, tickets: (hasTickets ? 1 : 0) + 2 });
+    });
+
+  it.each(["waiting", "running", "failed", "unavailable"])("refuses %s even when both flags allow", async state => {
+    coupons.NOV3TEST.allowTickets = coupons.NOV3TEST.allowReview = true;
+    labStatus = () => state === "unavailable" ? new Response("", { status: 503 }) : Response.json({ ...waiting(), state, ...(state === "failed" ? { failure: "timeout" } : {}) });
+    const agent = await login(subject);
+    const response = await agent.post("/api/me/insight/redeem").send({ code: "NOV3TEST" }).expect(state === "unavailable" ? 503 : 409);
+    expect(response.body.code).toBe(state === "unavailable" ? "coupon_eligibility_unavailable" : state === "failed" ? "coupon_analysis_failed" : "coupon_analysis_pending");
+    expect(redemptions.size).toBe(0);
+    expect(tickets).toHaveLength(0);
+  });
+
+  it("ignores expired and consumed tickets, but rejects a past refund", async () => {
+    tickets.push({ id: "expired", channel: subject, usedAt: null, labRequestId: null, refundOf: null, expiresAt: new Date(0) });
+    tickets.push({ id: "used", channel: subject, usedAt: new Date(), labRequestId: 9, refundOf: null, expiresAt: null });
+    const agent = await login(subject);
+    await agent.post("/api/me/insight/redeem").send({ code: "NOV3TEST" }).expect(200);
+    coupons.NEWCODE = { per: 1, max: 5, count: 0, disabled: false, expired: false, allowTickets: true, allowReview: true };
+    tickets.push({ id: "refund", channel: subject, usedAt: new Date(), labRequestId: null, refundOf: "used", expiresAt: null });
+    expect((await agent.post("/api/me/insight/redeem").send({ code: "NEWCODE" }).expect(409)).body.code).toBe("coupon_analysis_failed");
+    expect(coupons.NEWCODE.count).toBe(0);
+  });
+
+  it("rejects coupons while a consumed ticket has not been attached or released", async () => {
+    coupons.NOV3TEST.allowTickets = true;
+    tickets.push({ id: "reserved", channel: subject, usedAt: new Date(), labRequestId: null, refundOf: null, expiresAt: null });
+    const agent = await login(subject);
+    const response = await agent.post("/api/me/insight/redeem").send({ code: "NOV3TEST" }).expect(409);
+    expect(response.body.code).toBe("coupon_analysis_pending");
+    expect(redemptions.size).toBe(0);
+    expect(labCalls).toHaveLength(0);
+  });
+
+  it("returns the database transaction before querying Lab", async () => {
+    let activeTransactions = 0;
+    jest.spyOn(database, "transaction").mockImplementation(async (isolationOrRun, run) => {
+      const work = typeof isolationOrRun === "function" ? isolationOrRun : run!;
+      activeTransactions++;
+      try { return await work(database.manager); }
+      finally { activeTransactions--; }
+    });
+    jest.mocked(globalThis.fetch).mockImplementation(async () => {
+      expect(activeTransactions).toBe(0);
+      return new Response("", { status: 404 });
+    });
+    const agent = await login(subject);
+    await agent.post("/api/me/insight/redeem").send({ code: "NOV3TEST" }).expect(200);
+    expect(activeTransactions).toBe(0);
+  });
+
+  it("rejects a stale Lab lookup if ticket state changed during the lookup", async () => {
+    coupons.NOV3TEST.allowTickets = true;
+    jest.mocked(globalThis.fetch).mockImplementation(async () => {
+      tickets.push({ id: "concurrent", channel: subject, usedAt: null, labRequestId: null, refundOf: null, expiresAt: null });
+      return new Response("", { status: 404 });
+    });
+    const agent = await login(subject);
+    const response = await agent.post("/api/me/insight/redeem").send({ code: "NOV3TEST" }).expect(503);
+    expect(response.body.code).toBe("coupon_eligibility_unavailable");
+    expect(redemptions.size).toBe(0);
+    expect(coupons.NOV3TEST.count).toBe(0);
+    expect(tickets).toHaveLength(1);
   });
 
   it("spends a ticket only when Lab creates a request, and refuses without one", async () => {

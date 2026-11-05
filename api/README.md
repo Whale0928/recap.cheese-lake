@@ -221,3 +221,42 @@ Lab 관리 화면이 직접 쓰고 Recap은 `GET /api/banners`·`GET /api/banner
 채널 기록 화면의 "이미지로 저장"은 브라우저가 canvas로 1080×1350 PNG를 그려 미리보기 창에 보여 주고, 이용자가 확인한 뒤 내려받는다. 서버는 카드를 그리지 않는다. 카드에는 채널 기록 화면과 같은 항목(채널 이름·프로필, 첫 채팅 이후 일수와 기간, 나눈 채팅·채팅한 날·최장 연속 활동, 가장 활발했던 날과 달, 최근 채팅, 전체 채팅 수와 비율, 연도)만 담고 채팅 원문이나 다른 채널 활동은 넣지 않는다. 글꼴은 홈과 같은 Pretendard 동적 서브셋을 쓰며, 모든 페이지의 `index.html`이 그 CSS를 싣고 카드 글자 기준으로 `document.fonts.load`로 미리 받은 뒤 그린다.
 
 `GET /api/me/channels/:broadcastId/avatar`는 로그인한 본인이 기록을 조회한 채널의 프로필 사진 바이트를 그대로 중계한다. 치지직 프로필 CDN이 CORS 헤더를 주지 않아 브라우저가 그 사진을 canvas에 담으면 PNG로 꺼낼 수 없기 때문이다. 사진 주소는 클라이언트에서 받지 않고 Lab 관계 조회(record와 같은 캐시)의 `channelImageUrl`을 쓰며, `*.pstatic.net`의 https 주소만 5초·2MB 제한으로 받아 PNG·JPEG일 때만 돌려준다. 사진이 없거나 받지 못하면 404이고 화면은 이름 첫 글자로 대체한다. 기록 조회가 안 되면 503(429일 때 `Retry-After` 포함)이다. query는 받지 않으며 응답은 `Cache-Control: private, max-age=300`과 `nosniff`를 사용하고 활동 로그에 기록하지 않는다.
+
+## AI 분석 쿠폰
+
+`POST /api/me/insight/redeem`은 로그인한 본인의 `{ "code": "CODE" }`를 받아
+`{ granted, tickets }`를 반환한다. 코드 형식은 영문·숫자 4~32자이며 앞뒤 공백 제거와 대문자 변환을 한다.
+쿠폰 등록 모달과 `/recap/?ticket=CODE`는 같은 서버 검증을 거친다.
+
+`recap.insight_coupons`의 두 옵션은 모두 `NOT NULL DEFAULT false`다.
+
+- `allow_with_available_tickets`: 현재 미사용·미만료 티켓이 있어도 추가 수령을 허용한다.
+- `allow_with_completed_review`: 랩이 완료된 AI 리뷰를 반환해도 추가 수령을 허용한다.
+
+두 조건은 독립적이다. 티켓과 완료 리뷰가 모두 있으면 두 옵션이 모두 true여야 한다.
+같은 쿠폰 중복 수령, 비활성·만료·소진, 분석 대기·진행, 분석 실패·티켓 환불 이력은 별도로 거절한다.
+과거 실패는 보존된 환불 티켓으로 판정하고 현재 분석 상태는 랩 GET으로 확인한다.
+랩 상태를 조회하지 못하면 `503 coupon_eligibility_unavailable`로 지급하지 않는다.
+랩의 현재 상태 응답에 없는 과거 분석 이력을 이 API만으로 조회하지는 않는다.
+
+조건 거절은 409이며 `coupon_available_tickets`, `coupon_completed_review`,
+`coupon_analysis_pending`, `coupon_analysis_failed`로 사유를 구분한다.
+쿠폰 없음은 404, 형식 오류는 400, 비로그인은 401이다.
+티켓 차감·복구·요청 연결·환불과 쿠폰 지급은 같은 계정별 transaction advisory lock을 사용한다.
+랩 조회 전에는 단일 SQL로 조건을 읽고, 지급 직전에는 짧은 트랜잭션으로 다시 검사한다. 외부 응답을 기다릴 때 DB 연결과 잠금을 점유하지 않는다.
+임시 차감 후 요청 번호가 아직 연결되지 않은 티켓은 분석 진행 중으로 판정한다.
+랩 조회 도중 티켓 상태가 바뀌면 지급하지 않고 503으로 재시도를 요구한다.
+최종 쿠폰 행 잠금으로 수량 상한을 보호하며,
+수령 기록·티켓 발급·수령 수 증가는 한 트랜잭션으로 처리한다.
+사람의 등록 시도는 `ActivityLogService.track()`의 `insight_ticket_redeem`으로 기록한다.
+
+
+경합·부하 검증은 `pnpm build` 후 명시적으로 실행한다. 기존 원격 DB의 전용 테스트 ID와 쿠폰만 쓰며, 임시 DB를 만들지 않는다.
+
+```sh
+RECAP_RUN_CONTENTION_QA=1 node --env-file=.env scripts/ticket-contention-qa.mjs
+```
+
+로컬 8180(API/UI)·8182(랩 대역) 포트가 비어 있어야 한다. 실행 중에는 development 모드와 활동 로그 저장 false를 강제한다.
+실제 랩·LLM 요청 대신 지연/실패 대역을 사용하고, 종료 시 생성한 테스트 데이터를 삭제하여 잔여 0건을 확인한다.
+결과는 `/tmp/recap_contention_qa/after.json`에 남긴다. 접속 URL과 세션 쿠키는 결과에 저장하지 않는다.

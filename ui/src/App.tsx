@@ -1,3 +1,4 @@
+import { CouponRegistration } from "./CouponRegistration";
 import { RecapPage } from "./RecapPage";
 import { RelationshipPage } from "./RelationshipPage";
 import { SharedRecordPage } from "./SharedRecordPage";
@@ -213,6 +214,7 @@ function App() {
           <Wordmark />
           <nav className="site-nav" aria-label="주요 메뉴">
             {!restriction && <AuthButtons authState={authState} receivedShares={receivedShares} compact />}
+            {authenticated && !restriction && <CouponRegistration />}
             {authState === "guest" && localLoginAvailable && <a className="btn btn-outline btn-sm" href="/_dev/login">채널 ID로 로그인</a>}
             {authenticated && <button className="btn btn-outline btn-sm nav-icon-button" type="button" disabled={logoutPending} onClick={logout} aria-label={logoutPending ? "로그아웃 중" : "로그아웃"} title={logoutPending ? "로그아웃 중" : "로그아웃"} aria-busy={logoutPending}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M10 4H5v16h5M10 12h11m-4-4 4 4-4 4" /></svg>

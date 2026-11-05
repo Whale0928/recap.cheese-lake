@@ -49,4 +49,5 @@ export type ActivityOutcome = { result: "success" } | {
   result: "partial_success" | "failure";
   failureStage: "summary" | "channels" | "trend" | "patterns" | "request";
   errorCode: ActivityErrorCode;
+  responseStatus?: number;
 };

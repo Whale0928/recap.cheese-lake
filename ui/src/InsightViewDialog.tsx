@@ -21,7 +21,7 @@ export function InsightViewDialog({ insight }: { insight: InsightHandle }) {
     if ((open !== "view" || !result) && el.open) el.close();
   }, [open, result]);
   const close = () => setOpen("");
-  return <dialog ref={dialog} className="insight-view-dialog" aria-label="내 AI 분석" tabIndex={-1} onClose={close} onClick={e => { if (e.target === dialog.current) close(); }}>
+  return <dialog ref={dialog} className="insight-view-dialog" aria-label="내 AI 분석" tabIndex={-1} onClose={() => { if (open === "view") close(); }} onClick={e => { if (e.target === dialog.current) close(); }}>
     <div className="insight-view-head">
       {/* 새로 만들기는 티켓이 있을 때만. 동의 창은 버튼 쪽 것을 그대로 쓴다 */}
       {tickets > 0 && <button type="button" className="btn btn-outline btn-sm insight-view-again" onClick={() => setOpen("consent")}>새로 분석하기 · 티켓 {tickets}장</button>}

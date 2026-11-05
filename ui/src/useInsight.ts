@@ -1,3 +1,4 @@
+import { redeemCoupon, TICKETS_CHANGED } from "./coupon";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { InsightResponse, InsightStatus } from "./insight.types";
 
@@ -53,7 +54,7 @@ export function useInsight(): InsightHandle {
   const lastState = useRef<InsightStatus["state"] | null>(null);
   const retries = useRef(0);
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
   const applyBody = useCallback((body: InsightResponse) => {
     if (body.insight.status === "ready") {
@@ -96,18 +97,19 @@ export function useInsight(): InsightHandle {
   }, [applyBody, reload]);
 
   const redeem = useCallback((code: string) => {
-    fetch("/api/me/insight/redeem", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ code }) })
-      .then(async response => {
-        if (!alive.current) return;
-        if (response.status === 401) { setPhase({ kind: "guest" }); return; }
-        const body = await response.json().catch(() => ({})) as { granted?: number; code?: string };
-        if (response.ok) { setNotice({ kind: "redeemed", granted: body.granted ?? 0 }); reload(); }
-        else setNotice({ kind: "redeem_failed", code: body.code ?? "error" });
-      })
-      .catch(() => { if (alive.current) setNotice({ kind: "redeem_failed", code: "error" }); });
+    void redeemCoupon(code).then(result => {
+      if (!alive.current) return;
+      if (result.ok) { setNotice({ kind: "redeemed", granted: result.granted }); reload(); }
+      else if (result.code === "unauthorized") setPhase({ kind: "guest" });
+      else setNotice({ kind: "redeem_failed", code: result.code });
+    });
   }, [reload]);
 
   useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    window.addEventListener(TICKETS_CHANGED, reload);
+    return () => window.removeEventListener(TICKETS_CHANGED, reload);
+  }, [reload]);
   // 대기 · 진행 중이면 다시 묻고, 잠시 거절당했으면 Retry-After 만큼 기다려 세 번까지 다시 부른다.
   useEffect(() => {
     let delay = 0;

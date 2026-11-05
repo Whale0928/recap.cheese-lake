@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Header, HttpCode, Module, NotFoundException, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Header, HttpCode, Module, NotFoundException, Post, Query, Req, ServiceUnavailableException, UseGuards } from "@nestjs/common";
 import type { Request } from "express";
 import { ActivityModule } from "../activity/activity.module.js";
 import { SessionAuthGuard } from "../activity/activity.controller.js";
@@ -12,7 +12,7 @@ export interface InsightResponse { fetchedAt: string; insight: InsightResult; ti
 export interface RedeemResponse { granted: number; tickets: number }
 
 const COUPON_CODE = /^[A-Z0-9]{4,32}$/;
-const rejected = (errorCode: "NO_TICKET" | "COUPON_UNUSABLE"): ActivityOutcome => ({ result: "failure", failureStage: "request", errorCode });
+const rejected = (errorCode: "NO_TICKET" | "COUPON_UNUSABLE", responseStatus = 403): ActivityOutcome => ({ result: "failure", failureStage: "request", errorCode, responseStatus });
 
 // 로그인한 본인의 AI 분석 카드와 분석 티켓이다. 대상은 세션에서만 정하고 요청의 다른 ID 는 쓰지 않는다.
 // 티켓은 리캡이 발급 · 차감 · 환불을 다 맡고 랩은 분석만 한다. 사람이 한 일(받기 · 요청)과 그에 따른 환불은 활동 로그에 남긴다.
@@ -78,10 +78,18 @@ export class InsightController {
     if (!COUPON_CODE.test(code)) throw new BadRequestException({ code: "invalid_code", message: "쿠폰 코드 모양이 아니다" });
     const channelId = req.session.user!.channelId;
     const result = await this.logs.track({ channelId, activityType: ActivityType.INSIGHT_TICKET_REDEEM },
-      (): Promise<RedeemResult> => this.tickets.redeem(channelId, code),
-      value => value.status === "granted" ? { result: "success" } : rejected("COUPON_UNUSABLE"));
+      (): Promise<RedeemResult> => this.tickets.redeem(channelId, code, async () => {
+        const state = await this.insight.get(channelId);
+        if (state.status !== "ready") return "unavailable";
+        if (state.data?.state === "done") return "completed";
+        if (state.data?.state === "failed") return "failed";
+        if (state.data?.state === "waiting" || state.data?.state === "running") return "pending";
+        return "none";
+      }),
+      value => value.status === "granted" ? { result: "success" } : rejected("COUPON_UNUSABLE", value.status === "not_found" ? 404 : value.status === "eligibility_unavailable" ? 503 : 409));
     switch (result.status) {
       case "granted": return { granted: result.granted, tickets: result.available };
+      case "eligibility_unavailable": throw new ServiceUnavailableException({ code: "coupon_eligibility_unavailable", message: "AI 분석 상태를 확인하지 못했다" });
       case "not_found": throw new NotFoundException({ code: "coupon_not_found", message: "없는 쿠폰 코드다" });
       default: throw new ConflictException({ code: `coupon_${result.status}`, message: couponMessage(result.status) });
     }
@@ -91,6 +99,11 @@ export class InsightController {
 function couponMessage(status: Exclude<RedeemResult["status"], "granted" | "not_found">): string {
   switch (status) {
     case "already_redeemed": return "이미 받은 쿠폰이다";
+    case "available_tickets": return "사용 가능한 티켓이 있다";
+    case "completed_review": return "이미 완료된 AI 리뷰가 있다";
+    case "analysis_pending": return "AI 분석이 진행 중이다";
+    case "analysis_failed": return "분석 실패 또는 환불 이력이 있다";
+    case "eligibility_unavailable": return "AI 분석 상태를 확인하지 못했다";
     case "disabled": return "운영자가 막은 쿠폰이다";
     case "expired": return "기한이 지난 쿠폰이다";
     case "exhausted": return "받을 수 있는 사람 수가 다 찼다";
