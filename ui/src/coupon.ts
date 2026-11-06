@@ -3,6 +3,7 @@ export type CouponResult = { ok: true; granted: number; tickets: number } | { ok
 
 export function couponError(code: string): string {
   const messages: Record<string, string> = {
+    coupon_event_only: "이벤트 대상자에게 자동 지급하는 쿠폰이에요. 코드 입력으로는 받을 수 없어요.",
     coupon_available_tickets: "사용 가능한 티켓이 있어 이 쿠폰을 받을 수 없어요.",
     coupon_completed_review: "이미 AI 리뷰를 받아 이 쿠폰을 받을 수 없어요.",
     coupon_analysis_pending: "AI 분석이 진행 중이라 지금은 받을 수 없어요.",

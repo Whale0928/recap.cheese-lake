@@ -1,3 +1,4 @@
+import { EventRewardNotice } from "./EventRewardNotice";
 import { CouponRegistration } from "./CouponRegistration";
 import { RecapPage } from "./RecapPage";
 import { RelationshipPage } from "./RelationshipPage";
@@ -17,6 +18,7 @@ type ReceivedSharesState = "loading" | "available" | "empty" | "error";
 
 type SessionResponse = {
   loggedIn?: boolean;
+  session?: { channelId?: string };
   localLoginAvailable?: boolean;
   restriction?: AccessRestriction;
 };
@@ -127,6 +129,7 @@ function ActivityTexture() {
 function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [authState, setAuthState] = useState<AuthState>("loading");
+  const [eventSubject, setEventSubject] = useState<string | null>(null);
   const [receivedShares, setReceivedShares] = useState<ReceivedSharesState>("loading");
   const [localLoginAvailable, setLocalLoginAvailable] = useState(false);
   const [restriction, setRestriction] = useState<AccessRestriction | null>(null);
@@ -158,7 +161,7 @@ function App() {
         if (!response.ok) throw new Error(`세션 확인 실패: ${response.status}`);
         return response.json() as Promise<SessionResponse>;
       })
-      .then((session) => { setLocalLoginAvailable(session.localLoginAvailable === true); setRestriction(session.restriction && (session.loggedIn || session.restriction.kind === "ip_blocked") ? session.restriction : null); setAuthState(session.loggedIn ? "authenticated" : "guest"); })
+      .then((session) => { setEventSubject(session.loggedIn && /^[0-9a-f]{32}$/.test(session.session?.channelId ?? "") ? session.session!.channelId! : null); setLocalLoginAvailable(session.localLoginAvailable === true); setRestriction(session.restriction && (session.loggedIn || session.restriction.kind === "ip_blocked") ? session.restriction : null); setAuthState(session.loggedIn ? "authenticated" : "guest"); })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
         setLocalLoginAvailable(false);
@@ -214,7 +217,7 @@ function App() {
           <Wordmark />
           <nav className="site-nav" aria-label="주요 메뉴">
             {!restriction && <AuthButtons authState={authState} receivedShares={receivedShares} compact />}
-            {authenticated && !restriction && <CouponRegistration />}
+            {authenticated && !restriction && <><EventRewardNotice subject={eventSubject} /><CouponRegistration /></>}
             {authState === "guest" && localLoginAvailable && <a className="btn btn-outline btn-sm" href="/_dev/login">채널 ID로 로그인</a>}
             {authenticated && <button className="btn btn-outline btn-sm nav-icon-button" type="button" disabled={logoutPending} onClick={logout} aria-label={logoutPending ? "로그아웃 중" : "로그아웃"} title={logoutPending ? "로그아웃 중" : "로그아웃"} aria-busy={logoutPending}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M10 4H5v16h5M10 12h11m-4-4 4 4-4 4" /></svg>

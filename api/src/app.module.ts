@@ -1,3 +1,4 @@
+import { EventModule } from "./events/event.controller.js";
 import { localAuthEnabled } from "./local/local.auth.config.js";
 import { LocalAuthModule } from "./local/local.auth.module.js";
 import { ActivityModule } from "./activity/activity.module.js";
@@ -12,7 +13,7 @@ import { ShareModule } from "./shares/share.controller.js";
 import { TraitsModule } from "./traits/traits.controller.js";
 import { InsightModule } from "./insight/insight.controller.js";
 
-@Module({ imports: [DatabaseModule, PrivacyModule, AuthModule, ActivityModule, ShareModule, BannerModule, ObservationsModule, TraitsModule, InsightModule], controllers: [MeController] })
+@Module({ imports: [DatabaseModule, PrivacyModule, AuthModule, ActivityModule, ShareModule, BannerModule, ObservationsModule, TraitsModule, InsightModule, EventModule], controllers: [MeController] })
 export class AppModule {
   static register(): DynamicModule { return { module: AppModule, imports: localAuthEnabled() ? [LocalAuthModule] : [] }; }
 }

@@ -1,0 +1,8 @@
+.event-reward-notice { position: fixed; z-index: 90; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: min(440px, calc(100vw - 32px)); box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 18px 20px; border: 1px solid var(--primary); border-radius: 14px; background: var(--card, var(--background)); color: var(--foreground); box-shadow: 0 8px 32px #0003; }
+.event-reward-notice > div { grid-column: 1 / -1; padding-right: 24px; }
+.event-reward-notice strong, .event-reward-label { display: block; }
+.event-reward-notice strong { font-size: 16px; line-height: 1.5; }
+.event-reward-label { color: var(--muted-foreground); font-size: 12px; margin-bottom: 5px; overflow-wrap: anywhere; }
+.event-reward-notice p { margin: 5px 0 0; font-size: 13px; color: var(--muted-foreground); }
+.event-reward-notice > a { justify-self: start; }
+.event-reward-notice > button { position: absolute; right: 10px; top: 10px; }

@@ -98,6 +98,7 @@ export class InsightController {
 
 function couponMessage(status: Exclude<RedeemResult["status"], "granted" | "not_found">): string {
   switch (status) {
+    case "event_only": return "이벤트 조건을 확인해 자동으로 지급하는 쿠폰이다";
     case "already_redeemed": return "이미 받은 쿠폰이다";
     case "available_tickets": return "사용 가능한 티켓이 있다";
     case "completed_review": return "이미 완료된 AI 리뷰가 있다";

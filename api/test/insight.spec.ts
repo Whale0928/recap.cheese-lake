@@ -121,7 +121,7 @@ describe("insight tickets", () => {
   let database: DataSource;
   type Ticket = { id: string; channel: string; usedAt: Date | null; labRequestId: number | null; refundOf: string | null; expiresAt: Date | null };
   let tickets: Ticket[];
-  let coupons: Record<string, { per: number; max: number | null; count: number; disabled: boolean; expired: boolean; allowTickets?: boolean; allowReview?: boolean }>;
+  let coupons: Record<string, { per: number; max: number | null; count: number; disabled: boolean; expired: boolean; allowTickets?: boolean; allowReview?: boolean; eventOnly?: boolean }>;
   let redemptions: Set<string>;
   let labStatus: () => Response;
   let labCalls: { method: string; path: string }[];
@@ -151,7 +151,7 @@ describe("insight tickets", () => {
       if (sql.includes("SELECT count(*) AS n FROM recap.insight_tickets")) return [{ n: available(String(p[0])).length }];
       if (sql.includes("FROM recap.insight_coupons c")) {
         const c = coupons[String(p[0])];
-        return c ? [{ already_redeemed: redemptions.has(`${p[0]}:${p[1]}`), balance: available(String(p[1])).length,
+        return c ? [{ event_only: c.eventOnly ?? false, already_redeemed: redemptions.has(`${p[0]}:${p[1]}`), balance: available(String(p[1])).length,
           has_refund: tickets.some(t => t.channel === p[1] && !!t.refundOf), pending: tickets.some(t => t.channel === p[1] && !!t.usedAt && t.labRequestId === null), version: JSON.stringify(tickets.filter(t => t.channel === p[1])), tickets_per_redeem: c.per, ticket_valid_days: null, allow_with_available_tickets: c.allowTickets ?? false, allow_with_completed_review: c.allowReview ?? false, disabled: c.disabled, expired: c.expired, exhausted: c.max !== null && c.count >= c.max }] : [];
       }
       if (sql.includes("SELECT EXISTS (SELECT 1 FROM recap.insight_coupon_redemptions")) return [{ found: redemptions.has(`${p[0]}:${p[1]}`) }];
@@ -201,6 +201,38 @@ describe("insight tickets", () => {
   const activityLogs = (type: string) => jest.mocked(database.query).mock.calls
     .filter(([sql, params]) => String(sql).includes("INSERT INTO recap.activity_logs") && Array.isArray(params) && params[1] === type)
     .map(([, params]) => { const p = params as unknown[]; return { result: p[5], errorCode: p[8] }; });
+
+  it("authenticates entry evaluation and rejects caller-supplied eligibility fields", async () => {
+    await request(app.getHttpServer()).post("/api/me/events/entry").send({}).expect(401);
+    const agent = await login(subject);
+    await agent.post("/api/me/events/entry?channelId=" + subject).send({}).expect(400);
+    await agent.post("/api/me/events/entry").send({ channelId: subject }).expect(400);
+    await agent.post("/api/me/events/entry").send([]).expect(400);
+    const response = await agent.post("/api/me/events/entry").send({}).expect(200);
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(response.body).toEqual({ status: "none" });
+    expect(labCalls).toHaveLength(0);
+    expect(activityLogs("insight_event_grant")).toHaveLength(0);
+  });
+
+  it.each([true, false])("rejects event-only codes even when disabled=%s", async disabled => {
+    coupons.NOV3TEST.eventOnly = true;
+    coupons.NOV3TEST.disabled = disabled;
+    const agent = await login(subject);
+    labCalls = [];
+    expect((await agent.post("/api/me/insight/redeem").send({ code: "NOV3TEST" }).expect(409)).body.code).toBe("coupon_event_only");
+    expect(labCalls).toHaveLength(0);
+    expect(tickets).toHaveLength(0);
+    expect(redemptions.size).toBe(0);
+  });
+
+  it("rechecks event linkage after waiting for Lab", async () => {
+    const agent = await login(subject);
+    labStatus = () => { coupons.NOV3TEST.eventOnly = true; return new Response("", { status: 404 }); };
+    expect((await agent.post("/api/me/insight/redeem").send({ code: "NOV3TEST" }).expect(409)).body.code).toBe("coupon_event_only");
+    expect(tickets).toHaveLength(0);
+    expect(coupons.NOV3TEST.count).toBe(0);
+  });
 
   it("redeems a coupon once per person and records it", async () => {
     await request(app.getHttpServer()).post("/api/me/insight/redeem").send({ code: "NOV3TEST" }).expect(401);

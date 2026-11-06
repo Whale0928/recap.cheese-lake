@@ -1,3 +1,4 @@
+import { grantCouponTickets } from "./coupon.grant.js";
 import { Inject, Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { DataSource, type EntityManager } from "typeorm";
 
@@ -6,7 +7,7 @@ import { DataSource, type EntityManager } from "typeorm";
 
 export type RedeemResult =
   | { status: "granted"; granted: number; available: number }
-  | { status: "already_redeemed" | "not_found" | "disabled" | "expired" | "exhausted" | "available_tickets" | "completed_review" | "analysis_pending" | "analysis_failed" | "eligibility_unavailable" };
+  | { status: "already_redeemed" | "not_found" | "event_only" | "disabled" | "expired" | "exhausted" | "available_tickets" | "completed_review" | "analysis_pending" | "analysis_failed" | "eligibility_unavailable" };
 
 type CountRow = { n: string | number };
 const count = (rows: CountRow[]) => Number(rows[0]?.n ?? 0);
@@ -21,7 +22,7 @@ type Coupon = {
   expired: boolean;
   exhausted: boolean;
 };
-type CouponInspection = Coupon & { already_redeemed: boolean; balance: number; has_refund: boolean; pending: boolean; version: string };
+type CouponInspection = Coupon & { event_only: boolean; already_redeemed: boolean; balance: number; has_refund: boolean; pending: boolean; version: string };
 type Eligibility = { coupon: Coupon; version: string } | Exclude<RedeemResult, { status: "granted" }>;
 
 // 남은 티켓 = 아직 쓰지 않았고(used_at NULL) 만료가 지나지 않은 행.
@@ -57,6 +58,7 @@ export class TicketStore {
           c.disabled_at IS NOT NULL AS disabled,
           c.expires_at IS NOT NULL AND c.expires_at <= clock_timestamp() AS expired,
           c.max_redemptions IS NOT NULL AND c.redemption_count >= c.max_redemptions AS exhausted,
+          EXISTS (SELECT 1 FROM recap.insight_events e WHERE e.coupon_code = c.code) AS event_only,
           EXISTS (SELECT 1 FROM recap.insight_coupon_redemptions WHERE coupon_code = $1 AND channel_id = $2) AS already_redeemed,
           s.balance, s.has_refund, s.pending, s.version
         FROM recap.insight_coupons c
@@ -71,6 +73,7 @@ export class TicketStore {
       `, [code, channelId]);
       const coupon = coupons[0];
       if (!coupon) return { status: "not_found" };
+      if (coupon.event_only) return { status: "event_only" };
       if (coupon.already_redeemed) return { status: "already_redeemed" };
       if (coupon.disabled) return { status: "disabled" };
       if (coupon.expired) return { status: "expired" };
@@ -93,13 +96,7 @@ export class TicketStore {
       if (before.version !== after.version) return { status: "eligibility_unavailable" };
       const { coupon } = after;
       if (review === "completed" && !coupon.allow_with_completed_review) return { status: "completed_review" };
-      await manager.query("INSERT INTO recap.chzzk_accounts (channel_id) VALUES ($1) ON CONFLICT (channel_id) DO NOTHING", [channelId]);
-      await manager.query("INSERT INTO recap.insight_coupon_redemptions (coupon_code, channel_id) VALUES ($1, $2)", [code, channelId]);
-      await manager.query(`INSERT INTO recap.insight_tickets (channel_id, source, coupon_code, expires_at)
-        SELECT $1, 'coupon', $2, CASE WHEN $3::integer IS NULL THEN NULL ELSE clock_timestamp() + make_interval(days => $3::integer) END
-        FROM generate_series(1, $4::integer)`, [channelId, code, coupon.ticket_valid_days, coupon.tickets_per_redeem]);
-      await manager.query("UPDATE recap.insight_coupons SET redemption_count = redemption_count + 1 WHERE code = $1", [code]);
-      const available = count(await manager.query(`SELECT count(*) AS n FROM recap.insight_tickets WHERE ${AVAILABLE}`, [channelId]));
+      const available = await grantCouponTickets(manager, channelId, code, coupon.tickets_per_redeem, coupon.ticket_valid_days);
       return { status: "granted", granted: coupon.tickets_per_redeem, available };
     });
   }
