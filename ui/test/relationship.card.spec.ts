@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { avatarHref, CARD_HEIGHT, CARD_WIDTH, cardFileName, cardText, cardTheme, drawCard, elapsedDays, shareLabel, wrapChars, type CardCanvas, type CardImage, type CardInput } from "../src/relationship.card.ts";
+import { avatarHref, CARD_FORMATS, type CardFormat, CARD_HEIGHT, CARD_WIDTH, cardFileName, cardText, cardTheme, drawCard, elapsedDays, shareLabel, wrapChars, type CardCanvas, type CardImage, type CardInput } from "../src/relationship.card.ts";
 
 const root = (...classes: string[]) => ({ classList: { contains: (name: string) => classes.includes(name) } });
 const record = { firstActiveDate: "2026-01-01", lastActiveDate: "2026-10-20", chatCount: 1234, activeDays: 56, longestConsecutiveActiveDays: 7, mostActiveDay: { date: "2026-09-15", chatCount: 420 }, mostActiveMonth: { month: "2026-09", chatCount: 2300 }, share: 0.853912, totalUserChatCount: 15000 };
@@ -9,13 +9,14 @@ const input = (overrides: Partial<CardInput["relationship"]> = {}, channelName: 
 // 그리기 호출만 기록하는 가짜 컨텍스트. 글자 폭은 글자 수에 비례한다고 본다.
 function fakeCanvas() {
   const texts: string[] = [];
+  const positions: { text: string; x: number; y: number }[] = [];
   const images: unknown[] = [];
   const rects: { x: number; y: number; w: number; h: number }[] = [];
-  const ctx: CardCanvas & { texts: string[]; images: unknown[]; rects: typeof rects } = {
-    texts, images, rects, font: "", fillStyle: "", strokeStyle: "", lineWidth: 1, textAlign: "left", textBaseline: "alphabetic", letterSpacing: "0px",
+  const ctx: CardCanvas & { texts: string[]; positions: typeof positions; images: unknown[]; rects: typeof rects } = {
+    texts, positions, images, rects, font: "", fillStyle: "", strokeStyle: "", lineWidth: 1, textAlign: "left", textBaseline: "alphabetic", letterSpacing: "0px",
     save() {}, restore() {}, beginPath() {}, closePath() {}, moveTo() {}, arcTo() {}, arc() {}, clip() {}, fill() {}, stroke() {},
     fillRect(x, y, w, h) { rects.push({ x, y, w, h }); },
-    fillText(text) { texts.push(text); },
+    fillText(text, x, y) { texts.push(text); positions.push({ text, x, y }); },
     measureText(text) { return { width: Array.from(text).length * (Number(/(\d+)px/.exec(this.font)?.[1]) || 10) * 0.9 }; },
     drawImage(image) { images.push(image); },
   };
@@ -87,4 +88,52 @@ describe("카드 그리기", () => {
     assert.ok(ctx.texts.includes("기록 없음 ~ 2026.10.28"));
     assert.ok(!ctx.texts.includes("나의 본진"));
   });
+});
+
+
+describe("카드 비율", () => {
+  for (const format of Object.keys(CARD_FORMATS) as CardFormat[]) {
+    it(`${format}에서도 긴 이름과 기록을 카드 안에 배치한다`, () => {
+      const ctx = fakeCanvas();
+      drawCard(ctx, input({}, "아주 긴 채널 이름을 두 줄에 걸쳐 표시합니다"), "dark", { avatar: image(300, 200), logo: image(64, 64) }, format);
+      const { width, height } = CARD_FORMATS[format];
+      assert.deepEqual(ctx.rects[0], { x: 0, y: 0, w: width, h: height });
+      for (const position of ctx.positions) {
+        assert.ok(position.y > 48 && position.y < height - 48, JSON.stringify(position));
+      }
+      const labels = format === "3:1" ? ["첫 채팅 이후", "나눈 채팅", "채팅한 날", "최장 연속 활동"] : format === "16:9" ? ["첫 채팅 이후", "이 채널에 남긴 채팅", "채팅한 날", "최장 연속 활동", "가장 활발했던 날", "가장 활발했던 달"] : ["첫 채팅 이후", "나눈 채팅", "채팅한 날", "최장 연속 활동", "가장 활발했던 날", "가장 활발했던 달", "최근 채팅"];
+      for (const label of labels) assert.ok(ctx.texts.includes(label), label);
+      if (format === "16:9" || format === "3:1") {
+        const first = ctx.positions.find(p => p.text === "첫 채팅 이후")!;
+        const chats = ctx.positions.find(p => p.text === (format === "16:9" ? "이 채널에 남긴 채팅" : "나눈 채팅"))!;
+        assert.ok(first.x + 400 < chats.x, "채널 정보와 채팅 수를 서로 다른 열에 둔다");
+        return;
+      }
+      const first = ctx.positions.find(p => p.text === "첫 채팅 이후")!;
+      const stats = ctx.positions.find(p => p.text === "나눈 채팅")!;
+      assert.ok(first.y + 150 < stats.y, "첫 채팅 이후 구역과 통계가 겹치지 않는다");
+    });
+  }
+  it("추가 비율은 파일 이름으로 구별한다", () => {
+    assert.equal(cardFileName("아리사", "2026-11-07", "1:1"), "아리사 리캡 2026.11.07 1x1.png");
+    assert.equal(cardFileName("아리사", "2026-11-07", "16:9"), "아리사 리캡 2026.11.07 16x9.png");
+  });
+});
+
+
+describe("가로형 카드의 빈 기록", () => {
+  for (const format of ["16:9", "3:1"] as const) {
+    for (const theme of ["light", "dark"] as const) {
+      it(`${format} ${theme}에서 사진과 기록이 없어도 실제 값만 표시한다`, () => {
+        const ctx = fakeCanvas();
+        drawCard(ctx, input({ firstActiveDate: null, lastActiveDate: null, mostActiveDay: null, mostActiveMonth: null, share: undefined, totalUserChatCount: undefined, chatCount: 0, activeDays: 0, longestConsecutiveActiveDays: 0 }, null), theme, { avatar: null, logo: null }, format);
+        assert.ok(ctx.texts.includes("선택한 채널"));
+        assert.ok(ctx.texts.includes("기록 없음"));
+        assert.ok(ctx.texts.includes("0"));
+        assert.ok(!ctx.texts.includes("나의 본진"));
+        assert.equal(ctx.images.length, 0);
+        if (format === "3:1") assert.ok(!ctx.texts.includes("가장 활발했던 날"));
+      });
+    }
+  }
 });

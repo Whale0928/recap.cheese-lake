@@ -38,8 +38,19 @@
 .relationship-share-head, .relationship-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 .relationship-share-head h2, .relationship-card-head h2 { margin: 0 0 .25rem; font-size: 1.375rem; letter-spacing: -.03em; line-height: 1.3; }
 .relationship-share-head p, .relationship-card-head p { margin: 0; color: var(--muted-foreground); font-size: .8125rem; }
-/* 미리보기 상자는 카드 비율(4:5)을 유지하되 화면 높이를 넘지 않는다. */
-.relationship-card-preview { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 4 / 5; max-height: calc(100dvh - 15rem); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); overflow: hidden; }
+/* 화면 크기가 같으면 비율과 생성 상태가 바뀌어도 창과 미리보기 크기는 유지한다. */
+.relationship-card-dialog { width: min(100% - 2rem, 68rem); height: min(100dvh - 2rem, 52rem); overflow: hidden; }
+.relationship-card-panel { height: 100%; min-height: 0; display: grid; grid-template-rows: auto 2.5rem 2.5rem minmax(0, 1fr) auto; gap: .75rem; }
+.relationship-card-formats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+.relationship-card-formats button { min-width: 0; display: flex; align-items: center; justify-content: center; gap: .5rem; height: 2.5rem; padding: .375rem .5rem; border: 1px solid var(--border); border-radius: var(--radius-lg); color: var(--muted-foreground); background: var(--card); cursor: pointer; }
+.relationship-card-formats button[aria-pressed="true"] { color: var(--accent-foreground); border-color: var(--accent-foreground); background: var(--accent); }
+.relationship-card-formats strong { font-size: .9375rem; }
+.relationship-card-formats span { font-size: .75rem; }
+.relationship-card-caption { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; font-size: .75rem; line-height: 1.5; color: var(--muted-foreground); }
+.relationship-card-caption p { margin: 0; }
+.relationship-card-caption span { white-space: nowrap; }
+/* 이미지 비율은 유지하고 남는 공간은 여백으로 둔다. */
+.relationship-card-preview { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 0; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); overflow: hidden; }
 .relationship-card-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .relationship-card-preview p { margin: 0; padding: 1rem; color: var(--muted-foreground); font-size: .875rem; text-align: center; }
 .relationship-share-actions, .relationship-card-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -113,7 +124,10 @@
  .relationship-share-dialog, .relationship-card-dialog { width: 100%; max-width: none; max-height: 100dvh; height: 100dvh; margin: 0; border: 0; border-radius: 0; }
  .relationship-share-panel, .relationship-card-panel { padding: 1.25rem 1rem calc(1.25rem + env(safe-area-inset-bottom)); }
  .relationship-card-panel { height: 100%; }
- .relationship-card-preview { flex: 1; min-height: 0; aspect-ratio: auto; max-height: none; }
+ .relationship-card-panel { grid-template-rows: auto 2.5rem 3.75rem minmax(0, 1fr) auto; }
+ .relationship-card-caption { grid-template-columns: minmax(0, 1fr); gap: .125rem; }
+ .relationship-card-caption span { justify-self: end; }
+ .relationship-card-preview { padding: .5rem; }
  .relationship-main { width: calc(100% - 2rem); }
  .relationship-layout { grid-template-columns: minmax(0, 1fr); gap: 2.25rem; }
  .relationship-card { width: min(100%, 23.75rem); justify-self: center; }
@@ -124,4 +138,8 @@
  .relationship-moments { gap: 1rem; }.relationship-moments strong { font-size: 1.875rem; }
  .relationship-calendar { margin-top: 2rem; padding: 1.125rem; }
  .relationship-main .me-heading { align-items: flex-start; }
+}
+
+@media (max-width: 560px) {
+  .relationship-card-formats span { display: none; }
 }

@@ -1,5 +1,5 @@
 // 브라우저에서 채널 기록 카드 PNG 를 만든다. 서버는 프로필 사진 바이트만 중계하고 그리기와 인코딩은 이 기기가 맡는다.
-import { avatarHref, CARD_FONT, CARD_HEIGHT, CARD_WIDTH, cardText, drawCard, type CardImage, type CardInput, type CardTheme } from "./relationship.card";
+import { avatarHref, CARD_FONT, CARD_FORMATS, cardText, drawCard, type CardFormat, type CardImage, type CardInput, type CardTheme } from "./relationship.card";
 
 function loadImage(src: string): Promise<CardImage | null> {
   return new Promise(resolve => {
@@ -18,17 +18,17 @@ async function loadFonts(input: CardInput): Promise<void> {
   await Promise.all([400, 600].map(weight => document.fonts.load(`${weight} 24px ${CARD_FONT}`, sample)));
 }
 
-export async function renderCardImage(channelId: string, hasAvatar: boolean, input: CardInput, theme: CardTheme): Promise<Blob> {
+export async function renderCardImage(channelId: string, hasAvatar: boolean, input: CardInput, theme: CardTheme, format: CardFormat = "4:5"): Promise<Blob> {
   const [avatar, logo] = await Promise.all([
     hasAvatar ? loadImage(avatarHref(channelId)) : Promise.resolve(null),
     loadImage("/favicon.svg"),
     loadFonts(input).catch(() => undefined),
   ]);
   const canvas = document.createElement("canvas");
-  canvas.width = CARD_WIDTH; canvas.height = CARD_HEIGHT;
+  canvas.width = CARD_FORMATS[format].width; canvas.height = CARD_FORMATS[format].height;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("canvas unavailable");
-  drawCard(context, input, theme, { avatar, logo });
+  drawCard(context, input, theme, { avatar, logo }, format);
   const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("png encoding failed");
   return blob;

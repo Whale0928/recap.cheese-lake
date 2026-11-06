@@ -4,6 +4,13 @@ import type { RelationshipView } from "./relationship.data";
 export type CardTheme = "light" | "dark";
 export const CARD_WIDTH = 1080;
 export const CARD_HEIGHT = 1350;
+export const CARD_FORMATS = {
+  "4:5": { width: CARD_WIDTH, height: CARD_HEIGHT, label: "기록 카드", description: "채널 사진부터 활동 통계까지 세로로 담습니다." },
+  "1:1": { width: CARD_WIDTH, height: 1080, label: "정사각형", description: "채널 사진과 통계를 정사각형에 모읍니다." },
+  "16:9": { width: 1920, height: 1080, label: "와이드 보드", description: "사진과 첫 채팅 이후 일수, 채팅 통계를 두 영역으로 나눕니다." },
+  "3:1": { width: 1920, height: 640, label: "가로 배너", description: "사진·이름·경과 일수·채팅 수·활동 일수·최장 연속 활동만 담습니다." },
+} as const;
+export type CardFormat = keyof typeof CARD_FORMATS;
 export const CARD_FONT = '"Pretendard Variable"';
 export const avatarHref = (channelId: string) => `/api/me/channels/${channelId}/avatar`;
 
@@ -15,9 +22,9 @@ export function cardTheme(root: { classList: Pick<DOMTokenList, "contains"> }, p
 }
 
 /** 내려받는 파일 이름. 파일 시스템이 거부하는 문자와 제어 문자는 공백으로 바꾸고 길이를 제한한다. */
-export function cardFileName(channelName: string | null, today: string): string {
+export function cardFileName(channelName: string | null, today: string, format: CardFormat = "4:5"): string {
   const name = (channelName ?? "").replace(/[\\/:*?"<>|\p{Cc}]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 40) || "채널";
-  return `${name} 리캡 ${today.replaceAll("-", ".")}.png`;
+  return `${name} 리캡 ${today.replaceAll("-", ".")}${format === "4:5" ? "" : ` ${format.replace(":", "x")}`}.png`;
 }
 
 export const dateLabel = (date: string | null): string => date ? date.replaceAll("-", ".") : "기록 없음";
@@ -58,7 +65,7 @@ export function cardText(input: CardInput): string {
     dateLabel(r.firstActiveDate), dateLabel(input.today), "나눈 채팅", "채팅한 날", "최장 연속 활동", number(r.chatCount), number(r.activeDays), number(r.longestConsecutiveActiveDays), "개",
     "가장 활발했던 날", "가장 활발했던 달", "년 · 채팅", "월", r.mostActiveDay ? `${dateLabel(r.mostActiveDay.date)} ${number(r.mostActiveDay.chatCount)}` : "", r.mostActiveMonth ? `${r.mostActiveMonth.month} ${number(r.mostActiveMonth.chatCount)}` : "",
     "recap.cheese lake", "최근 채팅", dateLabel(r.lastActiveDate), "전체 채팅", "전체 채팅 중", r.totalUserChatCount === undefined ? "" : number(r.totalUserChatCount), r.share === undefined ? "" : `${shareLabel(r.share)}%`,
-    "0123456789.,%",
+    "0123456789.,%", "이 채널에 남긴 채팅", "채널 기록", "기준", "첫 채팅",
   ].join(" ");
 }
 
@@ -107,19 +114,25 @@ function text(ctx: CardCanvas, value: string, x: number, y: number, size: number
   return ctx.measureText(value).width;
 }
 
-/** 캔버스는 CARD_WIDTH×CARD_HEIGHT 로 준비되어 있어야 한다. 글꼴은 호출 전에 로드되어 있어야 한다. */
-export function drawCard(ctx: CardCanvas, input: CardInput, theme: CardTheme, images: { avatar: CardImage | null; logo: CardImage | null }): void {
+/** 선택한 크기로 준비한 캔버스에 그린다. 글꼴은 호출 전에 로드되어 있어야 한다. */
+export function drawCard(ctx: CardCanvas, input: CardInput, theme: CardTheme, images: { avatar: CardImage | null; logo: CardImage | null }, format: CardFormat = "4:5"): void {
+  if (format === "16:9" || format === "3:1") {
+    drawLandscapeCard(ctx, input, theme, images.avatar, format);
+    return;
+  }
+  const { height: canvasHeight } = CARD_FORMATS[format];
+  const square = format === "1:1";
   const color = palettes[theme];
   const r = input.relationship;
   const name = input.channelName || "선택한 채널";
   const elapsed = elapsedDays(r.firstActiveDate, input.today);
   const padding = 48;
-  const left = padding, width = CARD_WIDTH - padding * 2, top = padding, height = CARD_HEIGHT - padding * 2;
+  const left = padding, width = CARD_WIDTH - padding * 2, top = padding, height = canvasHeight - padding * 2;
   const inner = 48;
   const x1 = left + inner, x2 = left + width - inner;
 
   ctx.fillStyle = color.background;
-  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+  ctx.fillRect(0, 0, CARD_WIDTH, canvasHeight);
   ctx.save();
   roundedRect(ctx, left, top, width, height, 36);
   ctx.clip();
@@ -137,43 +150,47 @@ export function drawCard(ctx: CardCanvas, input: CardInput, theme: CardTheme, im
   // 채널 구역
   ctx.font = font(54, 600);
   if ("letterSpacing" in ctx) ctx.letterSpacing = "-0.045em";
-  const nameLines = wrapChars(name, width - 100, value => ctx.measureText(value).width, 2);
+  const nameLines = wrapChars(name, square ? width - 340 : width - 100, value => ctx.measureText(value).width, 2);
   const badge = r.share !== undefined && r.share >= .5;
   const nameHeight = nameLines.length * 54 * 1.2;
   const badgeHeight = 22 * 1.2 + 16;
-  const sectionHeight = 36 + 216 + 18 + nameHeight + (badge ? 18 + badgeHeight : 0) + 32;
+  const sectionHeight = square ? Math.max(216, 48 + nameHeight + (badge ? 18 + badgeHeight : 0)) : 36 + 216 + 18 + nameHeight + (badge ? 18 + badgeHeight : 0) + 32;
   ctx.fillStyle = color.accent; ctx.fillRect(left, y, width, sectionHeight);
-  const cx = CARD_WIDTH / 2;
-  const avatarTop = y + 36;
-  ctx.fillStyle = color.card; ctx.beginPath(); ctx.arc(cx, avatarTop + 108, 108, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = color.border; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, avatarTop + 108, 107, 0, Math.PI * 2); ctx.stroke();
+  const avatarCx = square ? x1 + 72 : CARD_WIDTH / 2;
+  const avatarRadius = square ? 72 : 108;
+  const avatarTop = square ? y + (sectionHeight - 144) / 2 : y + 36;
+  ctx.fillStyle = color.card; ctx.beginPath(); ctx.arc(avatarCx, avatarTop + avatarRadius, avatarRadius, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = color.border; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(avatarCx, avatarTop + avatarRadius, avatarRadius - 1, 0, Math.PI * 2); ctx.stroke();
   if (images.avatar) {
     const { source, width: w, height: h } = images.avatar;
     const side = Math.min(w, h);
-    ctx.save(); ctx.beginPath(); ctx.arc(cx, avatarTop + 108, 98, 0, Math.PI * 2); ctx.clip();
-    ctx.drawImage(source, (w - side) / 2, (h - side) / 2, side, side, cx - 98, avatarTop + 10, 196, 196);
+    ctx.save(); ctx.beginPath(); ctx.arc(avatarCx, avatarTop + avatarRadius, avatarRadius - 10, 0, Math.PI * 2); ctx.clip();
+    ctx.drawImage(source, (w - side) / 2, (h - side) / 2, side, side, avatarCx - avatarRadius + 10, avatarTop + 10, (avatarRadius - 10) * 2, (avatarRadius - 10) * 2);
     ctx.restore();
   } else {
-    text(ctx, Array.from(name)[0] ?? "?", cx, baseline(avatarTop + 10 + (196 - 84 * 1.2) / 2, 84, 1.2), 84, { weight: 600, color: color.accentForeground, align: "center" });
+    text(ctx, Array.from(name)[0] ?? "?", avatarCx, baseline(avatarTop + 10 + ((avatarRadius - 10) * 2 - 84 * 1.2) / 2, 84, 1.2), 84, { weight: 600, color: color.accentForeground, align: "center" });
   }
-  let lineTop = avatarTop + 216 + 18;
+  const nameX = square ? x1 + 200 : avatarCx;
+  const nameAlign = square ? "left" : "center";
+  let lineTop = square ? y + (sectionHeight - nameHeight - (badge ? 18 + badgeHeight : 0)) / 2 : avatarTop + 216 + 18;
   for (const line of nameLines) {
-    text(ctx, line, cx, baseline(lineTop, 54, 1.2), 54, { weight: 600, color: color.foreground, align: "center", letterSpacing: "-0.045em" });
+    text(ctx, line, nameX, baseline(lineTop, 54, 1.2), 54, { weight: 600, color: color.foreground, align: nameAlign, letterSpacing: "-0.045em" });
     lineTop += 54 * 1.2;
   }
   if (badge) {
     const badgeTop = lineTop + 18;
     ctx.font = font(22); if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
     const badgeWidth = ctx.measureText("나의 본진").width + 44;
-    ctx.fillStyle = color.card; roundedRect(ctx, cx - badgeWidth / 2, badgeTop, badgeWidth, badgeHeight, badgeHeight / 2); ctx.fill();
-    text(ctx, "나의 본진", cx, baseline(badgeTop + 8, 22, 1.2), 22, { color: color.accentForeground, align: "center" });
+    ctx.fillStyle = color.card; roundedRect(ctx, square ? nameX : avatarCx - badgeWidth / 2, badgeTop, badgeWidth, badgeHeight, badgeHeight / 2); ctx.fill();
+    text(ctx, "나의 본진", square ? nameX + badgeWidth / 2 : avatarCx, baseline(badgeTop + 8, 22, 1.2), 22, { color: color.accentForeground, align: "center" });
   }
   y += sectionHeight;
+  const cx = CARD_WIDTH / 2;
 
   // 아래쪽 고정 구역의 높이를 먼저 빼고, 남는 공간 가운데에 첫 채팅 이후 일수를 둔다.
   const statsHeight = 28 + 22 * 1.2 + 10 + 44 * 1.2 + 28;
   const momentsHeight = 28 + 22 * 1.2 + 8 + 44 * 1.2 + 8 + 22 * 1.2 + 32;
-  const footerHeight = 26 * 2 + 36;
+  const footerHeight = 126;
   const fixed = 2 + statsHeight + 2 + momentsHeight + 2 + footerHeight;
   const elapsedHeight = top + height - 2 - fixed - y;
   const elapsedContent = 24 * 1.2 + 8 + (elapsed === null ? 88 * 1.15 : 112 * 1.1) + 8 + 24 * 1.2;
@@ -230,18 +247,113 @@ export function drawCard(ctx: CardCanvas, input: CardInput, theme: CardTheme, im
 
   // 바닥글
   ctx.fillStyle = color.border; ctx.fillRect(left, y, width, 2); y += 2;
-  const footerTop = y + 26;
+  const footerTop = y + 18;
   if (images.logo) ctx.drawImage(images.logo.source, 0, 0, images.logo.width, images.logo.height, x1, footerTop, 36, 36);
   const base = baseline(footerTop + (36 - 22 * 1.2) / 2, 22, 1.2);
   text(ctx, "recap.cheese lake", x1 + (images.logo ? 48 : 0), base, 22, { weight: 600, color: color.foreground, letterSpacing: "-0.02em" });
   const pairs: [string, string, 400 | 600][] = [["최근 채팅", dateLabel(r.lastActiveDate), 400]];
   if (r.totalUserChatCount !== undefined) pairs.push(["전체 채팅", `${number(r.totalUserChatCount)}개`, 400]);
   if (r.share !== undefined) pairs.push(["전체 채팅 중", `${shareLabel(r.share)}%`, 600]);
+  const metadataBase = base + 42;
   let fx = x2;
   for (const [label, value, weight] of [...pairs].reverse()) {
-    fx -= text(ctx, value, fx, base, 22, { weight, color: color.foreground, align: "right" }) + 8;
-    fx -= text(ctx, label, fx, base, 22, { color: color.muted, align: "right" }) + 18;
+    fx -= text(ctx, value, fx, metadataBase, 20, { weight, color: color.foreground, align: "right" }) + 8;
+    fx -= text(ctx, label, fx, metadataBase, 20, { color: color.muted, align: "right" }) + 18;
   }
   ctx.restore();
   ctx.strokeStyle = color.border; ctx.lineWidth = 2; roundedRect(ctx, left + 1, top + 1, width - 2, height - 2, 35); ctx.stroke();
+}
+
+
+// 가로형은 세로 카드를 늘리지 않고, 사진과 수치를 독립된 영역에 배치한다.
+function drawLandscapeCard(ctx: CardCanvas, input: CardInput, theme: CardTheme, avatar: CardImage | null, format: "16:9" | "3:1"): void {
+  const { width, height } = CARD_FORMATS[format];
+  const color = palettes[theme];
+  const ink = "#102d21", mint = theme === "dark" ? "#99edc7" : "#c2f2d7";
+  const r = input.relationship, name = input.channelName || "선택한 채널";
+  const elapsed = elapsedDays(r.firstActiveDate, input.today);
+  const wide = format === "16:9";
+  ctx.fillStyle = wide ? color.background : mint;
+  ctx.fillRect(0, 0, width, height);
+  const label = (value: string, x: number, y: number, fill: string = color.muted, size = 28) => text(ctx, value, x, y, size, { color: fill });
+  const headline = (value: string, x: number, y: number, size: number, maxWidth: number, fill: string = color.foreground) => {
+    ctx.font = font(size, 600);
+    if ("letterSpacing" in ctx) ctx.letterSpacing = "-0.045em";
+    const fitted = Math.min(size, size * maxWidth / Math.max(1, ctx.measureText(value).width));
+    return text(ctx, value, x, y, fitted, { weight: 600, color: fill, letterSpacing: "-0.045em" });
+  };
+  const photo = (x: number, y: number, side: number) => {
+    ctx.save();
+    roundedRect(ctx, x, y, side, side, wide ? side / 2 : 28);
+    ctx.clip();
+    ctx.fillStyle = ink; ctx.fillRect(x, y, side, side);
+    if (avatar) {
+      const crop = Math.min(avatar.width, avatar.height);
+      ctx.drawImage(avatar.source, (avatar.width - crop) / 2, (avatar.height - crop) / 2, crop, crop, x, y, side, side);
+    } else text(ctx, Array.from(name)[0] || "?", x + side / 2, baseline(y + (side - 120 * 1.2) / 2, 120, 1.2), 120, { color: mint, weight: 600, align: "center" });
+    ctx.restore();
+  };
+  const nameLines = (x: number, y: number, maxWidth: number, fill: string, size: number) => {
+    ctx.font = font(size, 600);
+    if ("letterSpacing" in ctx) ctx.letterSpacing = "-0.045em";
+    wrapChars(name, maxWidth, value => ctx.measureText(value).width, 2).forEach((line, index) => {
+      text(ctx, line, x, y + index * size * 1.2, size, { color: fill, weight: 600, letterSpacing: "-0.045em" });
+    });
+  };
+  if (wide) {
+    ctx.fillStyle = mint; roundedRect(ctx, 40, 40, 576, 1000, 32); ctx.fill();
+    label("나의 채널 기록", 88, 108, ink);
+    text(ctx, input.today.slice(0, 4), 568, 108, 28, { color: ink, align: "right" });
+    photo(160, 164, 336);
+    nameLines(88, 586, 480, ink, 64);
+    if (r.share !== undefined && r.share >= .5) label("나의 본진", 88, 724, ink, 26);
+    label("첫 채팅 이후", 88, 812, ink);
+    headline(elapsed === null ? "기록 없음" : `${number(elapsed)}일`, 88, 936, 112, 480, ink);
+    label(dateLabel(r.firstActiveDate), 88, 990, ink, 26);
+
+    label("이 채널에 남긴 채팅", 688, 126, color.accentForeground, 36);
+    headline(number(r.chatCount), 676, 380, 244, 1100);
+    label("개", 1812, 380, color.muted, 40);
+    ctx.fillStyle = color.border; ctx.fillRect(688, 440, 1144, 2);
+    label("채팅한 날", 688, 510);
+    headline(`${number(r.activeDays)}일`, 688, 612, 88, 340);
+    label("최장 연속 활동", 1080, 510);
+    headline(`${number(r.longestConsecutiveActiveDays)}일`, 1080, 612, 88, 340);
+    label("전체 채팅 중", 1472, 510);
+    headline(r.share === undefined ? "기록 없음" : `${shareLabel(r.share)}%`, 1472, 612, 88, 360, color.accentForeground);
+
+    const moments = [
+      { title: "가장 활발했던 날", value: r.mostActiveDay ? dateLabel(r.mostActiveDay.date) : "기록 없음", detail: r.mostActiveDay ? `채팅 ${number(r.mostActiveDay.chatCount)}개` : "" },
+      { title: "가장 활발했던 달", value: r.mostActiveMonth ? r.mostActiveMonth.month.replaceAll("-", ".") : "기록 없음", detail: r.mostActiveMonth ? `채팅 ${number(r.mostActiveMonth.chatCount)}개` : "" },
+    ];
+    moments.forEach((moment, index) => {
+      const x = 688 + index * 584;
+      ctx.fillStyle = color.card; roundedRect(ctx, x, 684, 560, 236, 24); ctx.fill();
+      label(moment.title, x + 32, 736, color.muted, 26);
+      headline(moment.value, x + 32, 812, 58, 496);
+      label(moment.detail, x + 32, 872, color.muted, 26);
+    });
+    label("recap.cheese lake", 688, 996, color.foreground, 26);
+    label(`최근 채팅 ${dateLabel(r.lastActiveDate)}`, 1096, 996, color.muted, 24);
+    label(`${dateLabel(input.today)} 기준`, 1540, 996, color.muted, 24);
+  } else {
+    ctx.fillStyle = ink; ctx.fillRect(1120, 0, 800, height);
+    label("나의 채널 기록", 64, 76, ink);
+    photo(64, 140, 336);
+    nameLines(456, 196, 600, ink, 68);
+    label(`${dateLabel(r.firstActiveDate)} 첫 채팅`, 456, 326, ink, 26);
+    label("첫 채팅 이후", 456, 394, ink, 26);
+    headline(elapsed === null ? "기록 없음" : `${number(elapsed)}일`, 450, 504, 112, 600, ink);
+    label("recap.cheese lake", 64, 574, ink, 26);
+    label(`${dateLabel(input.today)} 기준`, 744, 574, ink, 26);
+
+    label("나눈 채팅", 1184, 100, mint, 32);
+    headline(number(r.chatCount), 1174, 300, 184, 626, mint);
+    label("개", 1836, 300, mint, 30);
+    ctx.fillStyle = "#365747"; ctx.fillRect(1184, 364, 672, 2);
+    label("채팅한 날", 1184, 432, mint, 26);
+    headline(`${number(r.activeDays)}일`, 1184, 538, 80, 300, mint);
+    label("최장 연속 활동", 1536, 432, mint, 26);
+    headline(`${number(r.longestConsecutiveActiveDays)}일`, 1536, 538, 80, 320, mint);
+  }
 }
