@@ -10,6 +10,7 @@ import { AuthConfig } from "../src/auth/auth.config.js";
 import { ChzzkClient } from "../src/auth/chzzk.client.js";
 import { LabConfig } from "../src/activity/lab.config.js";
 import { fetchAvatar } from "../src/activity/avatar.controller.js";
+import { recapPeriod } from "../src/activity/activity.query.js";
 
 // 1×1 투명 PNG. 프로필 이미지 응답으로 쓴다.
 const tinyPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
@@ -60,7 +61,7 @@ describe("GET /api/me/channels/:broadcastId/avatar", () => {
     fetchMock = jest.spyOn(globalThis, "fetch").mockImplementation(async input => {
       const url = String(input instanceof Request ? input.url : input);
       if (url.startsWith("http://lab.test/")) return labResponse();
-      if (url === avatarUrl) return new Response(new Uint8Array(tinyPng), { headers: { "Content-Type": "image/png", "Content-Length": String(tinyPng.length) } });
+      if (url === avatarUrl || url === `${avatarUrl}?type=f240_240_na`) return new Response(new Uint8Array(tinyPng), { headers: { "Content-Type": "image/png", "Content-Length": String(tinyPng.length) } });
       throw new Error(`unexpected fetch ${url}`);
     });
     const module = await Test.createTestingModule({ imports: [AppModule.register()] })
@@ -113,6 +114,55 @@ describe("GET /api/me/channels/:broadcastId/avatar", () => {
     const agent = await login();
     labResponse = () => new Response("busy", { status: 429, headers: { "Retry-After": "30" } });
     const r = await agent.get(`/api/me/channels/${broadcast}/avatar`).expect(503);
+    expect(r.headers["retry-after"]).toBe("30");
+  });
+
+  const activities = (query: Record<string, unknown> = { period: "all" }) => ({
+    scope: { channelId: subject, channelIds: [], ...recapPeriod(query), timeZone: "Asia/Seoul", dataScope: "collected" },
+    totalChatCount: 10,
+    channels: [{ ...relationship().channel, chatCount: 10, activeDays: 2, share: 1 }],
+    trend: { interval: "day", points: [] }, patterns: [],
+  });
+  it("requires a login for recap images", async () => {
+    await request(app.getHttpServer()).get(`/api/recap/avatars/${broadcast}?period=all`).expect(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("uses only the session identity for the owner's image", async () => {
+    const agent = await login();
+    jest.mocked(app.get(ChzzkClient).getChannel).mockResolvedValue({ ...channel, channelImageUrl: avatarUrl });
+    const r = await agent.get("/api/recap/avatars/me?period=all").buffer(true).parse(binary).expect(200);
+    expect((r.body as Buffer).equals(tinyPng)).toBe(true);
+    expect(r.headers.vary).toContain("Cookie");
+    expect(app.get(ChzzkClient).getChannel).toHaveBeenLastCalledWith(subject);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).startsWith("http://lab.test/"))).toBe(false);
+  });
+  it.each<Record<string, string>>([{ period: "all" }, { month: "2026-10" }])("relays only channels in the selected recap and reuses its cache: %s", async query => {
+    const agent = await login(); labResponse = () => Response.json(activities(query));
+    const path = `/api/recap/avatars/${broadcast}?${new URLSearchParams(query)}`;
+    const r = await agent.get(path).buffer(true).parse(binary).expect(200);
+    expect((r.body as Buffer).equals(tinyPng)).toBe(true);
+    expect(r.headers["cache-control"]).toBe("private, max-age=300");
+    expect(r.headers["x-content-type-options"]).toBe("nosniff");
+    await agent.get(path).expect(200);
+    const urls = fetchMock.mock.calls.map(([input]) => String(input instanceof Request ? input.url : input));
+    expect(urls.filter(url => url.startsWith("http://lab.test/"))).toHaveLength(1);
+    expect(urls.find(url => url.startsWith("http://lab.test/"))).toContain(`/channels/${subject}/activities?`);
+    expect(urls.find(url => url.startsWith("http://lab.test/"))).toContain(`from=${encodeURIComponent(recapPeriod(query).from)}`);
+    expect(urls).toContain(`${avatarUrl}?type=f240_240_na`);
+  });
+  it("does not fetch images for a channel outside the recap", async () => {
+    const agent = await login(); labResponse = () => Response.json(activities());
+    await agent.get(`/api/recap/avatars/${"c".repeat(32)}?period=all`).expect(404);
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === avatarUrl)).toBe(false);
+  });
+  it.each(["me?period=all&url=https://example.org/image.png", "me?period=all&userId=other", "invalid?period=all", `${broadcast}?month=invalid`])("rejects arbitrary inputs before upstream calls: %s", async target => {
+    const agent = await login(); fetchMock.mockClear();
+    await agent.get(`/api/recap/avatars/${target}`).expect(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("preserves Retry-After when the recap cannot be read", async () => {
+    const agent = await login(); labResponse = () => new Response("busy", { status: 429, headers: { "Retry-After": "30" } });
+    const r = await agent.get(`/api/recap/avatars/${broadcast}?period=all`).expect(503);
     expect(r.headers["retry-after"]).toBe("30");
   });
 });

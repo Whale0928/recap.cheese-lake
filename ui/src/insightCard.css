@@ -120,3 +120,5 @@
 .insight-view-head { position: sticky; top: .75rem; z-index: 1; display: flex; justify-content: flex-end; align-items: flex-start; gap: .5rem; height: 0; padding-right: .75rem; }
 .insight-view-again { background: var(--card); border: 1px solid var(--border); font-weight: 600; }
 .insight-view-head .btn { background: var(--card); border: 1px solid var(--border); }
+@media (max-width: 560px) { .insight-view-dialog .vc { padding-top: 4rem; } }
+.insight-download-error { position: sticky; top: 3.5rem; z-index: 1; margin: 0 .75rem 0 auto; padding: .5rem .75rem; width: fit-content; max-width: calc(100% - 1.5rem); color: var(--destructive); background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); font-size: .8125rem; }

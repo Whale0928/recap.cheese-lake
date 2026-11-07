@@ -33,6 +33,18 @@ function useSessionName(): string | null {
 
 export function RecapPage() {
   const sessionName = useSessionName();
+  const page = useRef<HTMLElement>(null), downloading = useRef(false);
+  const [downloadState, setDownloadState] = useState<"idle" | "pending" | "failed">("idle");
+  const download = async () => {
+    if (!page.current || downloading.current) return;
+    downloading.current = true; setDownloadState("pending");
+    try {
+      const { downloadRecapPage } = await import("./recap.download");
+      await downloadRecapPage(page.current);
+      setDownloadState("idle");
+    } catch { setDownloadState("failed"); }
+    finally { downloading.current = false; }
+  };
   const currentMonth = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 7);
   const [mode, setMode] = useState<"all" | "month">("all");
   const [weekday, setWeekday] = useState(0);
@@ -89,8 +101,11 @@ export function RecapPage() {
       </div>
       {mode === "month" && <label>조회 월<input type="month" required value={month} min="1970-02" max={currentMonth} onChange={e => { if (/^\d{4}-(0[1-9]|1[0-2])$/.test(e.target.value) && e.target.value >= "1970-02" && e.target.value <= currentMonth) { preservePosition(e); setMonth(e.target.value); } }} /></label>}
     </div>;
-  return <main id="main" className="me-main recap-data" aria-busy={state.status === "loading" || state.status === "ready" && state.refreshing}>
-    <div className="me-heading"><div><a className="me-back" href="/">홈으로</a><RecapProfile sessionName={sessionName} /></div></div>
+  return <main ref={page} id="main" className="me-main recap-data" data-image-period={state.status === "ready" ? state.source.split("?")[1] : undefined} aria-busy={state.status === "loading" || state.status === "ready" && state.refreshing}>
+    <div className="me-heading"><div><a className="me-back" href="/">홈으로</a><RecapProfile sessionName={sessionName} /></div>
+      {data && <button type="button" className="btn btn-outline recap-download" data-image-download-control disabled={downloadState === "pending" || state.status === "ready" && state.refreshing} aria-busy={downloadState === "pending"} onClick={() => { void download(); }}>{downloadState === "pending" ? "저장 중…" : downloadState === "failed" ? "다시 다운로드" : "다운로드"}</button>}
+    </div>
+    {downloadState === "failed" && <p className="recap-download-error" data-image-download-control role="alert">이미지를 저장하지 못했습니다. 다시 시도해 주세요.</p>}
     <section className="recap-period" aria-labelledby="period-heading">
       <div><h2 id="period-heading">조회 기간</h2>{periodControls}</div>
       <InsightAction insight={insight} />

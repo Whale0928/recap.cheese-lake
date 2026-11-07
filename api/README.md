@@ -222,6 +222,8 @@ Lab 관리 화면이 직접 쓰고 Recap은 `GET /api/banners`·`GET /api/banner
 
 `GET /api/me/channels/:broadcastId/avatar`는 로그인한 본인이 기록을 조회한 채널의 프로필 사진 바이트를 그대로 중계한다. 치지직 프로필 CDN이 CORS 헤더를 주지 않아 브라우저가 그 사진을 canvas에 담으면 PNG로 꺼낼 수 없기 때문이다. 사진 주소는 클라이언트에서 받지 않고 Lab 관계 조회(record와 같은 캐시)의 `channelImageUrl`을 쓰며, `*.pstatic.net`의 https 주소만 5초·2MB 제한으로 받아 PNG·JPEG일 때만 돌려준다. 사진이 없거나 받지 못하면 404이고 화면은 이름 첫 글자로 대체한다. 기록 조회가 안 되면 503(429일 때 `Retry-After` 포함)이다. query는 받지 않으며 응답은 `Cache-Control: private, max-age=300`과 `nosniff`를 사용하고 활동 로그에 기록하지 않는다.
 
+`GET /api/recap/avatars/:target?period=all` 또는 `?month=YYYY-MM`는 리캡 화면을 PNG로 저장할 때 쓰는 보조 이미지 조회다. `target=me`이면 세션 본인의 치지직 프로필을 조회하고, 채널 ID이면 같은 조회 기간의 리캡 activities 캐시에 포함된 채널 사진만 중계한다. 클라이언트가 사진 URL이나 다른 사용자 ID를 지정하지 못한다. 쿼리가 없는 원본 사진은 기존 CDN의 240×240 썸네일 규격으로 받으며 기존 아바타 중계의 호스트·형식·크기·시간 제한을 적용한다. 캐시는 private 5분이며 `Vary: Cookie`로 계정을 구분한다. 활동 로그는 남기지 않는다. 목록 밖의 채널이나 사진이 없으면 404, 집계를 조회하지 못하면 503을 반환한다.
+
 ## AI 분석 쿠폰
 
 `POST /api/me/insight/redeem`은 로그인한 본인의 `{ "code": "CODE" }`를 받아

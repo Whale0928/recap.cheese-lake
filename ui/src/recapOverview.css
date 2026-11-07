@@ -24,3 +24,5 @@
   .recap-personal-panel .home-channel-ratio strong { font-size: 1.75rem; }
 }
 .recap-profile-retry:disabled { cursor: wait; text-decoration: none; }
+.recap-download { flex-shrink: 0; min-width: 6rem; }
+.recap-download-error { color: var(--destructive); font-size: .8125rem; }

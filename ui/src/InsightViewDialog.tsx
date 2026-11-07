@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CloseButton } from "./InsightAction";
 import { InsightCard } from "./InsightCard";
 import type { InsightHandle } from "./useInsight";
@@ -9,6 +9,8 @@ import type { InsightHandle } from "./useInsight";
 export function InsightViewDialog({ insight }: { insight: InsightHandle }) {
   const { open, setOpen, phase, tickets } = insight;
   const dialog = useRef<HTMLDialogElement>(null);
+  const downloading = useRef(false);
+  const [downloadState, setDownloadState] = useState<"idle" | "pending" | "failed">("idle");
   const st = phase.kind === "ready" ? phase.status : null;
   const result = st?.state === "done" ? st.result : undefined;
   useEffect(() => {
@@ -21,12 +23,25 @@ export function InsightViewDialog({ insight }: { insight: InsightHandle }) {
     if ((open !== "view" || !result) && el.open) el.close();
   }, [open, result]);
   const close = () => setOpen("");
+  const download = async () => {
+    const card = dialog.current?.querySelector<HTMLElement>(".vc");
+    if (!card || downloading.current) return;
+    downloading.current = true; setDownloadState("pending");
+    try {
+      const { downloadInsightCard } = await import("./insight.download");
+      await downloadInsightCard(card);
+      setDownloadState("idle");
+    } catch { setDownloadState("failed"); }
+    finally { downloading.current = false; }
+  };
   return <dialog ref={dialog} className="insight-view-dialog" aria-label="내 AI 분석" tabIndex={-1} onClose={() => { if (open === "view") close(); }} onClick={e => { if (e.target === dialog.current) close(); }}>
     <div className="insight-view-head">
       {/* 새로 만들기는 티켓이 있을 때만. 동의 창은 버튼 쪽 것을 그대로 쓴다 */}
       {tickets > 0 && <button type="button" className="btn btn-outline btn-sm insight-view-again" onClick={() => setOpen("consent")}>새로 분석하기 · 티켓 {tickets}장</button>}
+      {result && <button type="button" className="btn btn-outline btn-sm insight-download" disabled={downloadState === "pending"} aria-busy={downloadState === "pending"} onClick={() => { void download(); }}>{downloadState === "pending" ? "저장 중…" : downloadState === "failed" ? "다시 다운로드" : "다운로드"}</button>}
       <CloseButton onClick={close} />
     </div>
+    {downloadState === "failed" && <p className="insight-download-error" role="alert">이미지를 저장하지 못했습니다. 다시 시도해 주세요.</p>}
     {result && <InsightCard insight={result} finishedAt={st?.finishedAt ?? undefined} />}
   </dialog>;
 }
