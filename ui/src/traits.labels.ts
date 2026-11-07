@@ -1,4 +1,5 @@
 // 라벨·타입 문구 사전. 라벨 이름·설명은 랩 저장소 docs 「시청자 개성 패턴」, 꾸밈말·이름은 2026.10.30 단어 교정에서 확정했다.
+// 설명 일부는 2026.11.07 수치 심사(astra 리뷰 조건부 승인)로 판정 조건에 맞게 고쳤다. 이름과 꾸밈말은 그대로다.
 // 랩 traits API 는 키만 주므로 이름·설명·꾸밈말은 여기서 정한다. 모르는 키는 화면에 내지 않는다.
 export interface TraitLabel { name: string; description: string; modifier?: string; noun?: string }
 export const TRAIT_LABELS: Record<string, TraitLabel> = {
@@ -13,14 +14,14 @@ export const TRAIT_LABELS: Record<string, TraitLabel> = {
   few_regulars: { name: "단골 몇 곳", description: "자주 가는 방송이 몇 곳 정해져 있어요", modifier: "가던 방송을 또 찾는", noun: "낯익은 얼굴" },
   roaming: { name: "여기저기 순회", description: "여러 방송을 고르게 돌아다녀요", modifier: "여러 방송을 떠도는", noun: "방랑자" },
   same_day_multi: { name: "하루에 여러 방", description: "하루에 두 방송 이상 들르는 날이 많아요", modifier: "하루에 여러 방 가는", noun: "순간이동" },
-  first_still_top: { name: "첫 방송 그대로", description: "처음 간 방송을 아직 제일 많이 봐요", modifier: "첫 방송이 아직 최애인", noun: "첫사랑" },
+  first_still_top: { name: "첫 방송 그대로", description: "첫 기록 날 가장 많이 채팅한 방송이 전체 기록에서도 1위예요", modifier: "첫 방송이 아직 최애인", noun: "첫사랑" },
   top1_volatile: { name: "1위가 자주 바뀌는", description: "달마다 제일 많이 가는 방송이 바뀌어요", modifier: "달마다 최애가 바뀌는", noun: "월간 단골" },
   early_join: { name: "시작부터 함께", description: "방송이 켜지면 바로 들어와요", modifier: "방송 켜지면 바로 오는", noun: "오프닝 멤버" },
-  late_join: { name: "후반 합류", description: "방송 후반에 합류해요", modifier: "방송 후반에 들어오는", noun: "후발대" },
+  late_join: { name: "후반 합류", description: "관측된 방송 시작에서 한참 지난 뒤 첫 채팅을 남겨요", modifier: "방송 후반에 들어오는", noun: "후발대" },
   stays_to_end: { name: "끝까지 남는", description: "방송이 끝날 때까지 남아 있어요", modifier: "방송 끝까지 남아 있는", noun: "엔딩 요정" },
   brief_visit: { name: "잠깐 들러 몰아치는", description: "짧게 들러 한꺼번에 말하고 가요", modifier: "잠깐 와서 말 쏟는", noun: "속사포" },
   main_streak: { name: "연속 출석", description: "주 방송을 빠지지 않고 이어서 봐요", modifier: "연달아 출석 도장 찍는", noun: "개근왕" },
-  small_room: { name: "작은 방 단골", description: "작은 방송에서 존재감이 커요", modifier: "작은 방을 아끼는", noun: "작은 방 터줏대감" },
+  small_room: { name: "작은 방 단골", description: "채팅한 방송의 시청자 수가 대체로 적어요", modifier: "작은 방을 아끼는", noun: "작은 방 터줏대감" },
   big_room: { name: "큰 방 군중", description: "수천 명이 보는 방송에서 채팅해요", modifier: "수천 명 틈에 섞인", noun: "대형방 군중" },
   channel_top: { name: "주 방송 상위 2%", description: "주 방송에서 손꼽히는 채팅러예요", modifier: "주 방송 상위 2%에 든", noun: "채팅창 지분러" },
   length_short: { name: "짧게 받아치는", description: "짧은 말로 빠르게 반응해요", modifier: "짧은 말로 받아치는", noun: "한 줄 리액션" },
@@ -31,22 +32,22 @@ export const TRAIT_LABELS: Record<string, TraitLabel> = {
   question_ending: { name: "궁금한 게 많은", description: "방송 중에 자주 물어봐요", modifier: "방송 보며 자주 묻는", noun: "질문봇" },
   exclaim_mark: { name: "느낌표가 많은", description: "느낌표로 텐션을 올려요", modifier: "느낌표를 아끼지 않는", noun: "텐션 담당" },
   emoji_lines: { name: "이모티콘으로 말하는", description: "글 대신 이모티콘을 보내요", modifier: "이모티콘으로 말하는", noun: "이모티콘 장인" },
-  char_stretch: { name: "늘여 쓰는 감탄", description: "'캬ㅑㅑㅑ'처럼 길게 늘여 외쳐요", modifier: "감탄을 길게 늘이는", noun: "인간 확성기" },
+  char_stretch: { name: "늘여 쓰는 감탄", description: "'캬ㅑㅑㅑㅑ'처럼 같은 글자를 길게 이어 써요", modifier: "감탄을 길게 늘이는", noun: "인간 확성기" },
   stay_subscribed: { name: "구독한 곳에 머무는", description: "구독한 방송에서 대부분 채팅해요", modifier: "구독한 방에 머무는", noun: "전문 구독자" },
-  long_sub: { name: "1년 넘은 구독", description: "1년 넘게 구독한 방송이 있어요", modifier: "1년 넘게 구독 중인", noun: "장기 구독러" },
-  multi_sub: { name: "여러 곳 구독", description: "두 곳 이상을 구독하고 있어요", modifier: "구독한 방송이 여럿인", noun: "구독 멀티탭" },
-  one_game: { name: "한 게임 외길", description: "한 게임 방송만 봐요", modifier: "한 게임만 파는", noun: "한 게임 외골수" },
+  long_sub: { name: "1년 넘은 구독", description: "1년 이상 구독한 것으로 기록된 방송이 있어요", modifier: "1년 넘게 구독 중인", noun: "장기 구독러" },
+  multi_sub: { name: "여러 곳 구독", description: "두 곳 이상 구독하고, 채팅의 절반 이상을 구독한 방송에서 쳐요", modifier: "구독한 방송이 여럿인", noun: "구독 멀티탭" },
+  one_game: { name: "한 게임 외길", description: "거의 한 게임 방송에서 채팅해요", modifier: "한 게임만 파는", noun: "한 게임 외골수" },
   game_centric: { name: "게임 방송파", description: "주로 게임 방송에서 채팅해요", modifier: "게임 방송을 주로 보는", noun: "겜방 주민" },
   talk_centric: { name: "토크 방송파", description: "게임보다 토크 방송을 즐겨요", modifier: "토크 방송을 주로 보는", noun: "토크 방청객" },
   sports_centric: { name: "스포츠 중계파", description: "스포츠 중계를 함께 봐요", modifier: "스포츠 중계를 함께 보는", noun: "중계 응원단" },
   omnivore: { name: "잡식", description: "장르를 가리지 않아요", modifier: "장르 안 가리고 보는", noun: "잡식 시청자" },
   trend_surge: { name: "요즘 불붙은", description: "요즘 채팅이 부쩍 늘었어요" },
   trend_steady: { name: "꾸준한 페이스", description: "한 달째 비슷한 페이스예요" },
-  trend_decline: { name: "요즘 뜸해진", description: "요즘 조금 뜸해졌어요" },
-  returned: { name: "돌아온", description: "한동안 안 보이다 다시 왔어요" },
+  trend_decline: { name: "요즘 뜸해진", description: "요즘 뜸해졌어요" },
+  returned: { name: "돌아온", description: "예전에 채팅 기록이 길게 끊긴 적이 있고 최근에도 채팅했어요" },
   new_finds: { name: "새 방송 탐방 중", description: "요즘 새로 찾은 방송에 빠져 있어요" },
-  tenure_veteran: { name: "원년 멤버", description: "2025년부터 함께했어요" },
-  tenure_new: { name: "새로 온", description: "최근에 치지직 채팅을 시작했어요" },
+  tenure_veteran: { name: "원년 멤버", description: "2025년 또는 그 이전부터 채팅 기록이 있어요" },
+  tenure_new: { name: "새로 온", description: "수집된 첫 채팅 기록이 최근 60일 안에 있어요" },
 };
 // 함께 붙으면 서로 반대말처럼 읽히는 쌍. 조합 이름에서 짝짓지 않는다.
 export const TRAIT_CLASH: [string, string][] = [

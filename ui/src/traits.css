@@ -29,37 +29,52 @@
 .trait-main { grid-area: main; display: flex; flex-direction: column; justify-content: center; gap: .45rem; min-width: 0; padding-right: 2.5rem; }
 .trait-title { margin: 0; font-size: 1.75rem; font-weight: 800; line-height: 1.1; letter-spacing: -.03em; word-break: keep-all; overflow-wrap: anywhere; }
 .trait-headline { margin: 0; font-size: .875rem; line-height: 1.55; color: var(--muted-foreground); word-break: keep-all; }
-.trait-lone-fact { margin: 0; font-size: .875rem; font-weight: 700; color: var(--primary); }
+/* 카드 이름이 된 라벨의 조건과 수치. 아래 근거 칸과 겹치지 않게 제목 바로 아래에 둔다. */
+.trait-lead { display: grid; gap: .3rem; padding: .6rem .75rem; border-radius: .6rem; background: var(--accent); }
+.trait-lead p { margin: 0; font-size: .8125rem; line-height: 1.45; color: var(--foreground); word-break: keep-all; }
+.trait-lead b { font-size: .8125rem; color: var(--primary); }
+.trait-lead b > span { display: inline-block; }
+.trait-lead .trait-bar { margin-top: .1rem; background: color-mix(in oklab, var(--card) 55%, var(--accent)); }
 .trait-badges { display: flex; flex-wrap: wrap; gap: .375rem; margin: 0; padding: 0; list-style: none; }
 .trait-badges li { padding: .2rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 700; }
 .trait-badges .native { border: 1px solid var(--primary); color: var(--primary); }
-.trait-badges .state { background: var(--secondary); color: var(--secondary-foreground); }
-.trait-badges .state { display: inline-flex; align-items: center; gap: .3rem; }
-.trait-badges .state svg { width: .9rem; height: .9rem; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.trait-badges .state svg .fill { fill: currentColor; stroke: none; }
+/* 요즘 상태는 이름만으로 뜻이 안 와서, 칩 옆에 조건과 수치를 바로 쓴다. */
+.trait-states { display: flex; flex-direction: column; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+.trait-states li { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; }
+.trait-state-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 999px; background: var(--secondary); color: var(--secondary-foreground); font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.trait-state-chip svg { width: .9rem; height: .9rem; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.trait-state-chip svg .fill { fill: currentColor; stroke: none; }
+.trait-state-note { font-size: .75rem; line-height: 1.4; color: var(--muted-foreground); word-break: keep-all; }
 .trait-signature { grid-area: sig; display: flex; align-items: center; gap: .5rem; margin: 0; padding: .5rem .7rem; border-radius: .6rem; background: var(--accent); color: var(--accent-foreground); }
 .trait-signature span { padding: .1rem .4rem; border-radius: .3rem; background: var(--primary); color: var(--primary-foreground); font-size: .6875rem; font-weight: 800; }
 .trait-signature b { font-size: 1.125rem; color: var(--foreground); }
 .trait-signature em { margin-left: auto; font: 500 .75rem/1 var(--font-mono, ui-monospace, monospace); font-style: normal; }
 
 .trait-skills { grid-area: skills; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 0; padding: .875rem 0 0; border-top: 1px solid var(--border); list-style: none; min-width: 0; }
-.trait-skills li { display: flex; gap: .6rem; align-items: stretch; min-width: 0; }
+.trait-skills li { display: flex; min-width: 0; }
+/* 근거 칸 전체가 버튼이다. 누르면 그 라벨이 카드 이름으로 올라간다. 바깥 여백을 음수로 둬 칸 자리는 그대로 둔다. */
+.trait-skill-button { flex-grow: 1; display: flex; gap: .6rem; align-items: stretch; min-width: 0; margin: -.4rem; padding: .4rem; border: 1px solid transparent; border-radius: .6rem; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.trait-skill-button:hover:not(:disabled) { border-color: var(--recap-outline, var(--border)); background: color-mix(in oklab, var(--accent) 45%, var(--card)); }
+.trait-skill-button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.trait-skill-button:disabled { cursor: default; }
 .trait-skill-icon { flex-shrink: 0; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .6rem; background: var(--accent); color: var(--primary); }
 .trait-skill-icon svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .trait-skill-icon svg .fill { fill: currentColor; stroke: none; }
 .trait-skill-icon svg text { fill: currentColor; stroke: none; font: 700 9px sans-serif; }
 .trait-skill-body { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; }
-/* 뜻이 두 줄로 넘어가도 막대는 칸 맨 아래에 붙여 세 칸의 높이를 맞춘다. */
-.trait-skill-body .trait-bar, .trait-skill-body .trait-skill-fact { margin-top: auto; }
+/* 뜻이 두 줄로 넘어가도 수치 줄과 막대는 칸 맨 아래에 붙여 세 칸의 높이를 맞춘다. */
+.trait-skill-body .trait-skill-fact { margin-top: auto; }
 .trait-skill-note { margin-bottom: .4rem; }
 .trait-skill-fact { display: block; margin-top: .3rem; font-size: .75rem; font-weight: 600; color: var(--primary); }
-.trait-skill-head { display: flex; justify-content: space-between; gap: .5rem; font-size: .8125rem; }
-.trait-skill-head b { font: 700 .8125rem/1.4 var(--font-mono, ui-monospace, monospace); }
-.trait-bar { height: 6px; margin-top: .3rem; border-radius: 999px; background: var(--muted); overflow: hidden; }
+/* 근거 칸은 좁아서 수치가 둘이면 한 줄에 하나씩 쌓는다. 「·」만 혼자 한 줄에 남지 않게 하려는 것이다. */
+.trait-skill-fact > span { display: block; }
+.trait-skill-head { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .4rem; font-size: .8125rem; }
+.trait-bar { display: block; height: 6px; margin-top: .3rem; border-radius: 999px; background: var(--muted); overflow: hidden; }
 .trait-bar i { display: block; height: 100%; border-radius: 999px; }
 .trait-bar .c1 { background: var(--chart-1); }
 .trait-bar .c2 { background: var(--chart-5); }
 .trait-bar .c3 { background: var(--chart-4); }
+.trait-bar .c4 { background: var(--chart-2); }
 .trait-skill-note { display: block; font-size: .75rem; line-height: 1.4; color: var(--muted-foreground); word-break: keep-all; }
 
 .trait-card.is-skeleton { border-color: var(--border); }
@@ -105,6 +120,7 @@
 .label-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 .label-head h2 { margin: 0 0 .25rem; font-size: 1.375rem; letter-spacing: -.03em; line-height: 1.3; }
 .label-head p { margin: 0; color: var(--muted-foreground); font-size: .8125rem; }
+.label-basis { display: grid; gap: .2rem; margin: 0; padding: .75rem 1rem .75rem 1.75rem; border-radius: var(--radius-lg); background: var(--muted); color: var(--muted-foreground); font-size: .8125rem; line-height: 1.5; word-break: keep-all; }
 .label-group { display: grid; gap: .5rem; }
 .label-sub { margin: .25rem 0 0; font-size: .8125rem; font-weight: 700; color: var(--muted-foreground); }
 .label-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: .5rem; margin: 0; padding: 0; list-style: none; }

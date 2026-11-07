@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useActivity } from "./ActivityView";
 import { TRAIT_ICONS } from "./traits.icons";
 import { TRAIT_LABELS } from "./traits.labels";
-import { fact, memeName, percent, persona, signature, stars } from "./traits.persona";
+import { evidenceOrder, fact, keepOrder, memeName, percent, persona, signature, stars, stateName, swapLead } from "./traits.persona";
 import type { TraitsResponse, ViewerTraits } from "./traits.types";
 import "./traits.css";
 
@@ -48,16 +48,33 @@ function Stars({ count }: { count: number }) {
   </span>;
 }
 
+// 수치가 둘이면 「구독 3곳 · 구독한 방송 채팅 85%」에서 숫자만 다음 줄로 떨어지지 않게 수치 단위로 묶는다.
+// 좁은 근거 칸(stack)은 수치를 한 줄에 하나씩 쌓고, 넓은 곳은 「·」를 앞 수치에 붙여 혼자 한 줄에 남지 않게 한다.
+function FactText({ text, stack }: { text: string; stack?: boolean }) {
+  const parts = text.split(" · ");
+  if (stack) return <>{parts.map((part, j) => <span key={j}>{part}</span>)}</>;
+  return <>{parts.flatMap((part, j) => [...(j ? [" "] : []), <span key={j}>{part}{j < parts.length - 1 ? " ·" : ""}</span>])}</>;
+}
+
 function TraitsBody({ data }: { data: ViewerTraits }) {
-  const p = persona(data);
-  if (p.kind === "record") return <p className="traits-record">{p.headline}. 확인된 기록만 보여 드릴게요.</p>;
-  // 근거 칸은 확정한 이름과 라벨의 실제 뜻을 함께 쓴다. 두 라벨의 수치가 같아도 뜻이 달라 숨기지 않는다.
-  const picked = data.traits.filter(l => TRAIT_LABELS[l.key]).slice(0, 3);
-  // 라벨이 하나뿐이면 근거 줄이 제목과 같은 말이라, 근거 칸 대신 수치만 한 줄 정체 아래에 둔다.
-  const lone = picked.length === 1 ? fact(picked[0]!) : undefined;
-  const skills = picked.length === 1 ? [] : picked.map(l => {
-    const label = TRAIT_LABELS[l.key]!;
-    return { key: l.key, name: label.noun ?? label.name, description: label.description, fact: fact(l) };
+  // 근거 칸을 누르면 그 라벨이 카드 이름으로 올라가고 원래 이름은 그 칸으로 내려간다.
+  // 고른 순서는 저장하지 않아 새로고침하면 처음 순서(가장 드문 라벨이 이름)로 돌아간다.
+  const [saved, setSaved] = useState<string[]>([]);
+  const first = persona(data);
+  if (first.kind === "record") return <p className="traits-record">{first.headline}. 확인된 기록만 보여 드릴게요.</p>;
+  const order = keepOrder(saved, evidenceOrder(data.traits, first).map(l => l.key));
+  const p = persona(data, order[0]);
+  const byKey = new Map(data.traits.map(l => [l.key, l]));
+  // 수치는 정보 팝업과 같은 문장(「1위 방송 비중 85%」)으로 보여 준다. 퍼센트만 두면 무엇의 비율인지 알 수 없다.
+  // 카드 이름이 된 라벨은 제목 바로 아래에 조건과 수치를 쓰고, 아래 근거 칸에는 다시 넣지 않는다.
+  // 같은 이름이 위아래에 두 번 나오면 배지가 하나 더 있는 것처럼 읽힌다.
+  const lead = byKey.get(order[0] ?? "");
+  const leadFact = lead ? fact(lead) : undefined;
+  // 아래 칸은 나머지 라벨 전부다. 셋씩 줄을 바꿔 쌓는다.
+  const skills = order.slice(1).map(key => {
+    const label = TRAIT_LABELS[key]!;
+    const l = byKey.get(key)!;
+    return { key, name: label.noun ?? label.name, canLead: !!label.noun, description: label.description, fact: fact(l) };
   });
   const states = data.states.filter(l => TRAIT_LABELS[l.key]);
   const sig = signature(data.memes);
@@ -65,30 +82,44 @@ function TraitsBody({ data }: { data: ViewerTraits }) {
   const all = [...data.traits, ...data.states].filter(l => TRAIT_LABELS[l.key]);
   return <article className="trait-card">
     <div className="trait-card-inner">
-      <LabelInfo labels={all} nameKey={p.icon} modifierKey={p.modifierKey} />
+      <LabelInfo labels={all} />
       <div className="trait-art">
         <span className="trait-icon"><svg viewBox="0 0 24 24" aria-hidden="true" dangerouslySetInnerHTML={{ __html: TRAIT_ICONS[p.icon ?? ""] ?? "" }} /></span>
         {p.rate !== undefined && <><Stars count={stars(p.rate)} /><span className="trait-rate" title={`이 습관은 시청자 중 ${percent(p.rate)}가 가지고 있어요`}>시청자 중 {percent(p.rate)}</span></>}
       </div>
       <div className="trait-main">
-        <p className="trait-title">{p.title}</p>
+        <p className="trait-title" aria-live="polite">{p.title}</p>
         <p className="trait-headline">{p.headline}</p>
-        {lone && <p className="trait-lone-fact">{lone.text}</p>}
-        {(natives.length > 0 || states.length > 0) && <ul className="trait-badges" aria-label="칭호와 요즘 상태">
+        {lead && <div className="trait-lead">
+          <p>{TRAIT_LABELS[lead.key]!.description}</p>
+          {leadFact && <b><FactText text={leadFact.text} /></b>}
+          {leadFact?.ratio !== undefined && <div className="trait-bar" aria-hidden="true"><i className="c1" style={{ width: `${leadFact.ratio * 100}%` }} /></div>}
+        </div>}
+        {natives.length > 0 && <ul className="trait-badges" aria-label="칭호">
           {natives.map(m => <li key={m.key} className="native">{memeName(m.key)} 원어민</li>)}
-          {states.map(l => <li key={l.key} className="state"><svg viewBox="0 0 24 24" aria-hidden="true" dangerouslySetInnerHTML={{ __html: TRAIT_ICONS[l.key] ?? "" }} />요즘 {TRAIT_LABELS[l.key]!.name}</li>)}
+        </ul>}
+        {states.length > 0 && <ul className="trait-states" aria-label="요즘 상태">
+          {states.map(l => {
+            const f = fact(l);
+            return <li key={l.key}>
+              <span className="trait-state-chip"><svg viewBox="0 0 24 24" aria-hidden="true" dangerouslySetInnerHTML={{ __html: TRAIT_ICONS[l.key] ?? "" }} />{stateName(l.key)}</span>
+              <span className="trait-state-note">{TRAIT_LABELS[l.key]!.description}{f ? ` · ${f.text}` : ""}</span>
+            </li>;
+          })}
         </ul>}
       </div>
-      {skills.length > 0 && <ul className="trait-skills" aria-label="판정 근거" style={{ gridTemplateColumns: `repeat(${skills.length}, minmax(0, 1fr))` }}>
+      {skills.length > 0 && <ul className="trait-skills" aria-label="판정 근거" style={{ gridTemplateColumns: `repeat(${Math.min(skills.length, 3)}, minmax(0, 1fr))` }}>
         {skills.map((s, i) => <li key={s.key}>
-          <span className="trait-skill-icon"><svg viewBox="0 0 24 24" aria-hidden="true" dangerouslySetInnerHTML={{ __html: TRAIT_ICONS[s.key] ?? "" }} /></span>
-          <div className="trait-skill-body">
-            <div className="trait-skill-head"><span>{s.name}</span>{s.fact?.ratio !== undefined && <b>{percent(s.fact.ratio)}</b>}</div>
-            <span className="trait-skill-note">{s.description}</span>
-            {s.fact?.ratio !== undefined
-              ? <div className="trait-bar" role="img" aria-label={s.fact.text}><i className={`c${i + 1}`} style={{ width: `${Math.max(2, s.fact.ratio * 100)}%` }} /></div>
-              : s.fact && <span className="trait-skill-fact">{s.fact.text}</span>}
-          </div>
+          <button type="button" className="trait-skill-button" disabled={!s.canLead} title={s.canLead ? "누르면 카드 이름으로 올라가요" : undefined} onClick={() => setSaved(swapLead(order, i + 1))}>
+            <span className="trait-skill-icon"><svg viewBox="0 0 24 24" aria-hidden="true" dangerouslySetInnerHTML={{ __html: TRAIT_ICONS[s.key] ?? "" }} /></span>
+            <span className="trait-skill-body">
+              <span className="trait-skill-head"><span>{s.name}</span></span>
+              <span className="trait-skill-note">{s.description}</span>
+              {s.fact && <span className="trait-skill-fact"><FactText text={s.fact.text} stack /></span>}
+              {s.fact?.ratio !== undefined && <span className="trait-bar" aria-hidden="true"><i className={`c${(i % 3) + 2}`} style={{ width: `${s.fact.ratio * 100}%` }} /></span>}
+              {s.canLead && <span className="traits-sr-only">, 카드 이름으로 올리기</span>}
+            </span>
+          </button>
         </li>)}
       </ul>}
       {sig && <p className="trait-signature"><span>필살기</span><b>{memeName(sig.key)}</b><em>× {sig.count.toLocaleString("ko-KR")}</em></p>}
@@ -108,7 +139,7 @@ const LABEL_GROUPS: [string, string[]][] = [
   ["취향", ["one_game", "game_centric", "talk_centric", "sports_centric", "omnivore"]],
   ["요즘 상태", ["trend_surge", "trend_steady", "trend_decline", "returned", "new_finds", "tenure_veteran", "tenure_new"]],
 ];
-function LabelInfo({ labels, nameKey, modifierKey }: { labels: ViewerTraits["traits"]; nameKey?: string; modifierKey?: string }) {
+function LabelInfo({ labels }: { labels: ViewerTraits["traits"] }) {
   const [open, setOpen] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -131,6 +162,13 @@ function LabelInfo({ labels, nameKey, modifierKey }: { labels: ViewerTraits["tra
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18" /></svg>
           </button>
         </header>
+        {/* 수치가 무엇을 기준으로 셌는지 한곳에 밝힌다. 카드 칸은 좁아서 문장마다 다 적지 않는다. */}
+        <ul className="label-basis" aria-label="수치 기준">
+          <li>날짜와 「처음」은 수집된 채팅 기록 기준이에요.</li>
+          <li>말투 라벨은 최근에 채팅한 회차에서 뽑은 최대 300개 표본 기준이에요.</li>
+          <li>취향 라벨의 비율은 카테고리가 확인된 채팅만 셌어요.</li>
+          <li>방송 시작·종료는 수집기가 관측한 시각이에요. 채팅 구간은 첫 채팅부터 마지막 채팅이 든 1분 구간까지이며, 계속 채팅하거나 시청한 시간은 아니에요.</li>
+        </ul>
         {LABEL_GROUPS.map(([group, keys]) => <section key={group} className="label-group" aria-label={group}>
           <h3 className="label-sub">{group}</h3>
           <ul className="label-list">
@@ -138,11 +176,10 @@ function LabelInfo({ labels, nameKey, modifierKey }: { labels: ViewerTraits["tra
               const label = TRAIT_LABELS[k]!;
               const hit = mine.get(k);
               const f = hit ? fact(hit) : undefined;
-              const role = k === nameKey ? "카드 이름" : k === modifierKey ? "꾸밈말" : undefined;
               return <li key={k} className={`label-item${hit ? " is-mine" : ""}`}>
                 <span className="label-item-icon"><svg viewBox="0 0 24 24" aria-hidden="true" dangerouslySetInnerHTML={{ __html: TRAIT_ICONS[k] ?? "" }} /></span>
                 <div className="label-item-body">
-                  <p className="label-item-name"><b>{label.noun ?? label.name}</b>{hit && <span className="label-item-role">{role ?? "내 라벨"}</span>}</p>
+                  <p className="label-item-name"><b>{label.noun ?? label.name}</b>{hit && <span className="label-item-role">내 라벨</span>}</p>
                   <p className="label-item-desc">{label.description}</p>
                   {f && <p className="label-item-fact">{f.text}</p>}
                 </div>
