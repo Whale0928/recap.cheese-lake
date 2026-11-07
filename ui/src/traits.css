@@ -1,5 +1,6 @@
 /* 나는 어떤 시청자일까: 가로형 시청자 카드. 색은 테마 토큰만 써서 라이트·다크가 함께 맞는다. */
-/* 활동 요약과 한 줄(3:7)에 둔다. 카드는 놓인 칸의 폭으로 접히므로 컨테이너 쿼리를 쓴다. */
+/* 활동 요약과 한 줄(3:7)에 둔다. 카드는 놓인 칸의 폭으로 접히므로 컨테이너 쿼리를 쓴다.
+   다른 배지를 작은 배지로 줄여 카드 높이가 크게 늘지 않으므로 나란히 둬도 왼쪽 요약 칸이 지나치게 늘어나지 않는다. */
 .recap-overview { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 7fr); gap: 1.5rem; margin-top: 1.5rem; align-items: stretch; }
 .recap-overview > .me-section { margin-top: 0; }
 .recap-summary { display: flex; flex-direction: column; }
@@ -50,35 +51,26 @@
 .trait-signature b { font-size: 1.125rem; color: var(--foreground); }
 .trait-signature em { margin-left: auto; font: 500 .75rem/1 var(--font-mono, ui-monospace, monospace); font-style: normal; }
 
-.trait-skills { grid-area: skills; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 0; padding: .875rem 0 0; border-top: 1px solid var(--border); list-style: none; min-width: 0; }
-.trait-skills li { display: flex; min-width: 0; }
-/* 근거 칸 전체가 버튼이다. 누르면 그 라벨이 카드 이름으로 올라간다. 바깥 여백을 음수로 둬 칸 자리는 그대로 둔다. */
-.trait-skill-button { flex-grow: 1; display: flex; gap: .6rem; align-items: stretch; min-width: 0; margin: -.4rem; padding: .4rem; border: 1px solid transparent; border-radius: .6rem; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.trait-skill-button:hover:not(:disabled) { border-color: var(--recap-outline, var(--border)); background: color-mix(in oklab, var(--accent) 45%, var(--card)); }
-.trait-skill-button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-.trait-skill-button:disabled { cursor: default; }
-.trait-skill-icon { flex-shrink: 0; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .6rem; background: var(--accent); color: var(--primary); }
-.trait-skill-icon svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.trait-skill-icon svg .fill { fill: currentColor; stroke: none; }
-.trait-skill-icon svg text { fill: currentColor; stroke: none; font: 700 9px sans-serif; }
-.trait-skill-body { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; }
-/* 뜻이 두 줄로 넘어가도 수치 줄과 막대는 칸 맨 아래에 붙여 세 칸의 높이를 맞춘다. */
-.trait-skill-body .trait-skill-fact { margin-top: auto; }
-.trait-skill-note { margin-bottom: .4rem; }
-.trait-skill-fact { display: block; margin-top: .3rem; font-size: .75rem; font-weight: 600; color: var(--primary); }
-/* 근거 칸은 좁아서 수치가 둘이면 한 줄에 하나씩 쌓는다. 「·」만 혼자 한 줄에 남지 않게 하려는 것이다. */
-.trait-skill-fact > span { display: block; }
-.trait-skill-head { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .4rem; font-size: .8125rem; }
+/* 다른 배지: 아이콘과 이름만 있는 작은 배지. 조건과 수치는 카드 이름이 된 배지 하나만 위에서 보여 준다.
+   칸마다 설명·수치·막대를 두면 줄마다 높이가 달라지고 카드가 길어졌다(2026.11.08 실제 로그인 피드백). */
+.trait-others { grid-area: skills; display: grid; gap: .6rem; padding-top: .875rem; border-top: 1px solid var(--border); min-width: 0; }
+.trait-others-label { margin: 0; font-size: .75rem; color: var(--muted-foreground); }
+.trait-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+/* 배지 전체가 버튼이다. 누르면 그 라벨이 카드 이름으로 올라간다. 뜻은 title 로 짧게 보여 준다. */
+.trait-chip { display: inline-flex; align-items: center; gap: .45rem; min-height: 2.25rem; padding: .25rem .8rem .25rem .3rem; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--foreground); font: inherit; font-size: .8125rem; font-weight: 600; cursor: pointer; }
+.trait-chip:hover:not(:disabled) { border-color: var(--primary); background: color-mix(in oklab, var(--accent) 45%, var(--card)); }
+.trait-chip:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.trait-chip:disabled { cursor: default; }
+.trait-chip-icon { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 999px; background: var(--accent); color: var(--primary); }
+.trait-chip-icon svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.trait-chip-icon svg .fill { fill: currentColor; stroke: none; }
+.trait-chip-icon svg text { fill: currentColor; stroke: none; font: 700 9px sans-serif; }
 .trait-bar { display: block; height: 6px; margin-top: .3rem; border-radius: 999px; background: var(--muted); overflow: hidden; }
 .trait-bar i { display: block; height: 100%; border-radius: 999px; }
 .trait-bar .c1 { background: var(--chart-1); }
-.trait-bar .c2 { background: var(--chart-5); }
-.trait-bar .c3 { background: var(--chart-4); }
-.trait-bar .c4 { background: var(--chart-2); }
-.trait-skill-note { display: block; font-size: .75rem; line-height: 1.4; color: var(--muted-foreground); word-break: keep-all; }
 
 .trait-card.is-skeleton { border-color: var(--border); }
-.trait-card.is-skeleton .trait-skills { border-top-color: transparent; }
+.trait-card.is-skeleton .trait-others { border-top-color: transparent; }
 .trait-card.is-skeleton .trait-art { border-color: transparent; background-image: none; background-color: var(--muted); }
 .sk { display: block; border-radius: .4rem; background: var(--muted); animation: traits-pulse 1.4s ease-in-out infinite; }
 .trait-art .sk-icon { width: 4.5rem; height: 4.5rem; border-radius: 1.5rem; background: color-mix(in oklch, var(--muted-foreground) 18%, var(--muted)); }
@@ -87,12 +79,18 @@
 .sk-line.short { width: 55%; }
 .sk-chip { width: 7rem; height: 1.4rem; border-radius: 999px; }
 .sk-sig { grid-area: sig; height: 2.6rem; border-radius: .6rem; }
-.trait-skills .sk-bar { margin-top: .5rem; }
-.sk-bar { width: 100%; height: 6px; }
 @keyframes traits-pulse { 50% { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
 
-.traits-record { margin: 0; color: var(--muted-foreground); }
+/* 배지가 하나도 없을 때: 같은 카드 틀에 빈 자리만 점선으로 그린다. 불러오는 중으로 보이지 않게 깜빡이지 않는다. */
+.trait-card.is-empty .trait-art { border-style: dashed; border-color: var(--border); background-color: transparent; background-image: none; }
+.trait-card.is-empty .trait-icon { border-style: dashed; border-color: var(--border); color: var(--muted-foreground); transform: none; }
+.trait-card.is-empty .trait-title { font-size: 1.375rem; }
+.trait-chip-empty { display: block; width: 5.5rem; height: 2.375rem; border: 1px dashed var(--border); border-radius: 999px; }
+.trait-chip-empty:nth-child(2) { width: 7rem; }
+.trait-chip-empty:nth-child(3) { width: 4.75rem; }
+.trait-chip-empty:nth-child(4) { width: 6.25rem; }
+.trait-empty-browse { margin-top: .25rem; }
 .traits-retry { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
 .traits-retry .activity-notice { margin: 0; }
 .traits-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
@@ -102,8 +100,6 @@
   .trait-art { width: auto; flex-direction: row; justify-content: flex-start; gap: .75rem; }
   .trait-icon { width: 3.5rem; height: 3.5rem; border-radius: 1rem; }
   .trait-icon svg { width: 2.1rem; height: 2.1rem; }
-  /* 칸 수는 근거 개수로 인라인 지정하므로, 좁은 폭에서 한 칸으로 덮을 때만 !important 를 쓴다. */
-  .trait-skills { grid-template-columns: 1fr !important; }
   .trait-title { font-size: 1.5rem; }
 }
 

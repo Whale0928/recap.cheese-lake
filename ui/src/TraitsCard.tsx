@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useActivity } from "./ActivityView";
 import { TRAIT_ICONS } from "./traits.icons";
 import { TRAIT_LABELS } from "./traits.labels";
@@ -36,7 +36,7 @@ function TraitsSkeleton() {
     <div className="trait-card-inner" aria-hidden="true">
       <div className="trait-art"><i className="sk sk-icon" /></div>
       <div className="trait-main"><i className="sk sk-title" /><i className="sk sk-line" /><i className="sk sk-chip" /></div>
-      <div className="trait-skills">{[0, 1, 2].map(i => <div key={i}><i className="sk sk-line" /><i className="sk sk-bar" /></div>)}</div>
+      <div className="trait-others"><div className="trait-chips">{[0, 1, 2].map(i => <i key={i} className="sk sk-chip" />)}</div></div>
       <i className="sk sk-sig" />
     </div>
   </div>;
@@ -48,20 +48,34 @@ function Stars({ count }: { count: number }) {
   </span>;
 }
 
-// 수치가 둘이면 「구독 3곳 · 구독한 방송 채팅 85%」에서 숫자만 다음 줄로 떨어지지 않게 수치 단위로 묶는다.
-// 좁은 근거 칸(stack)은 수치를 한 줄에 하나씩 쌓고, 넓은 곳은 「·」를 앞 수치에 붙여 혼자 한 줄에 남지 않게 한다.
-function FactText({ text, stack }: { text: string; stack?: boolean }) {
+// 수치가 둘이면 「구독 3곳 · 구독한 방송 채팅 85%」에서 숫자만 다음 줄로 떨어지지 않게 수치 단위로 묶고,
+// 「·」를 앞 수치에 붙여 혼자 한 줄에 남지 않게 한다.
+function FactText({ text }: { text: string }) {
   const parts = text.split(" · ");
-  if (stack) return <>{parts.map((part, j) => <span key={j}>{part}</span>)}</>;
   return <>{parts.flatMap((part, j) => [...(j ? [" "] : []), <span key={j}>{part}{j < parts.length - 1 ? " ·" : ""}</span>])}</>;
 }
 
 function TraitsBody({ data }: { data: ViewerTraits }) {
-  // 근거 칸을 누르면 그 라벨이 카드 이름으로 올라가고 원래 이름은 그 칸으로 내려간다.
+  // 다른 배지를 누르면 그 라벨이 카드 이름으로 올라가고 원래 이름은 그 자리로 내려간다.
   // 고른 순서는 저장하지 않아 새로고침하면 처음 순서(가장 드문 라벨이 이름)로 돌아간다.
   const [saved, setSaved] = useState<string[]>([]);
+  const othersId = useId();
   const first = persona(data);
-  if (first.kind === "record") return <p className="traits-record">{first.headline}. 확인된 기록만 보여 드릴게요.</p>;
+  // 라벨이 없을 때도 같은 카드 틀에 빈 자리를 그려 두고, 전체 배지는 구경할 수 있게 한다.
+  // 틀 없이 문장만 두면 빈 칸처럼 보였다. 불러오는 중으로 읽히지 않게 빈 자리는 깜빡이지 않는다.
+  if (first.kind === "record") return <article className="trait-card is-empty">
+    <div className="trait-card-inner">
+      <div className="trait-art" aria-hidden="true">
+        <span className="trait-icon"><svg viewBox="0 0 24 24"><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.4c-.8.4-1.1.9-1.1 1.7v.4" /><circle cx="12" cy="16.6" r="1" className="fill" /></svg></span>
+      </div>
+      <div className="trait-main">
+        <p className="trait-title">아직 수집된 배지가 없어요</p>
+        <p className="trait-headline">{first.headline}. 채팅이 더 쌓이면 배지가 붙어요.</p>
+        <div><LabelInfo labels={[]} trigger="text" /></div>
+      </div>
+      <div className="trait-others" aria-hidden="true"><div className="trait-chips">{[0, 1, 2, 3].map(i => <i key={i} className="trait-chip-empty" />)}</div></div>
+    </div>
+  </article>;
   const order = keepOrder(saved, evidenceOrder(data.traits, first).map(l => l.key));
   const p = persona(data, order[0]);
   const byKey = new Map(data.traits.map(l => [l.key, l]));
@@ -70,11 +84,10 @@ function TraitsBody({ data }: { data: ViewerTraits }) {
   // 같은 이름이 위아래에 두 번 나오면 배지가 하나 더 있는 것처럼 읽힌다.
   const lead = byKey.get(order[0] ?? "");
   const leadFact = lead ? fact(lead) : undefined;
-  // 아래 칸은 나머지 라벨 전부다. 셋씩 줄을 바꿔 쌓는다.
-  const skills = order.slice(1).map(key => {
+  // 나머지 라벨은 아이콘과 이름만 있는 작은 배지로 둔다. 조건과 수치는 위로 올렸을 때 보인다.
+  const others = order.slice(1).map(key => {
     const label = TRAIT_LABELS[key]!;
-    const l = byKey.get(key)!;
-    return { key, name: label.noun ?? label.name, canLead: !!label.noun, description: label.description, fact: fact(l) };
+    return { key, name: label.noun ?? label.name, canLead: !!label.noun, description: label.description };
   });
   const states = data.states.filter(l => TRAIT_LABELS[l.key]);
   const sig = signature(data.memes);
@@ -108,20 +121,18 @@ function TraitsBody({ data }: { data: ViewerTraits }) {
           })}
         </ul>}
       </div>
-      {skills.length > 0 && <ul className="trait-skills" aria-label="판정 근거" style={{ gridTemplateColumns: `repeat(${Math.min(skills.length, 3)}, minmax(0, 1fr))` }}>
-        {skills.map((s, i) => <li key={s.key}>
-          <button type="button" className="trait-skill-button" disabled={!s.canLead} title={s.canLead ? "누르면 카드 이름으로 올라가요" : undefined} onClick={() => setSaved(swapLead(order, i + 1))}>
-            <span className="trait-skill-icon"><svg viewBox="0 0 24 24" aria-hidden="true" dangerouslySetInnerHTML={{ __html: TRAIT_ICONS[s.key] ?? "" }} /></span>
-            <span className="trait-skill-body">
-              <span className="trait-skill-head"><span>{s.name}</span></span>
-              <span className="trait-skill-note">{s.description}</span>
-              {s.fact && <span className="trait-skill-fact"><FactText text={s.fact.text} stack /></span>}
-              {s.fact?.ratio !== undefined && <span className="trait-bar" aria-hidden="true"><i className={`c${(i % 3) + 2}`} style={{ width: `${s.fact.ratio * 100}%` }} /></span>}
-              {s.canLead && <span className="traits-sr-only">, 카드 이름으로 올리기</span>}
-            </span>
-          </button>
-        </li>)}
-      </ul>}
+      {others.length > 0 && <div className="trait-others">
+        <p className="trait-others-label" id={othersId}>다른 배지 {others.length}개 · 누르면 위로 올라가요</p>
+        <ul className="trait-chips" aria-labelledby={othersId}>
+          {others.map((o, i) => <li key={o.key}>
+            <button type="button" className="trait-chip" disabled={!o.canLead} title={o.description} onClick={() => setSaved(swapLead(order, i + 1))}>
+              <span className="trait-chip-icon"><svg viewBox="0 0 24 24" aria-hidden="true" dangerouslySetInnerHTML={{ __html: TRAIT_ICONS[o.key] ?? "" }} /></span>
+              {o.name}
+              {o.canLead && <span className="traits-sr-only">, 카드 이름으로 올리기</span>}
+            </button>
+          </li>)}
+        </ul>
+      </div>}
       {sig && <p className="trait-signature"><span>필살기</span><b>{memeName(sig.key)}</b><em>× {sig.count.toLocaleString("ko-KR")}</em></p>}
     </div>
   </article>;
@@ -139,7 +150,8 @@ const LABEL_GROUPS: [string, string[]][] = [
   ["취향", ["one_game", "game_centric", "talk_centric", "sports_centric", "omnivore"]],
   ["요즘 상태", ["trend_surge", "trend_steady", "trend_decline", "returned", "new_finds", "tenure_veteran", "tenure_new"]],
 ];
-function LabelInfo({ labels }: { labels: ViewerTraits["traits"] }) {
+// trigger 가 text 면 아이콘 대신 「전체 배지 N개 보기」 버튼으로 연다. 배지가 하나도 없는 카드에서 쓴다.
+function LabelInfo({ labels, trigger = "icon" }: { labels: ViewerTraits["traits"]; trigger?: "icon" | "text" }) {
   const [open, setOpen] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -151,9 +163,11 @@ function LabelInfo({ labels }: { labels: ViewerTraits["traits"] }) {
   const mine = new Map(labels.map(l => [l.key, l]));
   const total = LABEL_GROUPS.reduce((n, [, keys]) => n + keys.length, 0);
   return <>
-    <button type="button" className="trait-info-button" aria-haspopup="dialog" aria-label="전체 라벨 보기" onClick={() => setOpen(true)}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><circle cx="12" cy="7.8" r="1" className="dot" /></svg>
-    </button>
+    {trigger === "text"
+      ? <button type="button" className="btn btn-outline btn-sm trait-empty-browse" aria-haspopup="dialog" onClick={() => setOpen(true)}>전체 배지 {total}개 보기</button>
+      : <button type="button" className="trait-info-button" aria-haspopup="dialog" aria-label="전체 라벨 보기" onClick={() => setOpen(true)}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><circle cx="12" cy="7.8" r="1" className="dot" /></svg>
+      </button>}
     <dialog ref={dialog} className="label-dialog" aria-labelledby="label-dialog-title" onClose={() => setOpen(false)} onClick={e => { if (e.target === dialog.current) setOpen(false); }}>
       <div className="label-panel">
         <header className="label-head">
