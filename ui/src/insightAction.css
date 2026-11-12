@@ -34,6 +34,7 @@
 /* 동의 내용은 접어 둔다. 펼치면 예전 목록이 그대로 나온다. */
 .insight-terms { font-size: .8125rem; line-height: 1.55; color: var(--muted-foreground); }
 .insight-terms summary { display: inline-flex; align-items: center; gap: .3rem; cursor: pointer; list-style: none; text-decoration: underline; text-underline-offset: .2em; }
+.insight-terms summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; border-radius: var(--radius-sm); }
 .insight-terms summary::-webkit-details-marker { display: none; }
 .insight-terms summary::after { content: ""; width: .4rem; height: .4rem; margin-left: .15rem; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-.1rem) rotate(45deg); transition: transform .15s; }
 .insight-terms[open] summary::after { transform: translateY(.1rem) rotate(-135deg); }

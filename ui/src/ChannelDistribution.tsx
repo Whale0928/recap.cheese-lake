@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type P
 import type { ActivityChannels } from "./activity.types";
 import { number } from "./ActivityView";
 import { ChannelAvatar, ChannelLink } from "./ChannelLink";
+import { relationshipHref, rememberRelationshipChannel } from "./relationship.data";
 import { channelSegments, channelTiles, type ChannelSegment } from "./channelDistribution.layout";
 import "./channelDistribution.css";
 
@@ -12,10 +13,18 @@ function SegmentAvatar({ segment }: { segment: ChannelSegment }) {
   return segment.other ? <span className="activity-channel-avatar channel-other-avatar" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"><rect x="2" y="2" width="6" height="6" rx="1" /><rect x="12" y="2" width="6" height="6" rx="1" /><rect x="2" y="12" width="6" height="6" rx="1" /><rect x="12" y="12" width="6" height="6" rx="1" /></svg></span> : <ChannelAvatar channel={segment.channels[0]} />;
 }
 
-function SegmentInfo({ segment, compact = false }: { segment: ChannelSegment; compact?: boolean }) {
+// link 를 주면 프로필 사진과 이름이 그 방송 기록으로 가는 링크가 된다. 기타 묶음은 갈 곳이 없어 그대로 둔다.
+function SegmentInfo({ segment, compact = false, link = false }: { segment: ChannelSegment; compact?: boolean; link?: boolean }) {
+  const channel = segment.channels[0];
   return <div className="channel-segment-info" data-compact={compact}>
+    {link && !segment.other ? <a className="channel-segment-link" href={relationshipHref(channel.channelId)} onClick={() => rememberRelationshipChannel(channel)}>
+      <SegmentAvatar segment={segment} />
+      <span className="channel-segment-link-name"><span className="channel-segment-name">{segment.name}</span>
+        <svg className="activity-channel-go" data-image-download-exclude viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5" /></svg>
+      </span>
+    </a> : <>
     <SegmentAvatar segment={segment} />
-    <span className="channel-segment-name">{segment.name}</span>
+    <span className="channel-segment-name">{segment.name}</span></>}
     <strong>{percent(segment.share)}</strong>
     {!compact && <small>채팅 {number(segment.chatCount)}개<br />{segment.other ? `${number(segment.channels.length)}개 방송` : `활동일 ${number(segment.channels[0].activeDays)}일`}</small>}
   </div>;
@@ -70,7 +79,7 @@ export function ChannelDistribution({ channels, view, limit }: { channels: Activ
             return <circle key={segment.key} className="channel-donut-segment" data-active={active?.key === segment.key} cx="140" cy="140" r="108" fill="none" stroke={paint(index)} strokeWidth="38" strokeDasharray={`${segment.share * 2 * Math.PI * 108} ${2 * Math.PI * 108}`} strokeDashoffset={-start * 2 * Math.PI * 108} transform="rotate(-90 140 140)" {...controls(segment)} />;
           })}
         </svg>
-        <div className="channel-donut-center" aria-live="polite" aria-atomic="true">{active ? <SegmentInfo segment={active} /> : <span>활동 기록 없음</span>}</div>
+        <div className="channel-donut-center" aria-live="polite" aria-atomic="true">{active ? <SegmentInfo segment={active} link /> : <span>활동 기록 없음</span>}</div>
       </div> : <>
         <svg className="channel-treemap" viewBox={`0 0 ${width} ${height}`} role="group" aria-label="방송별 채팅 비율 트리맵">
           {tiles.map(({ segment, x, y, width: w, height: h }, index) => <g key={segment.key} className="channel-tile" data-active={active?.key === segment.key} {...controls(segment)}>

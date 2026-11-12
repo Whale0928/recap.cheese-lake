@@ -13,7 +13,9 @@ function ChannelCard({ channel }: { channel: ActivityChannels["channels"][number
         ? <img src={channel.channelImageUrl} alt="" width={112} height={112} referrerPolicy="no-referrer" onError={() => setFailedImage(channel.channelImageUrl)} />
         : <span>{Array.from(name)[0]}</span>}
     </span>
-    <div className="home-channel-identity"><span>나의 본진</span><h2>{name}</h2></div>
+    <div className="home-channel-identity"><span>나의 본진</span><h2>{name}</h2>
+      <p className="home-channel-go" data-image-download-exclude>이 방송에서의 내 기록 보기<svg className="home-channel-go-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5" /></svg></p>
+    </div>
     <div className="home-channel-ratio"><span>채팅 비율</span><strong>{share}<span>%</span></strong></div>
   </a>;
 }

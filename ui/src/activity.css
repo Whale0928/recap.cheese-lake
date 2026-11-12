@@ -16,6 +16,30 @@
 .activity-table-wrap th { font-weight: 500; color: var(--muted-foreground); }
 .activity-channel { display: flex; align-items: center; gap: .75rem; width: fit-content; max-width: 22rem; min-width: 9rem; color: var(--foreground); text-decoration: none; white-space: normal; }
 .activity-channel:hover .activity-channel-name { text-decoration: underline; text-underline-offset: .2rem; }
+/* 채널 기록으로 들어가는 링크라는 표시: 이름 옆에 화살표를 늘 보여 주고, 올리면 민트로 바뀌며 살짝 밀린다. */
+.activity-channel-go { box-sizing: content-box; flex: 0 0 auto; width: .875rem; height: .875rem; margin-left: -.5rem; padding: .15rem; border-radius: 50%; color: var(--muted-foreground); transition: transform .15s ease, color .15s, background-color .15s; }
+/* 올리면 화살표가 민트 동그라미로 채워져 「들어간다」는 표시가 된다. */
+.activity-channel:hover .activity-channel-go, .activity-channel:focus-visible .activity-channel-go { background: var(--primary); color: var(--primary-foreground, var(--background)); transform: translateX(3px); }
+/* 올렸을 때의 신호: 이름이 민트로 바뀌고 링크 둘레에 옅은 바탕이 깔린다. 바탕은 그림자로 그려 자리 배치가 움직이지 않는다. */
+.activity-channel { border-radius: var(--radius-sm); transition: background-color .15s, box-shadow .15s, color .15s; }
+.activity-channel:hover { color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent); box-shadow: 0 0 0 .45rem color-mix(in srgb, var(--primary) 10%, transparent); }
+.activity-channel:hover .activity-channel-avatar { box-shadow: 0 0 0 2px var(--primary); }
+/* 카드·목록 줄·도넛 범례는 링크에 올리면 그 칸 전체가 반응한다. 색 바탕이 깔린 범례에서는 테두리로만 알린다. */
+.channel-card, .activity-table-wrap tbody tr, .channel-chart-key { transition: border-color .15s, background-color .15s, box-shadow .15s, transform .15s; }
+/* 카드는 어디를 눌러도 그 방송 기록으로 간다: 링크의 눌림 영역을 카드 전체로 늘린다. */
+.channel-card { position: relative; }
+.channel-card .activity-channel::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.channel-card:has(.activity-channel:hover) { border-color: var(--primary); box-shadow: 0 6px 18px -10px color-mix(in srgb, var(--primary) 70%, transparent); transform: translateY(-2px); }
+.channel-card .activity-channel:hover, .channel-chart-key .activity-channel:hover { background: transparent; box-shadow: none; }
+.activity-table-wrap tbody tr:has(.activity-channel:hover) { background: color-mix(in srgb, var(--primary) 7%, transparent); }
+.activity-table-wrap .activity-channel:hover { background: transparent; box-shadow: none; }
+.channel-chart-key:has(.activity-channel:hover) { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.home-channel-card:hover h2 { color: var(--primary); }
+.home-channel-card:hover .home-channel-image { box-shadow: 0 0 0 2px var(--primary); }
+.home-channel-identity .home-channel-go { padding: .2rem .6rem; margin-left: -.6rem; border-radius: 999px; transition: background-color .15s, color .15s; }
+.home-channel-card:hover .home-channel-go, .home-channel-card:focus-visible .home-channel-go { background: var(--primary); color: var(--primary-foreground, var(--background)); }
+@media (prefers-reduced-motion: reduce) { .channel-card:has(.activity-channel:hover) { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .activity-channel-go, .home-channel-go-icon { transition: none; } .activity-channel:hover .activity-channel-go, .home-channel-card:hover .home-channel-go-icon { transform: none; } }
 .activity-channel:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; border-radius: var(--radius-sm); }
 .activity-channel-avatar { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; overflow: hidden; border-radius: 50%; background: var(--muted); color: var(--muted-foreground); font-size: .875rem; }
 .activity-channel-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -38,6 +62,9 @@
 .home-channels { display: grid; gap: 1rem; margin-top: 1.5rem; }
 .home-channel-card { display: grid; grid-template-columns: 7rem minmax(0, 1fr) auto; align-items: center; gap: 1.75rem; padding: 2rem; border: 1px solid color-mix(in oklab, var(--primary) 35%, var(--border)); border-radius: var(--radius-xl); background: color-mix(in oklab, var(--accent) 35%, var(--card)); color: var(--foreground); text-decoration: none; }
 .home-channel-card:hover h2 { text-decoration: underline; text-underline-offset: .25rem; }
+.home-channel-go { display: inline-flex; align-items: center; gap: .2rem; margin: .45rem 0 0; color: var(--primary); font-size: .8125rem; font-weight: 600; }
+.home-channel-go-icon { width: .875rem; height: .875rem; transition: transform .15s ease; }
+.home-channel-card:hover .home-channel-go-icon, .home-channel-card:focus-visible .home-channel-go-icon { transform: translateX(3px); }
 .home-channel-image { display: grid; place-items: center; width: 7rem; height: 7rem; overflow: hidden; border-radius: var(--radius-xl); background: var(--secondary); color: var(--secondary-foreground); font-size: 2.5rem; font-weight: 650; }
 .home-channel-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .home-channel-identity { min-width: 0; }

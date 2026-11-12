@@ -49,7 +49,7 @@ export function ActivityChannels({ result }: { result: ActivityResult<ChannelDat
       </div>
     </div>
     {data ? <>
-      <p className="activity-meta">총 채팅 {number(data.totalChatCount)}개 · {number(data.channels.length)}개 방송</p>
+      <p className="activity-meta">총 채팅 {number(data.totalChatCount)}개 · {number(data.channels.length)}개 방송<span className="channel-activity-hint" data-image-download-exclude> · 방송을 누르면 그 방송에서의 내 기록을 볼 수 있어요</span></p>
       {view === "donut" || view === "treemap" ? <ChannelDistribution channels={channels} view={view} limit={defaultChannelCount} /> : <>
       {visible.length > 0 && <ChannelCollection channels={visible} view={view} />}
       {folded.length > 0 && <>

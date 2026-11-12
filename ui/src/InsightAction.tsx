@@ -66,8 +66,9 @@ export function InsightAction({ insight }: { insight: InsightHandle }) {
     setOpen("consent");
   };
 
+  // 요청 버튼과 티켓 안내는 조작용이라 저장 이미지에서는 뺀다.
   // 고리는 버튼 밖으로 퍼져야 하는데 btn-glow 가 overflow: hidden 이라, 버튼 옆에 두고 버튼 크기에 맞춘다.
-  return <div className={`insight-action${pulse ? " is-pulse" : ""}${shaking ? " is-shake" : ""}`} onAnimationEnd={e => { if (e.animationName === "insight-shake") setShaking(false); }}>
+  return <div data-image-download-exclude className={`insight-action${pulse ? " is-pulse" : ""}${shaking ? " is-shake" : ""}`} onAnimationEnd={e => { if (e.animationName === "insight-shake") setShaking(false); }}>
     <span key={pulse} className="insight-ring" aria-hidden="true" />
     {phase.kind === "loading"
       ? <button type="button" className="btn btn-outline insight-btn" disabled aria-busy="true">확인 중…</button>
