@@ -13,6 +13,7 @@ import { TraitsCard } from "./TraitsCard";
 import { InsightAction } from "./InsightAction";
 import { useInsight } from "./useInsight";
 import { InsightSummary } from "./InsightSummary";
+import { InsightTeaser } from "./InsightTeaser";
 import { InsightViewDialog } from "./InsightViewDialog";
 /** 이 페이지가 떠 있는 동안 이미 보낸 쿠폰 코드 */
 const redeemedCodes = new Set<string>();
@@ -129,6 +130,7 @@ export function RecapPage() {
         <TraitsCard />
       </div>
       <InsightSummary insight={insight} />
+      <InsightTeaser insight={insight} />
       <InsightViewDialog insight={insight} />
       <ActivityChannels result={channelResult} />
       <section className="me-section" aria-labelledby="patterns-heading"><h2 id="patterns-heading">요일·시간대별 활동</h2>

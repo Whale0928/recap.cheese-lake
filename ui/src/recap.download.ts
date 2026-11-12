@@ -67,7 +67,8 @@ export async function downloadRecapPage(page: HTMLElement): Promise<void> {
   try {
     await downloadElementImage(copy, `${css}\n[data-image-download-control] { visibility: hidden !important; }`, "내 리캡.png", {
       backgroundColor: getComputedStyle(document.body).backgroundColor,
-      filter: node => node.tagName !== "DIALOG",
+      // 분석 미리 보기는 권유 문구라 저장 이미지에서는 자리째 뺀다.
+      filter: node => node.tagName !== "DIALOG" && !node.hasAttribute?.("data-image-download-exclude"),
     });
   } finally { host.remove(); }
 }

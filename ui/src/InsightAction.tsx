@@ -4,7 +4,7 @@ import type { InsightDenial, InsightHandle, InsightNotice } from "./useInsight";
 import "./insightAction.css";
 
 // 조회 기간 옆의 버튼 하나가 흐름을 다 맡는다 (시안 A):
-//   「AI 분석 요청」 → 동의 창 → 「분석 진행 중 · 앞에 n명」(누르면 순서 창) → 「내 AI 분석 보기」(누르면 카드 창)
+//   「AI 분석 받아보기」 → 동의 창 → 「분석 진행 중 · 앞에 n명」(누르면 순서 창) → 「내 AI 분석 보기」(누르면 카드 창)
 // 티켓이 없으면 버튼이 잠기고, 누르면 흔들리며 까닭을 한 줄 보여 준다. 요청이 거절돼도 같은 자리에서 말한다.
 const DENIAL_TEXT: Record<InsightDenial, string> = {
   no_ticket: "분석 티켓이 없어요",
@@ -79,14 +79,16 @@ export function InsightAction({ insight }: { insight: InsightHandle }) {
       ? <button type="button" className="btn btn-default insight-btn insight-btn-done" aria-haspopup="dialog" onClick={press}>
           <svg className="insight-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /></svg>내 AI 분석 보기
         </button>
-      : <button type="button" className={`btn btn-outline insight-btn${locked ? " insight-btn-locked" : " btn-glow"}`} aria-haspopup={locked ? undefined : "dialog"} aria-disabled={locked || busy} aria-busy={busy} onClick={busy ? undefined : press}>
+      : <button type="button" className={`btn insight-btn insight-btn-request ${locked ? "btn-outline insight-btn-locked" : "btn-default insight-btn-ready"}`} aria-haspopup={locked ? undefined : "dialog"} aria-disabled={locked || busy} aria-busy={busy} onClick={busy ? undefined : press}>
           {locked
             ? <svg className="insight-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
             : <svg className="insight-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /></svg>}
-          AI 분석 요청
+          AI 분석 받아보기
+          {/* 버튼에 붙은 티켓 조각: 티켓 한 장을 내고 받는 기능이라는 것을 버튼 안에서 보여 준다. */}
+          <span className="insight-stub">{locked ? "티켓 필요" : `티켓 ${tickets}장`}</span>
         </button>}
     {(denial || lockedNote) && <p className="insight-denial" role="status">{denial ? DENIAL_TEXT[denial] : DENIAL_TEXT.no_ticket}</p>}
-    {!locked && !pending && !done && phase.kind !== "loading" && tickets > 0 && <p className="insight-tickets">티켓 {tickets}장</p>}
+    {!locked && !pending && !done && phase.kind !== "loading" && tickets > 0 && <p className="insight-tickets"><TicketIcon />선물 받은 티켓이에요. 지금 바로 쓸 수 있어요</p>}
 
     {notice && <div className={`insight-toast is-${notice.kind}`} role="status" aria-live="polite">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /></svg>
@@ -102,17 +104,23 @@ export function InsightAction({ insight }: { insight: InsightHandle }) {
         <header className="insight-dialog-head">
           <div>
             <p className="insight-dialog-kicker"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /></svg>AI 분석</p>
-            <h2 id="insight-dialog-title">내 채팅을 AI가 읽고 한 줄로 말해 줘요</h2>
+            <h2 id="insight-dialog-title">AI가 채팅방 속 나를 알려 줘요</h2>
           </div>
           <CloseButton onClick={close} />
         </header>
-        <ul className="insight-terms">
-          <li><b>내 채팅 원문이 외부 AI 서비스로 전송돼요.</b> 카드를 쓰는 데만 써요.</li>
-          <li>만들어진 카드는 리캡에 저장되고 내 리캡에서만 보여요.</li>
-          <li>AI가 쓴 글이라 틀린 부분이 있을 수 있어요.</li>
-          <li>티켓 한 장을 써요. 지금 {tickets}장 있어요.{done ? " 새로 만들면 지금 카드는 바뀌어요." : ""}</li>
-        </ul>
-        <p className="insight-dialog-note">자세한 내용은 <a href="/privacy/">개인정보 처리방침</a>에 있어요.</p>
+        <p className="insight-dialog-lead">내 채팅을 바탕으로 한 줄 소개와 칭호가 담긴 카드를 만들어요. 카드는 나만 볼 수 있어요.</p>
+        <p className="insight-dialog-ticket"><TicketIcon />티켓 1장 사용 · 지금 {tickets}장 있어요</p>
+        {/* 동의 내용은 그대로 두고 접어 둔다. 펼치지 않아도 무엇에 동의하는지는 접힌 제목이 말한다. */}
+        <details className="insight-terms">
+          <summary>채팅 전송과 저장 안내</summary>
+          <ul>
+            <li>카드를 만들기 위해 내 채팅 원문이 외부 AI 서비스로 전송돼요. 카드를 쓰는 데만 써요.</li>
+            <li>만들어진 카드는 리캡에 저장되고 내 리캡에서만 보여요.</li>
+            <li>AI가 쓴 글이라 틀린 부분이 있을 수 있어요.</li>
+            {done && <li>새로 만들면 지금 카드는 바뀌어요.</li>}
+          </ul>
+          <p>자세한 내용은 <a href="/privacy/">개인정보 처리방침</a>에 있어요.</p>
+        </details>
         <div className="insight-dialog-actions">
           <button type="button" className="btn btn-outline" onClick={close}>취소</button>
           <button type="button" className="btn btn-default" onClick={agree}>동의하고 요청</button>
@@ -141,6 +149,10 @@ export function InsightAction({ insight }: { insight: InsightHandle }) {
       </div>
     </dialog>
   </div>;
+}
+
+export function TicketIcon() {
+  return <svg className="insight-ticket-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z" /><path d="M14 7v10" strokeDasharray="2 2" /></svg>;
 }
 
 export function sync(el: HTMLDialogElement | null, open: boolean) {
